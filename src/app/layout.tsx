@@ -10,21 +10,23 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased flex flex-col">
+      <body className="min-h-screen text-gray-900 antialiased flex flex-col" style={{ background: '#050d1f' }}>
         <div className="flex-1">{children}</div>
-        <footer className="border-t border-gray-200 bg-white py-4 px-6 text-center text-xs text-gray-500">
-          <span className="font-medium text-gray-700">QuickFormsPH</span>
-          <span className="mx-1 text-gray-400">v1.0.0</span>
-          <span className="mx-2 text-gray-300">·</span>
+        <footer className="border-t border-white/5 py-4 px-6 text-center text-xs text-blue-400/50">
+          <span className="font-medium text-blue-300/70">QuickFormsPH</span>
+          <span className="mx-1 text-blue-400/30">v1.0.0</span>
+          <span className="mx-2 text-blue-400/20">·</span>
           Developed by{' '}
           <a
-            href="http://www.jeffreygran.gran"
+            href="http://www.jeffreygran.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 hover:underline"
+            className="text-blue-400 hover:text-blue-300 underline"
           >
             J.Gran
           </a>
+          <span className="mx-2 text-blue-400/20">·</span>
+          <a href="/privacy" className="text-blue-400 hover:text-blue-300 underline">Privacy Policy</a>
         </footer>
       </body>
     </html>

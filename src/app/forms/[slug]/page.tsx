@@ -2,7 +2,11 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getFormBySlug, FormField, FormSchema } from '@/data/forms';
+
+const GCASH_NUMBER = process.env.NEXT_PUBLIC_GCASH_NUMBER ?? '0917-XXX-XXXX';
+const GCASH_NAME   = process.env.NEXT_PUBLIC_GCASH_NAME   ?? 'J. Gran';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type FormValues = Record<string, string>;
@@ -35,12 +39,18 @@ export default function FormWizardPage() {
   const form = getFormBySlug(slug);
 
   const [currentStep, setCurrentStep] = useState<StepIndex>(0);
-  const [values, setValues] = useState<FormValues>({});
-  const [hasDraft, setHasDraft] = useState(false);
-  const [mode, setMode] = useState<'form' | 'review' | 'preview'>('form');
-  const [previewing, setPreviewing] = useState(false);
+  const [values, setValues]             = useState<FormValues>({});
+  const [hasDraft, setHasDraft]         = useState(false);
+  const [mode, setMode]                 = useState<'form' | 'review' | 'preview'>('form');
+  const [previewing, setPreviewing]     = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState('');
-  const [pdfBlobUrl, setPdfBlobUrl] = useState('');
+
+  // Privacy & payment modal state
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [downloadCode, setDownloadCode]         = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [paying, setPaying]                     = useState(false);
 
   // Populate today's date for the date field
   useEffect(() => {
@@ -130,6 +140,25 @@ export default function FormWizardPage() {
     setHasDraft(true);
   }
 
+  // ── Privacy gate — check acknowledgement before preview ──────────────────
+  function handlePreviewRequest() {
+    try {
+      if (localStorage.getItem('qfph_privacy_ack') === '1') {
+        handlePreviewInPDF();
+      } else {
+        setShowPrivacyModal(true);
+      }
+    } catch {
+      setShowPrivacyModal(true);
+    }
+  }
+
+  function handlePrivacyAck() {
+    try { localStorage.setItem('qfph_privacy_ack', '1'); } catch {}
+    setShowPrivacyModal(false);
+    handlePreviewInPDF();
+  }
+
   // ── Preview in PDF: generate PDF → render page 1 as image with watermark ──
   async function handlePreviewInPDF() {
     setPreviewing(true);
@@ -143,7 +172,7 @@ export default function FormWizardPage() {
 
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
-      setPdfBlobUrl(blobUrl);
+      // blob used only for PDF.js preview rendering — actual download goes via /api/payment/confirm
 
       // Render PDF page 1 to canvas
       const arrayBuffer = await blob.arrayBuffer();
@@ -194,20 +223,44 @@ export default function FormWizardPage() {
     }
   }
 
-  // ── Download already-generated PDF ────────────────────────────────────────
-  function handleDownloadPDF() {
-    if (!pdfBlobUrl || !form) return;
-    const firstName = (values.first_name ?? '').trim();
-    const lastName  = (values.last_name  ?? '').trim();
-    const fullName  = [firstName, lastName].filter(Boolean).join(' ') || 'Applicant';
-    const safeName  = fullName.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
-    const a = document.createElement('a');
-    a.href = pdfBlobUrl;
-    a.download = `${safeName} - ${form.agency} - ${form.code}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    clearDraft(slug);
+  // ── Payment confirmed → generate final PDF + return 5-digit code ──────────
+  async function handlePaymentConfirm() {
+    if (!form) return;
+    setPaying(true);
+    try {
+      const res = await fetch('/api/payment/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, values }),
+      });
+      if (!res.ok) throw new Error('Payment confirmation failed');
+
+      const code    = res.headers.get('X-Download-Code') ?? '';
+      const blob    = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      const firstName = (values.first_name ?? '').trim();
+      const lastName  = (values.last_name  ?? '').trim();
+      const fullName  = [firstName, lastName].filter(Boolean).join(' ') || 'Applicant';
+      const safeName  = fullName.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+      const a    = document.createElement('a');
+      a.href     = blobUrl;
+      a.download = `${safeName} - ${form.agency} - ${form.code}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+
+      setDownloadCode(code);
+      setShowPaymentModal(false);
+      setShowSuccessModal(true);
+      clearDraft(slug);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setPaying(false);
+    }
   }
 
   if (!form) {
@@ -232,27 +285,52 @@ export default function FormWizardPage() {
 
   if (mode === 'review') {
     return (
-      <ReviewScreen
-        form={form}
-        values={values}
-        onEdit={(stepIdx) => {
-          if (stepIdx !== undefined) setCurrentStep(stepIdx as StepIndex);
-          setMode('form');
-        }}
-        onPreview={handlePreviewInPDF}
-        previewing={previewing}
-      />
+      <>
+        <ReviewScreen
+          form={form}
+          values={values}
+          onEdit={(stepIdx) => {
+            if (stepIdx !== undefined) setCurrentStep(stepIdx as StepIndex);
+            setMode('form');
+          }}
+          onPreview={handlePreviewRequest}
+          previewing={previewing}
+        />
+        {showPrivacyModal && (
+          <PrivacyConsentModal
+            onAck={handlePrivacyAck}
+            onClose={() => setShowPrivacyModal(false)}
+          />
+        )}
+      </>
     );
   }
 
   if (mode === 'preview') {
     return (
-      <PreviewScreen
-        form={form}
-        imageUrl={previewImageUrl}
-        onDownload={handleDownloadPDF}
-        onBack={() => setMode('review')}
-      />
+      <>
+        <PreviewScreen
+          form={form}
+          imageUrl={previewImageUrl}
+          onDownload={() => setShowPaymentModal(true)}
+          onBack={() => setMode('review')}
+        />
+        {showPaymentModal && (
+          <PaymentModal
+            gcashNumber={GCASH_NUMBER}
+            gcashName={GCASH_NAME}
+            onConfirm={handlePaymentConfirm}
+            onClose={() => setShowPaymentModal(false)}
+            paying={paying}
+          />
+        )}
+        {showSuccessModal && (
+          <SuccessCodeModal
+            code={downloadCode}
+            onClose={() => { setShowSuccessModal(false); router.push('/'); }}
+          />
+        )}
+      </>
     );
   }
 
@@ -741,6 +819,250 @@ function PreviewScreen({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── PrivacyConsentModal ──────────────────────────────────────────────────────
+function PrivacyConsentModal({
+  onAck,
+  onClose,
+}: {
+  onAck: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-700 to-blue-900 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🔒</span>
+            <div>
+              <div className="text-white font-bold text-sm">Privacy Notice</div>
+              <div className="text-blue-200 text-[11px]">Republic Act No. 10173 — Data Privacy Act of 2012</div>
+            </div>
+          </div>
+        </div>
+        {/* Body */}
+        <div className="p-5 space-y-3">
+          <p className="text-sm text-gray-700 leading-relaxed">
+            To generate your PDF, QuickFormsPH will use the personal information you entered — your
+            name, address, and other form details — <strong>solely to pre-fill the official government
+            form template</strong>.
+          </p>
+          <ul className="text-xs text-gray-600 space-y-1.5">
+            <li className="flex items-start gap-2">
+              <span className="text-green-600 font-bold mt-0.5">✓</span>
+              Processed securely over HTTPS — not logged or retained on our servers.
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-600 font-bold mt-0.5">✓</span>
+              Draft data stays in your browser (localStorage) only.
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-600 font-bold mt-0.5">✓</span>
+              Your data is never sold or shared with third parties.
+            </li>
+          </ul>
+          <Link
+            href="/privacy"
+            target="_blank"
+            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+          >
+            Read full Privacy Policy ↗
+          </Link>
+        </div>
+        {/* Actions */}
+        <div className="px-5 pb-5 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-xl border border-gray-300 py-3 text-sm text-gray-600 hover:bg-gray-50 font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onAck}
+            className="flex-1 rounded-xl bg-blue-700 py-3 text-sm text-white font-semibold hover:bg-blue-800"
+          >
+            I Understand &amp; Agree
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PaymentModal ─────────────────────────────────────────────────────────────
+function PaymentModal({
+  gcashNumber,
+  gcashName,
+  onConfirm,
+  onClose,
+  paying,
+}: {
+  gcashNumber: string;
+  gcashName: string;
+  onConfirm: () => void;
+  onClose: () => void;
+  paying: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#0b7c3e] to-[#00a651] px-5 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">💚</span>
+              <div>
+                <div className="text-white font-bold text-sm">Support QuickFormsPH</div>
+                <div className="text-green-100 text-[11px]">One-time ₱5.00 via GCash</div>
+              </div>
+            </div>
+            <button onClick={onClose} className="text-green-200 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center">×</button>
+          </div>
+        </div>
+        {/* Body */}
+        <div className="p-5 space-y-4">
+          {/* Heartfelt note */}
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+            <p className="text-xs text-blue-800 leading-relaxed">
+              This site was built over countless sleepless nights to help Filipinos fill government
+              forms <strong>for free</strong>. A small ₱5 tip goes a long way to cover hosting and
+              keep this running. <span className="font-medium text-blue-700">Salamat sa suporta! 🙏</span>
+            </p>
+          </div>
+          {/* GCash details */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2.5">
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">GCash Payment Details</div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">Number</span>
+              <span className="text-sm font-black text-gray-900 font-mono tracking-wide">{gcashNumber}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">Name</span>
+              <span className="text-sm font-semibold text-gray-900">{gcashName}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">Amount</span>
+              <span className="text-base font-black text-green-700">₱5.00</span>
+            </div>
+          </div>
+          {/* Steps */}
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1.5">
+            <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">How to Pay</div>
+            <p className="text-xs text-amber-800 leading-relaxed">
+              <strong>1.</strong> Open GCash and send ₱5 to the number above.<br />
+              <strong>2.</strong> Upload your payment screenshot at{' '}
+              <a
+                href="https://marketplace.jeffreygran.com/orders"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline font-semibold"
+              >
+                marketplace.jeffreygran.com/orders ↗
+              </a><br />
+              <strong>3.</strong> Click the button below to download your clean PDF.
+            </p>
+          </div>
+        </div>
+        {/* Actions */}
+        <div className="px-5 pb-5 space-y-2">
+          <button
+            onClick={onConfirm}
+            disabled={paying}
+            className="w-full rounded-xl bg-[#00a651] py-3.5 text-sm font-bold text-white hover:bg-[#008c44] disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+          >
+            {paying ? (
+              <>
+                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Generating PDF…
+              </>
+            ) : (
+              "✅ I've Paid — Download My PDF"
+            )}
+          </button>
+          <button
+            onClick={onClose}
+            disabled={paying}
+            className="w-full rounded-xl border border-gray-300 py-2.5 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SuccessCodeModal ─────────────────────────────────────────────────────────
+function SuccessCodeModal({
+  code,
+  onClose,
+}: {
+  code: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const expiry    = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+  const expiryStr = expiry.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  function handleCopy() {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }).catch(() => {});
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-br from-blue-800 via-blue-700 to-indigo-700 px-5 py-5 text-center">
+          <div className="text-4xl mb-1">🎉</div>
+          <div className="text-white font-bold text-base">Thank you for the support!</div>
+          <div className="text-blue-200 text-xs mt-0.5">Your PDF is downloading now</div>
+        </div>
+        {/* Body */}
+        <div className="p-5 space-y-4">
+          <div>
+            <p className="text-xs text-gray-500 text-center mb-2">
+              Save this code to re-download your PDF anytime within 2 days:
+            </p>
+            {/* Code display */}
+            <div className="flex items-center gap-2 bg-gray-900 rounded-xl p-3">
+              <div className="flex-1 text-center">
+                <span className="text-2xl font-black tracking-[0.3em] text-white font-mono">
+                  {code || '—'}
+                </span>
+              </div>
+              <button
+                onClick={handleCopy}
+                className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                {copied ? '✓ Copied!' : 'Copy'}
+              </button>
+            </div>
+            <p className="text-[10px] text-center text-red-500 mt-2 font-medium">
+              ⏰ Expires: {expiryStr} — Note it down!
+            </p>
+          </div>
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-800 leading-relaxed">
+            To re-download using this code, go to{' '}
+            <span className="font-semibold">quickformsph.com</span> and enter your code in the
+            &quot;Download by Code&quot; section on the home page.
+          </div>
+        </div>
+        <div className="px-5 pb-5">
+          <button
+            onClick={onClose}
+            className="w-full rounded-xl bg-blue-700 py-3 text-sm font-semibold text-white hover:bg-blue-800 transition-colors"
+          >
+            Done — Back to Home
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

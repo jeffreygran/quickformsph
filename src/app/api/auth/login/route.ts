@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT } from 'jose';
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? 'skouzen';
-const ADMIN_PASSWORD = process.env.ADMIN_DEFAULT_PASSWORD ?? 'QuickForms@2026!';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'QuickForms@2026!';
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET ?? 'change-me-in-production-jwt-secret-32chars'
 );

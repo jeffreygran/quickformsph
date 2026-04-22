@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FORMS } from '@/data/forms';
 
-type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings';
+type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('dashboard');
@@ -16,11 +16,12 @@ export default function AdminPage() {
   }
 
   const tabs: { id: AdminTab; icon: string; label: string }[] = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-    { id: 'catalog', icon: '📋', label: 'Form Catalog' },
-    { id: 'upload', icon: '⬆️', label: 'Upload PDF' },
-    { id: 'storage', icon: '💾', label: 'Storage Config' },
-    { id: 'settings', icon: '⚙️', label: 'Settings' },
+    { id: 'dashboard',   icon: '📊', label: 'Dashboard' },
+    { id: 'catalog',     icon: '📋', label: 'Form Catalog' },
+    { id: 'upload',      icon: '⬆️', label: 'Upload PDF' },
+    { id: 'storage',     icon: '💾', label: 'Storage Config' },
+    { id: 'suggestions', icon: '💡', label: 'Suggestions' },
+    { id: 'settings',    icon: '⚙️', label: 'Settings' },
   ];
 
   return (
@@ -99,11 +100,12 @@ export default function AdminPage() {
         </header>
 
         <main className="flex-1 p-6 overflow-y-auto">
-          {tab === 'dashboard' && <DashboardTab />}
-          {tab === 'catalog' && <CatalogTab />}
-          {tab === 'upload' && <UploadTab />}
-          {tab === 'storage' && <StorageConfigTab />}
-          {tab === 'settings' && <SettingsTab />}
+          {tab === 'dashboard'   && <DashboardTab />}
+          {tab === 'catalog'     && <CatalogTab />}
+          {tab === 'upload'      && <UploadTab />}
+          {tab === 'storage'     && <StorageConfigTab />}
+          {tab === 'suggestions' && <SuggestionsTab />}
+          {tab === 'settings'    && <SettingsTab />}
         </main>
       </div>
     </div>
@@ -387,6 +389,155 @@ function SettingsTab() {
           Clear All Generated PDFs
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── SuggestionsTab ───────────────────────────────────────────────────────────
+interface Suggestion {
+  id: string;
+  name: string;
+  email: string;
+  suggestion: string;
+  created_at: number;
+  status: 'pending' | 'reviewed' | 'added';
+}
+
+const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
+  pending:  { label: 'Pending',  cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  reviewed: { label: 'Reviewed', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+  added:    { label: 'Added ✓',  cls: 'bg-green-50 text-green-700 border-green-200' },
+};
+
+function SuggestionsTab() {
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState('');
+  const [filter, setFilter]           = useState<'all' | 'pending' | 'reviewed' | 'added'>('all');
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res  = await fetch('/api/suggestions');
+      if (!res.ok) throw new Error('Unauthorized');
+      const data = await res.json() as { suggestions: Suggestion[] };
+      setSuggestions(data.suggestions ?? []);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleStatus(id: string, status: string) {
+    setSuggestions((prev) => prev.map((s) => s.id === id ? { ...s, status: status as Suggestion['status'] } : s));
+    await fetch('/api/suggestions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status }),
+    });
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this suggestion?')) return;
+    setSuggestions((prev) => prev.filter((s) => s.id !== id));
+    await fetch('/api/suggestions', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+  }
+
+  const displayed = suggestions.filter((s) => filter === 'all' || s.status === filter);
+  const counts    = {
+    all:      suggestions.length,
+    pending:  suggestions.filter((s) => s.status === 'pending').length,
+    reviewed: suggestions.filter((s) => s.status === 'reviewed').length,
+    added:    suggestions.filter((s) => s.status === 'added').length,
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="text-base font-semibold text-gray-900">💡 User Suggestions</h2>
+        <button onClick={load} className="text-xs text-blue-600 border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50">
+          ↻ Refresh
+        </button>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {(['all', 'pending', 'reviewed', 'added'] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors capitalize ${
+              filter === f ? 'bg-blue-700 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {f === 'all' ? 'All' : STATUS_LABELS[f].label} ({counts[f]})
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">{error}</div>
+      )}
+
+      {loading ? (
+        <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>
+      ) : displayed.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gray-200 p-10 text-center text-sm text-gray-400">
+          No suggestions yet.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {displayed.map((s) => {
+            const meta   = STATUS_LABELS[s.status] ?? STATUS_LABELS.pending;
+            const dateStr = new Date(s.created_at).toLocaleDateString('en-PH', {
+              month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
+            });
+            return (
+              <div key={s.id} className="rounded-2xl bg-white border border-gray-200 p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900 leading-relaxed">{s.suggestion}</p>
+                    <div className="mt-2 flex flex-wrap gap-2 items-center text-xs text-gray-400">
+                      {s.name && <span className="font-medium text-gray-600">{s.name}</span>}
+                      {s.email && <span>{s.email}</span>}
+                      <span>·</span>
+                      <span>{dateStr}</span>
+                    </div>
+                  </div>
+                  <span className={`shrink-0 text-xs font-semibold border rounded-full px-2 py-0.5 ${meta.cls}`}>
+                    {meta.label}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  {(['pending', 'reviewed', 'added'] as const).map((st) => (
+                    <button
+                      key={st}
+                      onClick={() => handleStatus(s.id, st)}
+                      disabled={s.status === st}
+                      className={`text-xs rounded-lg px-2.5 py-1 border font-medium transition-colors disabled:opacity-40 disabled:cursor-default ${STATUS_LABELS[st].cls} hover:opacity-80`}
+                    >
+                      {STATUS_LABELS[st].label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => handleDelete(s.id)}
+                    className="ml-auto text-xs text-red-500 border border-red-200 rounded-lg px-2.5 py-1 hover:bg-red-50 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
