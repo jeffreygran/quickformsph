@@ -34,6 +34,9 @@ jobs:
           NODE_ENV: production
         run: npm run build
 
+      - name: Prune dev dependencies
+        run: npm prune --production
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -43,15 +46,16 @@ jobs:
         run: |
           zip -r /tmp/deploy.zip . \
             --exclude "*.git*" \
-            --exclude "node_modules/*" \
-            --exclude ".next/cache/*"
+            --exclude ".next/cache/*" \
+            --exclude "*.test.*" \
+            --exclude "*.spec.*"
 
           az webapp deploy \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --src-path /tmp/deploy.zip \
             --type zip \
-            --async true
+            --async false
 
       - name: Verify deployment URL
         run: |
