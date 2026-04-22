@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -10,23 +11,18 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen text-gray-900 antialiased flex flex-col" style={{ background: '#050d1f' }}>
+      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased flex flex-col">
         <div className="flex-1">{children}</div>
-        <footer className="border-t border-white/5 py-4 px-6 text-center text-xs text-blue-400/50">
-          <span className="font-medium text-blue-300/70">QuickFormsPH</span>
-          <span className="mx-1 text-blue-400/30">v1.0.0</span>
-          <span className="mx-2 text-blue-400/20">·</span>
+        <footer className="border-t border-gray-200 py-4 px-6 text-center text-xs text-gray-400">
+          <span className="font-medium text-gray-600">QuickFormsPH</span>
+          <span className="mx-1">v1.0.0</span>
+          <span className="mx-2 text-gray-300">·</span>
           Developed by{' '}
-          <a
-            href="http://www.jeffreygran.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-400 hover:text-blue-300 underline"
-          >
+          <Link href="/about" className="text-blue-600 hover:text-blue-800 underline">
             J.Gran
-          </a>
-          <span className="mx-2 text-blue-400/20">·</span>
-          <a href="/privacy" className="text-blue-400 hover:text-blue-300 underline">Privacy Policy</a>
+          </Link>
+          <span className="mx-2 text-gray-300">·</span>
+          <Link href="/privacy" className="text-blue-600 hover:text-blue-800 underline">Privacy Policy</Link>
         </footer>
       </body>
     </html>
