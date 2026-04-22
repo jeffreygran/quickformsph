@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -39,9 +40,18 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="text-center mb-8">
-          <span className="text-4xl">🔐</span>
-          <h1 className="mt-2 text-xl font-bold text-gray-900">Admin Login</h1>
-          <p className="text-sm text-gray-500 mt-1">QuickFormsPH Portal</p>
+          <div className="flex justify-center mb-3">
+            <Image
+              src="/quickformsph-logo-transparent-slogan.png"
+              alt="QuickFormsPH"
+              width={200}
+              height={54}
+              className="h-12 w-auto object-contain"
+              priority
+            />
+          </div>
+          <h1 className="mt-1 text-lg font-bold text-gray-900">Admin Login</h1>
+          <p className="text-xs text-gray-400 mt-0.5">Restricted access — authorized personnel only</p>
         </div>
 
         <form

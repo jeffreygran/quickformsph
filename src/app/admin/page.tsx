@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { FORMS } from '@/data/forms';
 
 type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions';
@@ -41,11 +42,15 @@ export default function AdminPage() {
         }`}
       >
         <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
-          <span className="text-xl">🇵🇭</span>
-          <div>
-            <div className="text-sm font-bold text-blue-700">QuickFormsPH</div>
-            <div className="text-xs text-gray-400">Admin Portal</div>
-          </div>
+          <Image
+            src="/quickformsph-logo-transparent-slogan.png"
+            alt="QuickFormsPH"
+            width={140}
+            height={38}
+            className="h-8 w-auto object-contain"
+            priority
+          />
+          <span className="ml-1 text-[10px] font-semibold text-gray-400 border border-gray-200 rounded px-1.5 py-0.5">Admin</span>
         </div>
 
         <nav className="flex-1 py-3 overflow-y-auto">
