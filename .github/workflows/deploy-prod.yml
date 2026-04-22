@@ -38,7 +38,7 @@ jobs:
         run: |
           # Copy static assets into the standalone server directory
           cp -r .next/static .next/standalone/.next/static
-          cp -r public .next/standalone/public
+          cp -r public/. .next/standalone/public/
 
       - name: Login to Azure
         uses: azure/login@v2
