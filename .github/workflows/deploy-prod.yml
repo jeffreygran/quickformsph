@@ -55,7 +55,7 @@ jobs:
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --src-path /tmp/deploy.zip \
             --type zip \
-            --async false
+            --async true
 
       - name: Verify deployment URL
         run: |
