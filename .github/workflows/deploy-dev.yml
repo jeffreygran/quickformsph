@@ -1,0 +1,41 @@
+name: Deploy to DEV (DGX)
+
+on:
+  push:
+    branches:
+      - dev
+      - develop
+
+env:
+  DGX_HOST: 192.168.79.11
+  DGX_USER: skouzen
+  PROJECT_DIR: /home/skouzen/projects/quickformsph-dev
+
+jobs:
+  deploy-dev:
+    name: Deploy to DGX Local Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Deploy to DGX via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ env.DGX_HOST }}
+          username: ${{ env.DGX_USER }}
+          key: ${{ secrets.DGX_SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ env.PROJECT_DIR }}
+            git pull origin dev
+            npm ci
+            npm run build
+            sudo systemctl restart quickformsph
+            echo "DEV deploy complete — QuickFormsPH running on port 3400"
