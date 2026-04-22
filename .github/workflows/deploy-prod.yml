@@ -9,6 +9,7 @@ on:
 env:
   NODE_VERSION: '20'
   AZURE_WEBAPP_NAME: quickformsph-webapp
+  AZURE_RESOURCE_GROUP: quickformsph-rg
 
 jobs:
   build-and-deploy:
@@ -33,9 +34,25 @@ jobs:
           NODE_ENV: production
         run: npm run build
 
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
+      - name: Login to Azure
+        uses: azure/login@v2
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: .
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Package and deploy to Azure Web App
+        run: |
+          zip -r /tmp/deploy.zip . \
+            --exclude "*.git*" \
+            --exclude "node_modules/*" \
+            --exclude ".next/cache/*"
+
+          az webapp deploy \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --src-path /tmp/deploy.zip \
+            --type zip \
+            --async true
+
+      - name: Verify deployment URL
+        run: |
+          echo "Deployed → https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
