@@ -146,7 +146,16 @@ export default function HomePage() {
           </button>
 
           {/* Right nav */}
-          <nav className="flex items-center gap-2">            {/* ── Download Code Button ── */}
+          <nav className="flex items-center gap-2">
+            {/* ── Forms link ── */}
+            <Link
+              href="/forms"
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              📋 <span className="hidden sm:inline">Forms</span>
+            </Link>
+
+            {/* ── Download Code Button ── */}
             <div className="relative" ref={codePanelRef}>
               <button
                 onClick={() => { setShowCodePanel((v) => !v); setCodeError(''); setShowConfirm(false); }}
