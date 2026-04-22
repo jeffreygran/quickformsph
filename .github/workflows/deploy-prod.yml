@@ -29,26 +29,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Next.js app
+      - name: Build Next.js app (standalone)
         env:
           NODE_ENV: production
         run: npm run build
 
-      - name: Prune dev dependencies
-        run: npm prune --production
+      - name: Assemble standalone deployment package
+        run: |
+          # Copy static assets into the standalone server directory
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
 
       - name: Login to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Package and deploy to Azure Web App
+      - name: Deploy standalone package to Azure Web App
         run: |
-          zip -r /tmp/deploy.zip . \
-            --exclude "*.git*" \
-            --exclude ".next/cache/*" \
-            --exclude "*.test.*" \
-            --exclude "*.spec.*"
+          cd .next/standalone
+          zip -r /tmp/deploy.zip .
 
           az webapp deploy \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
