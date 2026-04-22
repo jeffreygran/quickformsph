@@ -52,7 +52,7 @@ const hqpPff356: FormSchema = {
   steps: [
     {
       label: 'Account Info',
-      fieldIds: ['mp2_account_no', 'last_name', 'first_name', 'middle_name', 'name_ext', 'mid_no'],
+      fieldIds: ['mp2_account_no', 'branch', 'last_name', 'first_name', 'middle_name', 'name_ext', 'mid_no'],
     },
     {
       label: 'Contact & Address',
@@ -73,6 +73,15 @@ const hqpPff356: FormSchema = {
       placeholder: 'e.g., 01-2345-6789-0',
       hint: 'Your 12-digit Pag-IBIG MP2 savings account number',
       inputMode: 'numeric',
+      step: 1,
+    },
+    {
+      id: 'branch',
+      label: 'Pag-IBIG Branch',
+      type: 'text',
+      required: false,
+      placeholder: 'e.g., Quezon City Branch',
+      hint: 'Branch where you are submitting this form',
       step: 1,
     },
     {
@@ -300,7 +309,7 @@ const philhealthPmrf: FormSchema = {
     {
       label: 'Personal Info',
       fieldIds: [
-        'pin',
+        'pin', 'konsulta_provider',
         'last_name', 'first_name', 'middle_name', 'name_ext',
         'dob_month', 'dob_day', 'dob_year', 'place_of_birth',
         'sex', 'civil_status', 'citizenship',
@@ -323,7 +332,7 @@ const philhealthPmrf: FormSchema = {
     },
     {
       label: 'Member Type',
-      fieldIds: ['member_type', 'profession', 'monthly_income'],
+      fieldIds: ['member_type', 'profession', 'monthly_income', 'proof_of_income'],
     },
   ],
   fields: [
@@ -332,11 +341,19 @@ const philhealthPmrf: FormSchema = {
       id: 'pin',
       label: 'PhilHealth Identification Number (PIN)',
       type: 'text',
-      required: false,
-      optional_note: 'For updates only',
+      required: true,
       placeholder: 'e.g., 12-345-678-9012',
-      hint: 'Leave blank if registering for the first time. Required if updating an existing record.',
       inputMode: 'numeric',
+      step: 1,
+    },
+    {
+      id: 'konsulta_provider',
+      label: 'Preferred KonSulTa Provider',
+      type: 'text',
+      required: false,
+      optional_note: 'Optional',
+      placeholder: 'e.g., 12-345-678-9012',
+      hint: 'Your preferred KonSulTa/Primary Care Provider number',
       step: 1,
     },
     {
@@ -679,6 +696,16 @@ const philhealthPmrf: FormSchema = {
       placeholder: 'e.g., 15000',
       hint: 'Required for Self-Earning, Kasambahay, Family Driver',
       inputMode: 'numeric',
+      step: 4,
+    },
+    {
+      id: 'proof_of_income',
+      label: 'Proof of Income',
+      type: 'text',
+      required: false,
+      optional_note: 'If applicable',
+      placeholder: 'e.g., Certificate of Employment',
+      hint: 'Document proving your monthly income (e.g., payslip, ITR, COE)',
       step: 4,
     },
   ],

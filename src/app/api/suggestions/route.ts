@@ -3,6 +3,17 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import os from 'os';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { auditLog } from '@/lib/audit-log';
+import { sanitizeText, sanitizeEmail } from '@/lib/sanitize';
+
+function getIP(req: NextRequest): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+    req.headers.get('x-real-ip') ??
+    '0.0.0.0'
+  );
+}
 
 const DATA_DIR = process.env.DATA_DIR
   ? path.join(process.env.DATA_DIR, 'suggestions')
@@ -14,13 +25,25 @@ function ensureDir(dir: string) {
 
 /** POST /api/suggestions — public, submit a suggestion */
 export async function POST(req: NextRequest) {
+  const ip = getIP(req);
+
+  // Rate limit: 5 suggestions / hour per IP
+  const rl = checkRateLimit(ip, 'suggestions', { max: 5, windowMs: 60 * 60 * 1000 });
+  if (!rl.allowed) {
+    auditLog('rate_limit_hit', ip, 'Suggestions rate limit exceeded');
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } },
+    );
+  }
+
   const body = await req.json().catch(() => ({})) as {
     name?: string;
     email?: string;
     suggestion?: string;
   };
 
-  const suggestion = (body.suggestion ?? '').trim();
+  const suggestion = sanitizeText(body.suggestion ?? '', 2000);
   if (suggestion.length < 3) {
     return NextResponse.json({ error: 'Suggestion is too short' }, { status: 400 });
   }
@@ -32,9 +55,9 @@ export async function POST(req: NextRequest) {
 
   const entry = {
     id,
-    name:       (body.name  ?? '').trim().slice(0, 100),
-    email:      (body.email ?? '').trim().slice(0, 200),
-    suggestion: suggestion.slice(0, 2000),
+    name:       sanitizeText(body.name  ?? '', 100),
+    email:      sanitizeEmail(body.email ?? ''),
+    suggestion,
     created_at: now,
     status:     'pending' as const,
   };

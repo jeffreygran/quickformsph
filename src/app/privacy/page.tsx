@@ -20,10 +20,18 @@ export default function PrivacyPolicyPage() {
           <p className="text-sm text-gray-500 mt-1">Last updated: April 2026</p>
         </div>
 
+        {/* Non-affiliation notice */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-5 text-sm text-yellow-900">
+          <strong>⚠️ Disclaimer:</strong> QuickFormsPH is a <strong>private, independent tool</strong>. It is
+          not affiliated with, endorsed by, or connected to any Philippine government agency. Forms are reproduced
+          from publicly available official templates solely to help users complete them correctly.
+        </div>
+
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 text-sm text-blue-900">
           <strong>Short version:</strong> Your personal data (name, address, IDs) is used <em>only</em> to fill
-          your PDF form in real time. We do not store, share, or process your data on our servers.
-          Everything happens in your browser.
+          your PDF form. Draft data never leaves your browser. When you generate a PDF, your data is sent over
+          HTTPS to our server, used to produce the PDF, and — if you paid the ₱5 support fee — stored
+          <strong> encrypted</strong> for up to 48 hours to allow re-downloads, then permanently deleted.
         </div>
 
         <section className="space-y-3">
@@ -39,15 +47,25 @@ export default function PrivacyPolicyPage() {
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-gray-900">2. How We Handle Your Data</h2>
           <ul className="text-sm text-gray-700 leading-relaxed space-y-2 list-disc list-inside">
-            <li><strong>In-browser processing:</strong> Your form data is processed client-side (in your browser) to render the PDF preview.</li>
-            <li><strong>Server-side PDF generation:</strong> When you click &quot;Generate &amp; Download PDF,&quot; your form values are sent over an encrypted (HTTPS) connection to our server solely to embed them into the official PDF template. This data is not logged or stored after the PDF is generated.</li>
             <li><strong>Auto-save drafts:</strong> Your in-progress entries are saved to your browser&apos;s <code>localStorage</code> so you can resume later. This data never leaves your device.</li>
-            <li><strong>Download codes:</strong> If you pay the ₱5 support fee, a temporary record linking your code to your form data is stored for up to 48 hours, then automatically deleted. This allows you to re-download your PDF within that window.</li>
+            <li><strong>PDF generation:</strong> Your form values are sent over HTTPS, stored <strong>encrypted</strong> (AES-256-GCM) on our server for up to 48 hours to enable PDF re-downloads via your unique code. Once the code expires, all associated data is permanently and automatically deleted.</li>
+            <li><strong>Download codes:</strong> A temporary record linking your code to your encrypted form data is stored for up to 48 hours, then automatically deleted. This allows you to re-download your PDF within that window.</li>
           </ul>
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">3. Republic Act No. 10173 — Data Privacy Act of 2012</h2>
+          <h2 className="text-base font-semibold text-gray-900">3. Security Logs (IP Addresses)</h2>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            To protect against abuse and unauthorized access, our servers maintain security audit logs.
+            These logs record your IP address alongside security-relevant events (such as rate-limit
+            violations or blocked requests). IP addresses are personal data under RA 10173 and are
+            handled accordingly. Security logs are retained for a rolling 90-day window, after which
+            they are automatically purged.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-gray-900">4. Republic Act No. 10173 — Data Privacy Act of 2012</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
             QuickFormsPH is committed to protecting your personal data in compliance with the Philippine
             Data Privacy Act of 2012 (RA 10173) and its implementing rules and regulations. By using
@@ -57,12 +75,13 @@ export default function PrivacyPolicyPage() {
           <p className="text-sm text-gray-700 leading-relaxed">
             Your data rights under RA 10173 include: the right to be informed, right of access, right
             to correction, right to erasure or blocking, right to damages, right to file a complaint,
-            right to data portability, and right to object.
+            right to data portability, and right to object. To exercise any of these rights, contact
+            us at the address in Section 7.
           </p>
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">4. Cookies &amp; Analytics</h2>
+          <h2 className="text-base font-semibold text-gray-900">5. Cookies &amp; Analytics</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
             We do not use tracking cookies or third-party analytics. The only browser storage we use
             is <code>localStorage</code> for saving your form drafts and your privacy acknowledgement.
@@ -70,7 +89,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">5. Third Parties</h2>
+          <h2 className="text-base font-semibold text-gray-900">6. Third Parties</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
             We do not sell, share, or transfer your personal data to third parties. Government agencies
             are not automatically notified when you fill a form — you still need to print and submit
@@ -79,12 +98,25 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">6. Contact</h2>
+          <h2 className="text-base font-semibold text-gray-900">7. Contact &amp; Privacy Concerns</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
-            For privacy concerns or to exercise your data rights, please contact us at:{' '}
+            For privacy concerns, to exercise your RA 10173 data rights (access, correction, deletion,
+            portability), or to file a privacy complaint, please contact us at:{' '}
             <a href="mailto:hello@jeffreygran.com" className="text-blue-600 hover:underline">
               hello@jeffreygran.com
             </a>
+          </p>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            If your concern is not resolved to your satisfaction, you may file a complaint with the
+            National Privacy Commission (NPC) at{' '}
+            <a
+              href="https://www.privacy.gov.ph"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              www.privacy.gov.ph
+            </a>.
           </p>
         </section>
 

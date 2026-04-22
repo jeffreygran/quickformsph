@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFormBySlug } from '@/data/forms';
 import { generatePDF } from '@/lib/pdf-generator';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { auditLog } from '@/lib/audit-log';
+import { decryptValues, EncryptedBlob } from '@/lib/encrypt';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+
+function getIP(req: NextRequest): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+    req.headers.get('x-real-ip') ??
+    '0.0.0.0'
+  );
+}
 
 const DATA_DIR = process.env.DATA_DIR
   ? path.join(process.env.DATA_DIR, 'codes')
@@ -11,7 +22,10 @@ const DATA_DIR = process.env.DATA_DIR
 
 interface CodeEntry {
   slug: string;
-  values: Record<string, string>;
+  /** Encrypted form values — see src/lib/encrypt.ts */
+  encryptedValues: EncryptedBlob;
+  /** Legacy plain-text values from pre-encryption records (will be absent on new records) */
+  values?: Record<string, string>;
   name: string;
   formCode: string;
   agency: string;
@@ -20,9 +34,21 @@ interface CodeEntry {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { code: string } },
 ) {
+  const ip = getIP(req);
+
+  // Rate limit: 30 downloads / 5 min per IP (prevents code enumeration)
+  const rl = checkRateLimit(ip, 'download', { max: 30, windowMs: 5 * 60 * 1000 });
+  if (!rl.allowed) {
+    auditLog('rate_limit_hit', ip, 'Download rate limit exceeded');
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } },
+    );
+  }
+
   const raw  = params.code ?? '';
   const code = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
 
@@ -53,8 +79,23 @@ export async function GET(
     return NextResponse.json({ error: 'Form template not found' }, { status: 404 });
   }
 
+  // Decrypt form values. Supports legacy plain-text records (created before encryption was added).
+  let values: Record<string, string>;
   try {
-    const pdfBytes = await generatePDF(form, entry.values);
+    if (entry.encryptedValues) {
+      values = decryptValues(entry.encryptedValues);
+    } else if (entry.values) {
+      // Legacy record — plain text (will phase out naturally within 48h TTL)
+      values = entry.values;
+    } else {
+      return NextResponse.json({ error: 'Invalid code data' }, { status: 500 });
+    }
+  } catch {
+    return NextResponse.json({ error: 'Could not read form data' }, { status: 500 });
+  }
+
+  try {
+    const pdfBytes = await generatePDF(form, values);
     const safeName = entry.name
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, ' ')

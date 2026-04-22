@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FORMS, FormSchema } from '@/data/forms';
+import SuggestionModal from '@/components/SuggestionModal';
 
 const AGENCY_FILTERS = ['All', ...Array.from(new Set(FORMS.map((f) => f.agency)))];
 
@@ -68,7 +69,7 @@ export default function HomePage() {
   const handleLogoClick = useCallback((e: React.MouseEvent) => {
     if (!e.shiftKey) return;
     const now = Date.now();
-    if (now - lastClickRef.current < 400) router.push('/admin/login');
+    if (now - lastClickRef.current < 400) router.push('/mc/login');
     lastClickRef.current = now;
   }, [router]);
 
@@ -145,10 +146,7 @@ export default function HomePage() {
           </button>
 
           {/* Right nav */}
-          <nav className="flex items-center gap-2">
-            <Link href="/privacy" className="text-xs text-gray-500 hover:text-blue-700 transition-colors hidden sm:inline">Privacy</Link>
-
-            {/* ── Download Code Button ── */}
+          <nav className="flex items-center gap-2">            {/* ── Download Code Button ── */}
             <div className="relative" ref={codePanelRef}>
               <button
                 onClick={() => { setShowCodePanel((v) => !v); setCodeError(''); setShowConfirm(false); }}
@@ -269,7 +267,7 @@ export default function HomePage() {
         <div className="relative z-10 mx-auto max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-blue-100 font-medium mb-5">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-200 animate-pulse" />
-            Free · No sign-up · Works on mobile
+            No sign-up · Works on mobile
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight">
@@ -278,7 +276,7 @@ export default function HomePage() {
             <span className="text-blue-200">in Minutes</span>
           </h1>
           <p className="mt-3 text-sm text-blue-200 max-w-md mx-auto leading-relaxed">
-            Select a form, fill it on your phone, and download a print-ready PDF. No account needed.
+            Select a form, fill it out on your phone, and download a print-ready PDF. And no messy erasures.
           </p>
 
           {/* Search bar */}
@@ -296,7 +294,7 @@ export default function HomePage() {
           </div>
 
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {['📄 PDF Auto-Fill', '🔒 Privacy Protected', '📱 Mobile-Friendly', '⚡ Instant Download'].map((c) => (
+            {['📄 PDF Auto-Fill', '🔒 Privacy Protected'].map((c) => (
               <span key={c} className="text-xs bg-white/10 border border-white/20 text-blue-100 px-3 py-1 rounded-full">
                 {c}
               </span>
@@ -348,7 +346,7 @@ export default function HomePage() {
             onClick={() => setShowSuggestion(true)}
             className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
           >
-            💡 Suggest a form →
+            💡 Suggest a form &amp; Feedback
           </button>
         </div>
       </main>
@@ -379,99 +377,5 @@ function FormCard({ form }: { form: FormSchema }) {
         <span className="text-xs font-semibold text-blue-700">Fill Now →</span>
       </div>
     </Link>
-  );
-}
-
-// ─── SuggestionModal ─────────────────────────────────────────────────────────
-function SuggestionModal({ onClose }: { onClose: () => void }) {
-  const [name, setName]             = useState('');
-  const [email, setEmail]           = useState('');
-  const [suggestion, setSuggestion] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted]   = useState(false);
-  const [error, setError]           = useState('');
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!suggestion.trim()) { setError('Please enter a suggestion.'); return; }
-    setError('');
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/suggestions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, suggestion }),
-      });
-      if (!res.ok) throw new Error('Failed');
-      setSubmitted(true);
-    } catch {
-      setError('Failed to submit. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="bg-blue-700 px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">💡</span>
-            <div>
-              <div className="text-white font-bold text-sm">Suggest a Form</div>
-              <div className="text-blue-200 text-[11px]">Which government form should we add next?</div>
-            </div>
-          </div>
-          <button onClick={onClose} className="text-blue-200 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center">×</button>
-        </div>
-
-        {submitted ? (
-          <div className="p-8 text-center space-y-3">
-            <div className="text-4xl">🙏</div>
-            <p className="text-sm font-semibold text-gray-900">Suggestion received — salamat!</p>
-            <p className="text-xs text-gray-500">We&apos;ll review it and add it to the roadmap.</p>
-            <button
-              onClick={() => { setSubmitted(false); setSuggestion(''); setName(''); setEmail(''); }}
-              className="text-xs text-blue-600 underline"
-            >
-              Submit another
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="p-5 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="field-label">Name <span className="font-normal text-gray-400">(optional)</span></label>
-                <input type="text" placeholder="Juan Dela Cruz" className="input-field" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
-              </div>
-              <div>
-                <label className="field-label">Email <span className="font-normal text-gray-400">(optional)</span></label>
-                <input type="email" placeholder="you@email.com" className="input-field" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} />
-              </div>
-            </div>
-            <div>
-              <label className="field-label">Your Suggestion <span className="text-red-500">*</span></label>
-              <textarea
-                placeholder="e.g. BIR Form 2316, SSS Contribution Form, PhilHealth MDR…"
-                className="input-field min-h-[90px] resize-none"
-                rows={3}
-                value={suggestion}
-                onChange={(e) => { setSuggestion(e.target.value); setError(''); }}
-                maxLength={2000}
-                required
-              />
-            </div>
-            {error && <p className="text-xs text-red-500">{error}</p>}
-            <div className="flex gap-3 pt-1">
-              <button type="button" onClick={onClose} className="btn-secondary flex-1 py-3 text-sm">Cancel</button>
-              <button type="submit" disabled={submitting} className="btn-primary flex-1 py-3 text-sm disabled:opacity-60 flex items-center justify-center gap-2">
-                {submitting ? <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Submitting…</> : '📬 Send Suggestion'}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
   );
 }

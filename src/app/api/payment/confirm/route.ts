@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFormBySlug } from '@/data/forms';
+import { getFormBySlug, FORMS } from '@/data/forms';
 import { generatePDF } from '@/lib/pdf-generator';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { auditLog } from '@/lib/audit-log';
+import { isBlocked } from '@/lib/ip-blocklist';
+import { sanitizeSlug, sanitizeText, isValidSlug } from '@/lib/sanitize';
+import { encryptValues } from '@/lib/encrypt';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import os from 'os';
+
+function getIP(req: NextRequest): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+    req.headers.get('x-real-ip') ??
+    '0.0.0.0'
+  );
+}
 
 const DATA_DIR = process.env.DATA_DIR
   ? path.join(process.env.DATA_DIR, 'codes')
@@ -27,11 +40,40 @@ function generateCode(): string {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => ({}));
-  const { slug, values } = body as { slug?: string; values?: Record<string, string> };
+  const ip = getIP(req);
 
-  if (!slug || !values) {
+  if (isBlocked(ip)) {
+    auditLog('request_blocked', ip, 'Blocked IP attempted payment confirm');
+    return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+  }
+
+  // Rate limit: 20 confirms / 5 min per IP
+  const rl = checkRateLimit(ip, 'payment-confirm', { max: 20, windowMs: 5 * 60 * 1000 });
+  if (!rl.allowed) {
+    auditLog('rate_limit_hit', ip, 'Payment confirm rate limit exceeded');
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } },
+    );
+  }
+
+  const body = await req.json().catch(() => ({}));
+  const rawSlug = body?.slug;
+  const rawValues = body?.values;
+
+  const slug = sanitizeSlug(rawSlug);
+  if (!slug || !rawValues || typeof rawValues !== 'object') {
     return NextResponse.json({ error: 'Missing slug or values' }, { status: 400 });
+  }
+
+  const knownSlugs = FORMS.map((f) => f.slug);
+  if (!isValidSlug(slug, knownSlugs)) {
+    return NextResponse.json({ error: 'Form not found' }, { status: 404 });
+  }
+
+  const values: Record<string, string> = {};
+  for (const [k, v] of Object.entries(rawValues as Record<string, unknown>)) {
+    values[sanitizeText(k, 100)] = sanitizeText(v, 500);
   }
 
   const form = getFormBySlug(slug);
@@ -56,9 +98,14 @@ export async function POST(req: NextRequest) {
     const fullName  = [firstName, lastName].filter(Boolean).join(' ') || 'Applicant';
     const now       = Date.now();
 
+    // Encrypt form values before writing to disk (DPA RA 10173 — security safeguards).
+    // Non-identifying metadata (slug, agency, timestamps) stays in plaintext so expiry
+    // checks and housekeeping can run without decryption.
+    const encryptedValues = encryptValues(values);
+
     const entry = {
       slug,
-      values,
+      encryptedValues,
       name: fullName,
       formName: form.name,
       formCode: form.code,

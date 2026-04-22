@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { FORMS } from '@/data/forms';
 
-type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions';
+type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions' | 'refs' | 'pdfs' | 'security';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('dashboard');
@@ -22,7 +22,10 @@ export default function AdminPage() {
     { id: 'upload',      icon: '⬆️', label: 'Upload PDF' },
     { id: 'storage',     icon: '💾', label: 'Storage Config' },
     { id: 'suggestions', icon: '💡', label: 'Suggestions' },
+    { id: 'refs',        icon: '🧾', label: 'Payment Refs' },
+    { id: 'pdfs',        icon: '📄', label: 'Generated PDFs' },
     { id: 'settings',    icon: '⚙️', label: 'Settings' },
+    { id: 'security',    icon: '🛡️', label: 'Security' },
   ];
 
   return (
@@ -110,7 +113,10 @@ export default function AdminPage() {
           {tab === 'upload'      && <UploadTab />}
           {tab === 'storage'     && <StorageConfigTab />}
           {tab === 'suggestions' && <SuggestionsTab />}
+          {tab === 'refs'        && <PaymentRefsTab />}
+          {tab === 'pdfs'        && <GeneratedPDFsTab />}
           {tab === 'settings'    && <SettingsTab />}
+          {tab === 'security'    && <SecurityTab />}
         </main>
       </div>
     </div>
@@ -541,6 +547,740 @@ function SuggestionsTab() {
               </div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PaymentRefsTab ───────────────────────────────────────────────────────────
+type RefEntry = { ref: string; usedAt: string | null };
+
+function PaymentRefsTab() {
+  const [refs, setRefs]       = useState<RefEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [flushing, setFlushing] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [storageDir, setStorageDir] = useState('');
+
+  async function load() {
+    setLoading(true);
+    const res = await fetch('/api/admin/payment-refs');
+    if (res.ok) {
+      const data = await res.json() as { refs: RefEntry[]; dir: string };
+      setRefs(data.refs);
+      setStorageDir(data.dir);
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleDelete(ref: string) {
+    if (!confirm(`Delete ref ${ref}?`)) return;
+    setDeleting(ref);
+    await fetch('/api/admin/payment-refs', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref }),
+    });
+    setDeleting(null);
+    load();
+  }
+
+  async function handleFlushAll() {
+    if (!confirm(`Delete ALL ${refs.length} reference numbers? This allows them to be reused.`)) return;
+    setFlushing(true);
+    await fetch('/api/admin/payment-refs', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ all: true }),
+    });
+    setFlushing(false);
+    load();
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">Payment Ref Numbers</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Used GCash Ref No. records — {refs.length} stored</p>
+          {storageDir && <p className="text-[10px] text-gray-400 font-mono mt-0.5">{storageDir}</p>}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={load}
+            disabled={loading}
+            className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-40"
+          >
+            🔄 Refresh
+          </button>
+          {refs.length > 0 && (
+            <button
+              onClick={handleFlushAll}
+              disabled={flushing}
+              className="text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-40"
+            >
+              {flushing ? 'Flushing…' : `🗑 Flush All (${refs.length})`}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>
+      ) : refs.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">
+          No used reference numbers yet.
+        </div>
+      ) : (
+        <div className="rounded-xl border border-gray-200 overflow-hidden">
+          <table className="w-full text-xs">
+            <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider">
+              <tr>
+                <th className="px-4 py-2.5 text-left">Ref No.</th>
+                <th className="px-4 py-2.5 text-left">Used At</th>
+                <th className="px-4 py-2.5 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {refs.map((r) => (
+                <tr key={r.ref} className="hover:bg-gray-50">
+                  <td className="px-4 py-2.5 font-mono font-semibold text-gray-800">{r.ref}</td>
+                  <td className="px-4 py-2.5 text-gray-500">
+                    {r.usedAt
+                      ? new Date(r.usedAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
+                      : '—'}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <button
+                      onClick={() => handleDelete(r.ref)}
+                      disabled={deleting === r.ref}
+                      className="text-red-500 hover:text-red-700 border border-red-200 rounded-lg px-2.5 py-1 hover:bg-red-50 disabled:opacity-40"
+                    >
+                      {deleting === r.ref ? '…' : 'Delete'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── SecurityTab ─────────────────────────────────────────────────────────────
+
+type SecurityStats = {
+  blockedIPCount: number;
+  rateLimitHits24h: number;
+  failedLogins24h: number;
+  lastEventTs: string | null;
+};
+
+type BlockEntry = {
+  ip: string;
+  reason: string;
+  blockedAt: string;
+  source: 'manual' | 'auto';
+};
+
+type AuditEvent = {
+  id: string;
+  type: string;
+  ip: string;
+  detail: string;
+  ts: string;
+};
+
+const EVENT_BADGE: Record<string, { label: string; cls: string }> = {
+  login_success:   { label: 'Login OK',     cls: 'bg-green-50 text-green-700 border-green-200' },
+  login_fail:      { label: 'Login Fail',   cls: 'bg-red-50 text-red-700 border-red-200' },
+  login_lockout:   { label: 'Lockout',      cls: 'bg-orange-50 text-orange-700 border-orange-200' },
+  logout:          { label: 'Logout',       cls: 'bg-gray-50 text-gray-600 border-gray-200' },
+  rate_limit_hit:  { label: 'Rate Limit',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  ip_blocked:      { label: 'IP Blocked',   cls: 'bg-red-50 text-red-700 border-red-200' },
+  ip_unblocked:    { label: 'IP Unblocked', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+  upload_attempt:  { label: 'Upload',       cls: 'bg-purple-50 text-purple-700 border-purple-200' },
+  admin_action:    { label: 'Admin',        cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+  request_blocked: { label: 'Req Blocked',  cls: 'bg-red-100 text-red-800 border-red-300' },
+};
+
+function SecurityTab() {
+  const [stats, setStats]           = useState<SecurityStats | null>(null);
+  const [blocklist, setBlocklist]   = useState<BlockEntry[]>([]);
+  const [events, setEvents]         = useState<AuditEvent[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [panel, setPanel]           = useState<'overview' | 'blocklist' | 'audit'>('overview');
+  const [blockIPVal, setBlockIPVal] = useState('');
+  const [blockReason, setBlockReason] = useState('');
+  const [blocking, setBlocking]     = useState(false);
+  const [blockMsg, setBlockMsg]     = useState('');
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/security');
+      if (res.ok) {
+        const data = await res.json() as {
+          stats: SecurityStats;
+          blocklist: BlockEntry[];
+          events: AuditEvent[];
+        };
+        setStats(data.stats);
+        setBlocklist(data.blocklist);
+        setEvents(data.events);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleBlock() {
+    if (!blockIPVal.trim()) return;
+    setBlocking(true);
+    setBlockMsg('');
+    const res = await fetch('/api/admin/security', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip: blockIPVal.trim(), reason: blockReason.trim() || 'Manual block' }),
+    });
+    if (res.ok) {
+      setBlockIPVal('');
+      setBlockReason('');
+      setBlockMsg(`✅ ${blockIPVal.trim()} blocked`);
+      load();
+    } else {
+      const d = await res.json().catch(() => ({})) as { error?: string };
+      setBlockMsg(`❌ ${d.error ?? 'Failed'}`);
+    }
+    setBlocking(false);
+  }
+
+  async function handleUnblock(ip: string) {
+    if (!confirm(`Unblock ${ip}?`)) return;
+    await fetch('/api/admin/security', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip }),
+    });
+    load();
+  }
+
+  const subPanels = [
+    { id: 'overview',  label: 'Overview' },
+    { id: 'blocklist', label: `Blocklist (${blocklist.length})` },
+    { id: 'audit',     label: `Audit Log (${events.length})` },
+  ] as const;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">🛡️ Security</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Rate limiting, IP blocklist, and audit trail</p>
+        </div>
+        <button
+          onClick={load}
+          disabled={loading}
+          className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-40"
+        >
+          🔄 Refresh
+        </button>
+      </div>
+
+      {/* Sub-panel tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {subPanels.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setPanel(p.id)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              panel === p.id
+                ? 'bg-blue-700 text-white'
+                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {loading && <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>}
+
+      {/* ── Overview ── */}
+      {!loading && panel === 'overview' && (
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {[
+              { label: 'Blocked IPs',         value: stats?.blockedIPCount ?? 0,    icon: '🚫', color: 'bg-red-50 text-red-700' },
+              { label: 'Rate Limit Hits 24h', value: stats?.rateLimitHits24h ?? 0,  icon: '⚡', color: 'bg-amber-50 text-amber-700' },
+              { label: 'Failed Logins 24h',   value: stats?.failedLogins24h ?? 0,   icon: '🔐', color: 'bg-orange-50 text-orange-700' },
+              {
+                label: 'Last Event',
+                value: stats?.lastEventTs
+                  ? new Date(stats.lastEventTs).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })
+                  : '—',
+                icon: '📋', color: 'bg-blue-50 text-blue-700',
+              },
+            ].map((s) => (
+              <div key={s.label} className="rounded-2xl bg-white border border-gray-200 p-5">
+                <div className={`inline-flex rounded-xl p-2 text-lg ${s.color} mb-3`}>{s.icon}</div>
+                <div className="text-2xl font-bold text-gray-900">{s.value}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-2xl bg-white border border-gray-200 p-5">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Active Protections</h3>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {[
+                ['Rate Limiting',       'Per-IP sliding window on all public endpoints'],
+                ['Brute-Force Lockout', '5 failed logins → 15 min IP lockout'],
+                ['Auto IP Block',       '3 lockout episodes/hour → permanent block'],
+                ['Security Headers',    'CSP, HSTS, X-Frame-Options, X-Content-Type'],
+                ['Input Sanitization',  'HTML strip + slug validation on all inputs'],
+                ['File Upload Guards',  'Magic-byte check + MIME type + 10 MB cap'],
+                ['Cookie Hardening',    'httpOnly, Secure, SameSite=Strict on session'],
+                ['Audit Logging',       'All auth & security events logged with IP'],
+              ].map(([name, desc]) => (
+                <div key={name} className="flex items-start gap-2 rounded-xl bg-green-50 border border-green-200 px-3 py-2.5">
+                  <span className="text-green-600 text-xs mt-0.5">✓</span>
+                  <div>
+                    <div className="text-xs font-semibold text-green-900">{name}</div>
+                    <div className="text-[11px] text-green-700 mt-0.5">{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Blocklist ── */}
+      {!loading && panel === 'blocklist' && (
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-white border border-gray-200 p-5">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Block an IP Address</h3>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                placeholder="IP address (e.g. 1.2.3.4)"
+                value={blockIPVal}
+                onChange={(e) => setBlockIPVal(e.target.value)}
+                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="text"
+                placeholder="Reason (optional)"
+                value={blockReason}
+                onChange={(e) => setBlockReason(e.target.value)}
+                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleBlock}
+                disabled={blocking || !blockIPVal.trim()}
+                className="shrink-0 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl px-4 py-2 disabled:opacity-40"
+              >
+                {blocking ? 'Blocking…' : '🚫 Block'}
+              </button>
+            </div>
+            {blockMsg && <p className="mt-2 text-xs text-gray-600">{blockMsg}</p>}
+          </div>
+
+          {blocklist.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">
+              No IPs are currently blocked.
+            </div>
+          ) : (
+            <div className="rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
+              <table className="w-full text-xs min-w-[560px]">
+                <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="px-4 py-2.5 text-left">IP Address</th>
+                    <th className="px-4 py-2.5 text-left">Source</th>
+                    <th className="px-4 py-2.5 text-left">Reason</th>
+                    <th className="px-4 py-2.5 text-left">Blocked At</th>
+                    <th className="px-4 py-2.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {blocklist.map((e) => (
+                    <tr key={e.ip} className="hover:bg-gray-50">
+                      <td className="px-4 py-2.5 font-mono font-semibold text-gray-800">{e.ip}</td>
+                      <td className="px-4 py-2.5">
+                        <span className={`text-[10px] font-semibold border rounded-full px-2 py-0.5 ${
+                          e.source === 'auto'
+                            ? 'bg-orange-50 text-orange-700 border-orange-200'
+                            : 'bg-gray-100 text-gray-600 border-gray-200'
+                        }`}>{e.source}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-gray-600 max-w-xs truncate">{e.reason}</td>
+                      <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">
+                        {new Date(e.blockedAt).toLocaleString('en-PH', { dateStyle: 'short', timeStyle: 'short' })}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <button
+                          onClick={() => handleUnblock(e.ip)}
+                          className="text-blue-600 hover:text-blue-800 border border-blue-200 rounded-lg px-2.5 py-1 hover:bg-blue-50 text-[11px]"
+                        >
+                          Unblock
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Audit Log ── */}
+      {!loading && panel === 'audit' && (
+        <div className="space-y-3">
+          {events.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">
+              No security events recorded yet.
+            </div>
+          ) : (
+            <div className="rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
+              <table className="w-full text-xs min-w-[560px]">
+                <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="px-4 py-2.5 text-left">Time</th>
+                    <th className="px-4 py-2.5 text-left">Type</th>
+                    <th className="px-4 py-2.5 text-left">IP</th>
+                    <th className="px-4 py-2.5 text-left">Detail</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {events.map((e) => {
+                    const badge = EVENT_BADGE[e.type] ?? { label: e.type, cls: 'bg-gray-50 text-gray-600 border-gray-200' };
+                    return (
+                      <tr key={e.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">
+                          {new Date(e.ts).toLocaleString('en-PH', { dateStyle: 'short', timeStyle: 'short' })}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className={`text-[10px] font-semibold border rounded-full px-2 py-0.5 ${badge.cls}`}>
+                            {badge.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 font-mono text-gray-700">{e.ip}</td>
+                        <td className="px-4 py-2.5 text-gray-600">{e.detail}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── GeneratedPDFsTab ─────────────────────────────────────────────────────────
+type PDFEntry = {
+  code: string;
+  name: string;
+  formName: string;
+  formCode: string;
+  agency: string;
+  created_at: number | null;
+  expires_at: number | null;
+  expired: boolean;
+};
+
+function PDFPreviewModal({ code, name, onClose }: { code: string; name: string; onClose: () => void }) {
+  const [fullscreen, setFullscreen] = useState(false);
+
+  // Close on Escape
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const previewUrl = `/api/preview/${code}`;
+  const downloadUrl = `/api/download/${code}`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900 text-white text-sm shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="font-semibold truncate max-w-[280px]">{name}</span>
+          <span className="text-gray-400 font-mono text-xs">{code}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <a
+            href={downloadUrl}
+            download
+            className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 font-semibold"
+          >
+            ⬇ Download
+          </a>
+          <button
+            onClick={() => setFullscreen((f) => !f)}
+            className="text-xs border border-gray-600 text-gray-300 hover:text-white hover:border-gray-400 rounded-lg px-3 py-1.5"
+          >
+            {fullscreen ? '⊡ Exit Fullscreen' : '⊞ Fullscreen'}
+          </button>
+          <button
+            onClick={onClose}
+            className="text-xs border border-gray-600 text-gray-300 hover:text-white hover:border-gray-400 rounded-lg px-3 py-1.5"
+          >
+            ✕ Close
+          </button>
+        </div>
+      </div>
+      {/* PDF iframe */}
+      <div className={`flex-1 overflow-hidden ${fullscreen ? 'fixed inset-0 z-50 pt-0' : ''}`}>
+        {fullscreen && (
+          <div className="absolute top-2 right-2 z-50 flex gap-2">
+            <a
+              href={downloadUrl}
+              download
+              className="text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 font-semibold shadow-lg"
+            >
+              ⬇ Download
+            </a>
+            <button
+              onClick={() => setFullscreen(false)}
+              className="text-xs bg-gray-800/90 text-white rounded-lg px-3 py-1.5 shadow-lg"
+            >
+              ⊡ Exit Fullscreen
+            </button>
+          </div>
+        )}
+        <iframe
+          src={previewUrl}
+          title={`Preview – ${name}`}
+          className="w-full h-full border-0"
+        />
+      </div>
+    </div>
+  );
+}
+
+function GeneratedPDFsTab() {
+  const [entries, setEntries]       = useState<PDFEntry[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
+  const [deleting, setDeleting]     = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy]     = useState(false);
+  const [storageDir, setStorageDir] = useState('');
+  const [preview, setPreview]       = useState<{ code: string; name: string } | null>(null);
+
+  async function load() {
+    setLoading(true);
+    const res = await fetch('/api/admin/generated-pdfs');
+    if (res.ok) {
+      const data = await res.json() as { entries: PDFEntry[]; dir: string };
+      setEntries(data.entries);
+      setStorageDir(data.dir);
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleDelete(code: string) {
+    if (!confirm(`Delete entry for code ${code}? The user will no longer be able to re-download.`)) return;
+    setDeleting(code);
+    await fetch('/api/admin/generated-pdfs', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    setDeleting(null);
+    load();
+  }
+
+  async function handleDeleteExpired() {
+    const expiredCount = entries.filter((e) => e.expired).length;
+    if (expiredCount === 0) return;
+    if (!confirm(`Delete ${expiredCount} expired entries?`)) return;
+    setBulkBusy(true);
+    await fetch('/api/admin/generated-pdfs', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expired: true }),
+    });
+    setBulkBusy(false);
+    load();
+  }
+
+  async function handleDeleteAll() {
+    if (!confirm(`Delete ALL ${entries.length} entries? Users with active codes will lose access.`)) return;
+    setBulkBusy(true);
+    await fetch('/api/admin/generated-pdfs', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ all: true }),
+    });
+    setBulkBusy(false);
+    load();
+  }
+
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? entries.filter(
+        (e) =>
+          e.name.toLowerCase().includes(q) ||
+          e.formName.toLowerCase().includes(q) ||
+          e.formCode.toLowerCase().includes(q) ||
+          e.agency.toLowerCase().includes(q) ||
+          e.code.toLowerCase().includes(q),
+      )
+    : entries;
+
+  const expiredCount = entries.filter((e) => e.expired).length;
+
+  return (
+    <div className="space-y-5">
+      {/* PDF Preview Modal */}
+      {preview && (
+        <PDFPreviewModal
+          code={preview.code}
+          name={preview.name}
+          onClose={() => setPreview(null)}
+        />
+      )}
+
+      {/* Header */}
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">Generated PDFs</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {entries.length} total · {expiredCount} expired
+          </p>
+          {storageDir && (
+            <p className="text-[10px] text-gray-400 font-mono mt-0.5">{storageDir}</p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={load}
+            disabled={loading}
+            className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-40"
+          >
+            🔄 Refresh
+          </button>
+          {expiredCount > 0 && (
+            <button
+              onClick={handleDeleteExpired}
+              disabled={bulkBusy}
+              className="text-xs border border-orange-300 text-orange-700 rounded-lg px-3 py-1.5 hover:bg-orange-50 disabled:opacity-40"
+            >
+              🗑 Clear Expired ({expiredCount})
+            </button>
+          )}
+          {entries.length > 0 && (
+            <button
+              onClick={handleDeleteAll}
+              disabled={bulkBusy}
+              className="text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-40"
+            >
+              🗑 Delete All
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Search */}
+      <input
+        type="search"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search by name, form, agency, or code…"
+        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+
+      {/* Table */}
+      {loading ? (
+        <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">
+          {q ? 'No results match your search.' : 'No generated PDFs yet.'}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
+          <table className="w-full text-xs min-w-[640px]">
+            <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider">
+              <tr>
+                <th className="px-4 py-2.5 text-left">Name</th>
+                <th className="px-4 py-2.5 text-left">Form</th>
+                <th className="px-4 py-2.5 text-left">Created</th>
+                <th className="px-4 py-2.5 text-left">Expires</th>
+                <th className="px-4 py-2.5 text-left">Code</th>
+                <th className="px-4 py-2.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filtered.map((e) => (
+                <tr key={e.code} className={`hover:bg-gray-50 ${e.expired ? 'opacity-50' : ''}`}>
+                  <td className="px-4 py-2.5 font-medium text-gray-900 whitespace-nowrap">{e.name}</td>
+                  <td className="px-4 py-2.5 text-gray-600">
+                    <div className="font-semibold">{e.formCode}</div>
+                    <div className="text-gray-400 text-[10px]">{e.agency}</div>
+                  </td>
+                  <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">
+                    {e.created_at
+                      ? new Date(e.created_at).toLocaleString('en-PH', { dateStyle: 'short', timeStyle: 'short' })
+                      : '—'}
+                  </td>
+                  <td className="px-4 py-2.5 whitespace-nowrap">
+                    {e.expired ? (
+                      <span className="text-red-500 font-semibold">Expired</span>
+                    ) : e.expires_at ? (
+                      <span className="text-gray-500">
+                        {new Date(e.expires_at).toLocaleString('en-PH', { dateStyle: 'short', timeStyle: 'short' })}
+                      </span>
+                    ) : '—'}
+                  </td>
+                  <td className="px-4 py-2.5 font-mono text-gray-700 tracking-widest">{e.code}</td>
+                  <td className="px-4 py-2.5 text-right">
+                    <div className="flex gap-2 justify-end">
+                      {!e.expired && (
+                        <>
+                          <button
+                            onClick={() => setPreview({ code: e.code, name: e.name })}
+                            className="text-blue-600 hover:text-blue-800 border border-blue-200 rounded-lg px-2.5 py-1 hover:bg-blue-50"
+                          >
+                            👁 Preview
+                          </button>
+                          <a
+                            href={`/api/download/${e.code}`}
+                            download
+                            className="text-green-700 hover:text-green-900 border border-green-200 rounded-lg px-2.5 py-1 hover:bg-green-50"
+                          >
+                            ⬇ Download
+                          </a>
+                        </>
+                      )}
+                      <button
+                        onClick={() => handleDelete(e.code)}
+                        disabled={deleting === e.code}
+                        className="text-red-500 hover:text-red-700 border border-red-200 rounded-lg px-2.5 py-1 hover:bg-red-50 disabled:opacity-40"
+                      >
+                        {deleting === e.code ? '…' : 'Delete'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

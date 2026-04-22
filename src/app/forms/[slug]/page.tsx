@@ -40,7 +40,6 @@ export default function FormWizardPage() {
 
   const [currentStep, setCurrentStep] = useState<StepIndex>(0);
   const [values, setValues]             = useState<FormValues>({});
-  const [hasDraft, setHasDraft]         = useState(false);
   const [mode, setMode]                 = useState<'form' | 'review' | 'preview'>('form');
   const [previewing, setPreviewing]     = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState('');
@@ -50,7 +49,6 @@ export default function FormWizardPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [downloadCode, setDownloadCode]         = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [paying, setPaying]                     = useState(false);
 
   // Populate today's date for the date field
   useEffect(() => {
@@ -58,14 +56,10 @@ export default function FormWizardPage() {
     setValues((v) => ({ ...v, date: v.date ?? today }));
   }, []);
 
-  // Load draft on mount
+  // Clear any saved draft on mount — always start fresh
   useEffect(() => {
     if (!slug) return;
-    const draft = loadDraft(slug);
-    if (draft && Object.keys(draft).length > 0) {
-      setValues(draft);
-      setHasDraft(true);
-    }
+    clearDraft(slug);
   }, [slug]);
 
   // Auto-save draft on every change
@@ -124,31 +118,33 @@ export default function FormWizardPage() {
     ];
     const pmrfSamples = [
       {
+        pin: '12-345-678-9012',
         last_name: 'DELA CRUZ', first_name: 'JUAN ANDRES', middle_name: 'REYES', name_ext: 'Jr.',
         dob_month: '03', dob_day: '15', dob_year: '1990',
         place_of_birth: 'Quezon City, Metro Manila',
         sex: 'Male', civil_status: 'Single', citizenship: 'Filipino',
         mother_last_name: 'REYES', mother_first_name: 'MARIA', mother_middle_name: 'SANTOS',
-        spouse_last_name: '', spouse_first_name: '', spouse_middle_name: '',
+        spouse_last_name: 'N/A', spouse_first_name: 'N/A', spouse_middle_name: 'N/A',
         perm_unit: 'Unit 4B', perm_building: 'Sunrise Tower', perm_lot: 'Lot 12',
         perm_street: 'Rizal Street', perm_subdivision: 'Loyola Grand Villas',
         perm_barangay: 'Brgy. San Jose', perm_city: 'Quezon City',
         perm_province: 'Metro Manila (NCR)', perm_zip: '1100',
         mobile: '09171234567', home_phone: '028123-4567', email: 'juan.delacruz@gmail.com',
-        member_type: 'Employed Private', profession: 'Engineer', monthly_income: '',
+        member_type: 'Employed Private', profession: 'Engineer', monthly_income: '55000',
       },
       {
+        pin: '09-876-543-2109',
         last_name: 'SANTOS', first_name: 'ANNA MARIE', middle_name: 'GARCIA', name_ext: 'N/A',
         dob_month: '07', dob_day: '22', dob_year: '1985',
         place_of_birth: 'Cebu City, Cebu',
         sex: 'Female', civil_status: 'Married', citizenship: 'Filipino',
         mother_last_name: 'GARCIA', mother_first_name: 'LUCIA', mother_middle_name: 'VIDAL',
         spouse_last_name: 'SANTOS', spouse_first_name: 'PEDRO', spouse_middle_name: 'LIM',
-        perm_unit: '', perm_building: '', perm_lot: 'Blk 5 Lot 7',
+        perm_unit: 'Unit 3A', perm_building: 'Greenfield Residences', perm_lot: 'Blk 5 Lot 7',
         perm_street: 'Mabini Street', perm_subdivision: 'Greenfield Village',
         perm_barangay: 'Brgy. Poblacion', perm_city: 'Makati',
         perm_province: 'Metro Manila (NCR)', perm_zip: '1210',
-        mobile: '09281234567', home_phone: '', email: 'anna.santos@gmail.com',
+        mobile: '09281234567', home_phone: '028765-4321', email: 'anna.santos@gmail.com',
         member_type: 'Self-Earning Individual', profession: 'Freelance Designer', monthly_income: '25000',
       },
     ];
@@ -161,7 +157,6 @@ export default function FormWizardPage() {
     const pick = samples[Math.floor(Math.random() * samples.length)];
     setValues(pick as Record<string, string>);
     saveDraft(slug, pick as Record<string, string>);
-    setHasDraft(true);
   }
 
   // ── Privacy gate — check acknowledgement before preview ──────────────────
@@ -250,49 +245,41 @@ export default function FormWizardPage() {
   // ── Payment confirmed → generate final PDF + return 5-digit code ──────────
   async function handlePaymentConfirm() {
     if (!form) return;
-    setPaying(true);
+    const res = await fetch('/api/payment/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, values }),
+    });
+    if (!res.ok) throw new Error('PDF generation failed');
+
+    const code    = res.headers.get('X-Download-Code') ?? '';
+    const blob    = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    const firstName = (values.first_name ?? '').trim();
+    const lastName  = (values.last_name  ?? '').trim();
+    const fullName  = [firstName, lastName].filter(Boolean).join(' ') || 'Applicant';
+    const safeName  = fullName.replace(/[\u0000-\u001F\u007F-\uFFFF]/g, '').replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+    const a    = document.createElement('a');
+    a.href     = blobUrl;
+    a.download = `${safeName} - ${form.agency} - ${form.code}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+
+    // Save code to localStorage so home page download widget auto-populates
     try {
-      const res = await fetch('/api/payment/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug, values }),
-      });
-      if (!res.ok) throw new Error('Payment confirmation failed');
+      localStorage.setItem('qfph_last_code', JSON.stringify({
+        code,
+        expires_at: Date.now() + 2 * 24 * 60 * 60 * 1000,
+      }));
+    } catch { /* ignore */ }
 
-      const code    = res.headers.get('X-Download-Code') ?? '';
-      const blob    = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      const firstName = (values.first_name ?? '').trim();
-      const lastName  = (values.last_name  ?? '').trim();
-      const fullName  = [firstName, lastName].filter(Boolean).join(' ') || 'Applicant';
-      const safeName  = fullName.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
-      const a    = document.createElement('a');
-      a.href     = blobUrl;
-      a.download = `${safeName} - ${form.agency} - ${form.code}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-
-      // Save code to localStorage so home page download widget auto-populates
-      try {
-        localStorage.setItem('qfph_last_code', JSON.stringify({
-          code,
-          expires_at: Date.now() + 2 * 24 * 60 * 60 * 1000,
-        }));
-      } catch { /* ignore */ }
-
-      setDownloadCode(code);
-      setShowPaymentModal(false);
-      setShowSuccessModal(true);
-      clearDraft(slug);
-    } catch (err) {
-      console.error(err);
-      alert('Failed to generate PDF. Please try again.');
-    } finally {
-      setPaying(false);
-    }
+    setDownloadCode(code);
+    setShowPaymentModal(false);
+    setShowSuccessModal(true);
+    clearDraft(slug);
   }
 
   if (!form) {
@@ -353,7 +340,6 @@ export default function FormWizardPage() {
             gcashName={GCASH_NAME}
             onConfirm={handlePaymentConfirm}
             onClose={() => setShowPaymentModal(false)}
-            paying={paying}
           />
         )}
         {showSuccessModal && (
@@ -393,27 +379,6 @@ export default function FormWizardPage() {
           </button>
         </div>
       </header>
-
-      {/* Draft resume banner */}
-      {hasDraft && (
-        <div className="mx-auto max-w-lg px-4 pt-3">
-          <div className="flex items-center justify-between rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5">
-            <span className="text-xs text-amber-800 font-medium">
-              💾 Draft resumed — {totalFilled()}/{form.fields.length} fields filled
-            </span>
-            <button
-              onClick={() => {
-                setValues({});
-                clearDraft(slug);
-                setHasDraft(false);
-              }}
-              className="text-xs text-amber-600 underline"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Step progress bar */}
       <div className="mx-auto max-w-lg px-4 pt-4 pb-2">
@@ -510,18 +475,11 @@ export default function FormWizardPage() {
           )}
         </div>
 
-        {/* Auto-populate dev helper */}
-        <div className="mt-3 text-center">
-          <button
-            onClick={autoPopulate}
-            className="text-xs text-blue-400 underline underline-offset-2 hover:text-blue-600"
-          >
-            auto-populate
-          </button>
-        </div>
-
-        {/* Progress note */}
-        <p className="mt-2 text-center text-xs text-gray-400">
+        {/* Progress note — shift+click triggers auto-populate */}
+        <p
+          className="mt-3 text-center text-xs text-gray-400 cursor-default select-none"
+          onClick={(e) => { if (e.shiftKey) autoPopulate(); }}
+        >
           {totalFilled()} of {form.fields.length} fields filled &mdash; Empty fields will be left blank on the PDF.
         </p>
       </main>
@@ -831,7 +789,7 @@ function PreviewScreen({
           onClick={onDownload}
           className="w-full rounded-xl bg-blue-600 py-3.5 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800"
         >
-          ⬇️ Generate &amp; Download PDF
+          ⬇️ Download PDF
         </button>
         <button
           onClick={onBack}
@@ -892,7 +850,7 @@ function PrivacyConsentModal({
           <ul className="text-xs text-gray-600 space-y-1.5">
             <li className="flex items-start gap-2">
               <span className="text-green-600 font-bold mt-0.5">✓</span>
-              Processed securely over HTTPS — not logged or retained on our servers.
+              Processed securely over HTTPS — your form data is only retained for up to 48 hours to allow PDF re-downloads, then permanently deleted once your download code expires.
             </li>
             <li className="flex items-start gap-2">
               <span className="text-green-600 font-bold mt-0.5">✓</span>
@@ -932,35 +890,92 @@ function PrivacyConsentModal({
 }
 
 // ─── PaymentModal ─────────────────────────────────────────────────────────────
-type PaymentStep = 'details' | 'verifying' | 'verified' | 'failed';
+type PaymentStep = 'details' | 'verifying' | 'verified' | 'failed' | 'generating' | 'gen_failed';
+
+const GEN_STEPS = [
+  { icon: '📋', label: 'Reading form data…' },
+  { icon: '🖊️', label: 'Filling in your details…' },
+  { icon: '📄', label: 'Composing PDF pages…' },
+  { icon: '🔒', label: 'Finalizing document…' },
+  { icon: '⬇️', label: 'Almost ready…' },
+];
+
+function GeneratingScreen() {
+  const [tick, setTick] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 900);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Smoothly animate progress up to 92% over the steps
+  useEffect(() => {
+    const target = Math.min(((tick + 1) / GEN_STEPS.length) * 92, 92);
+    setProgress(target);
+  }, [tick]);
+
+  const activeIdx = Math.min(tick, GEN_STEPS.length - 1);
+
+  return (
+    <div className="p-5 space-y-5">
+      <div className="flex flex-col items-center gap-2 text-center py-2">
+        <div className="text-3xl animate-pulse">{GEN_STEPS[activeIdx]?.icon}</div>
+        <div className="text-sm font-bold text-gray-900">Generating your PDF…</div>
+        <div className="text-xs text-gray-500">{GEN_STEPS[activeIdx]?.label}</div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="space-y-1.5">
+        <div className="flex justify-between text-[10px] text-gray-400">
+          <span>Processing</span>
+          <span>{Math.round(progress)}%</span>
+        </div>
+        <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-blue-600 rounded-full transition-all duration-700 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Step list */}
+      <div className="space-y-1.5">
+        {GEN_STEPS.map((s, i) => (
+          <div key={i} className={`flex items-center gap-2.5 text-xs ${
+            i < activeIdx ? 'text-gray-400' : i === activeIdx ? 'text-gray-900 font-semibold' : 'text-gray-300'
+          }`}>
+            <span className="text-sm">{s.icon}</span>
+            <span>{s.label}</span>
+            {i < activeIdx && <span className="ml-auto text-green-500 font-bold">✓</span>}
+            {i === activeIdx && (
+              <span className="ml-auto inline-block w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <p className="text-[10px] text-gray-400 text-center">Please don't close this window…</p>
+    </div>
+  );
+}
 
 function PaymentModal({
   gcashNumber,
   gcashName,
   onConfirm,
   onClose,
-  paying,
 }: {
   gcashNumber: string;
   gcashName: string;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
   onClose: () => void;
-  paying: boolean;
 }) {
   const [step, setStep]                   = useState<PaymentStep>('details');
   const [verifyErrors, setVerifyErrors]   = useState<string[]>([]);
   const [screenshotUrl, setScreenshotUrl] = useState<string>('');
-  const [amount, setAmount]               = useState<number>(5);
+  const [amount] = useState<number>(5);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  function handleAmountChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = parseFloat(e.target.value);
-    setAmount(isNaN(val) ? 5 : val);
-  }
-
-  function handleAmountBlur() {
-    if (amount < 5) setAmount(5);
-  }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -1008,7 +1023,7 @@ function PaymentModal({
                 <div className="text-green-100 text-[11px]">One-time ₱{amount.toFixed(2)} via GCash</div>
               </div>
             </div>
-            {!paying && (
+            {step !== 'generating' && (
               <button onClick={onClose} className="text-green-200 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center">×</button>
             )}
           </div>
@@ -1020,7 +1035,7 @@ function PaymentModal({
             {/* Heartfelt note */}
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
               <p className="text-xs text-blue-800 leading-relaxed">
-                Built with a lot of time and effort to make it easier for Filipinos to fill out government forms. Your ₱5 helps cover hosting and supports future improvements. Maraming salamat sa support 🙏
+                Built with a lot of time and effort to make it easier for Filipinos to fill out government forms. Your ₱5 or any amount above that helps cover hosting and supports future improvements. Any additional support would be greatly appreciated. Maraming salamat Po🙏
               </p>
             </div>
 
@@ -1039,16 +1054,7 @@ function PaymentModal({
                 <span className="text-xs text-gray-500">Amount</span>
                 <div className="flex items-center gap-1">
                   <span className="text-base font-black text-green-700">₱</span>
-                  <input
-                    type="number"
-                    min={5}
-                    step="1"
-                    value={amount}
-                    onChange={handleAmountChange}
-                    onBlur={handleAmountBlur}
-                    className="w-20 text-base font-black text-green-700 text-right border-b-2 border-green-300 focus:border-green-600 outline-none bg-transparent"
-                  />
-                  <span className="text-[10px] text-gray-400 ml-1">(min ₱5)</span>
+                  <span className="text-base font-black text-green-700">{amount.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -1091,6 +1097,41 @@ function PaymentModal({
           <VerifyingScreen screenshotUrl={screenshotUrl} />
         )}
 
+        {/* ── STEP: generating ── */}
+        {step === 'generating' && (
+          <GeneratingScreen />
+        )}
+
+        {/* ── STEP: gen_failed ── */}
+        {step === 'gen_failed' && (
+          <div className="p-5 space-y-4">
+            <div className="flex flex-col items-center gap-2 text-center py-2">
+              <div className="text-3xl">⚠️</div>
+              <div className="text-sm font-bold text-red-700">PDF Generation Failed</div>
+              <div className="text-xs text-gray-500">
+                Something went wrong while generating your PDF.
+              </div>
+            </div>
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 leading-relaxed">
+              Don't worry — your payment has already been verified. Please try again and your PDF will be generated. If the issue persists, contact support with your GCash Ref No.
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStep('verified')}
+                className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 py-3 text-sm font-bold text-white transition-colors"
+              >
+                🔄 Try Again
+              </button>
+              <button
+                onClick={onClose}
+                className="rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── STEP: verified ── */}
         {step === 'verified' && (
           <div className="p-5 space-y-4">
@@ -1107,15 +1148,17 @@ function PaymentModal({
               <img src={screenshotUrl} alt="Receipt" className="w-full max-h-48 object-contain rounded-xl border border-green-200" />
             )}
             <button
-              onClick={onConfirm}
-              disabled={paying}
+              onClick={async () => {
+                setStep('generating');
+                try {
+                  await onConfirm();
+                } catch {
+                  setStep('gen_failed');
+                }
+              }}
               className="w-full rounded-xl bg-blue-700 hover:bg-blue-800 disabled:opacity-60 py-3.5 text-sm font-bold text-white flex items-center justify-center gap-2 transition-colors"
             >
-              {paying ? (
-                <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Generating PDF…</>
-              ) : (
-                '⬇️ Download PDF'
-              )}
+              ⬇️ Download PDF
             </button>
           </div>
         )}

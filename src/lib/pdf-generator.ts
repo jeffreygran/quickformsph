@@ -51,6 +51,10 @@ const FIELD_COORDS: CoordsMap = {
   // ── MP2 Account Number (right column, cell y=812.5–836.0) ────────────────
   mp2_account_no:  { page: 0, x: 403, y: 817, maxWidth: 175 },
 
+  // ── Pag-IBIG Branch (fill line at pdfplumber top=64.6, pdf-lib y=874) ─────
+  // Underline spans x0=251.1–368.1 (117 pts wide)
+  branch:          { page: 0, x: 252, y: 874, maxWidth: 115 },
+
   // ── Names row (cell y=786.9–812.5) ───────────────────────────────────────
   // Column splits inferred from label x: ~116, ~196, ~328, ~398
   last_name:       { page: 0, x:  37, y: 791, maxWidth:  75 },
@@ -100,10 +104,15 @@ const HQP_COPY2_Y_OFFSET = 449.4;
 // Page 0 contains sections I–IV; Page 1 is Section V (Updating) — we skip it
 // All fill areas are in blank rows below section labels.
 const PMRF_FIELD_COORDS: CoordsMap = {
-  // ── PIN (top-right input box) ─────────────────────────────────────────────
-  // PIN box rect: pdfplumber x0=353.3 x1=569.3 top=140.5 bottom=158.5
-  // pdf_lib y = 841.5 - 158.5 + 4 = 687 (baseline near bottom of box)
-  pin:                 { page: 0, x: 355, y: 687, maxWidth: 210 },
+  // ── PIN (top-right digit row, immediately below PIN label bot=96.3) ─────────
+  // PIN label bottom = pdfplumber 96.3; PURPOSE: label top = 103.4
+  // Place baseline just above PURPOSE: → pdf_lib_y = 841.5 - 97 - 3(nudge) = 741
+  // x starts at 388 (right column, below "PHILHEALTH IDENTIFICATION..." label)
+  pin:                 { page: 0, x: 388, y: 741, maxWidth: 175 },
+
+  // ── Preferred KonSulTa Provider (fill box: pdfplumber top=140.5 bot=158.5) ──
+  // pdf_lib_y = 841.5 - 158.5 + 4 = 687
+  konsulta_provider:   { page: 0, x: 357, y: 686, maxWidth: 207 },
 
   // ── Section I: Personal Details ──
   // Column boundaries from PDF rects (page 0, name rows):
@@ -122,10 +131,10 @@ const PMRF_FIELD_COORDS: CoordsMap = {
   mother_first_name:   { page: 0, x: 220, y: 602, maxWidth: 122 },
   mother_middle_name:  { page: 0, x: 392, y: 602, maxWidth: 120 },
 
-  // SPOUSE row: pdfplumber top≈248-268 → pdf_lib_y=576
-  spouse_last_name:    { page: 0, x:  90, y: 576, maxWidth: 122 },
-  spouse_first_name:   { page: 0, x: 220, y: 576, maxWidth: 122 },
-  spouse_middle_name:  { page: 0, x: 392, y: 576, maxWidth: 120 },
+  // SPOUSE row: pdfplumber top=242.7 bot=265.9 → pdf_lib_y = 841.5-265.9+4 = 579.6
+  spouse_last_name:    { page: 0, x:  90, y: 579, maxWidth: 122 },
+  spouse_first_name:   { page: 0, x: 220, y: 579, maxWidth: 122 },
+  spouse_middle_name:  { page: 0, x: 392, y: 579, maxWidth: 120 },
 
   // DATE OF BIRTH: fill area between DATE header (bottom≈278) and mm/dd/yy guides (top≈300)
   // Place text at y=547 so it appears in the boxes at the guide level
@@ -141,18 +150,20 @@ const PMRF_FIELD_COORDS: CoordsMap = {
   // ── Section II: Address and Contact ──
   // ADDRESS ROW 1 box: pdfplumber top=378.4–411.9 → pdf_lib 429.6–463.1
   // Sub-labels (Unit/Room…Street) are at pdfplumber top=389 → fill is below at y=433
-  perm_unit:           { page: 0, x:  20, y: 433, maxWidth:  73 },
-  perm_building:       { page: 0, x:  97, y: 433, maxWidth:  60 },
-  perm_lot:            { page: 0, x: 158, y: 433, maxWidth:  80 },
-  perm_street:         { page: 0, x: 240, y: 433, maxWidth: 115 },
+  // Col boundaries from word positions:
+  //   Unit/Room x0=19.8 | Building x0=97.3 | Lot/Block x0=158 | Street x0=295.9 | end≈395
+  perm_unit:           { page: 0, x:  22, y: 433, maxWidth:  73 },
+  perm_building:       { page: 0, x:  99, y: 433, maxWidth:  57 },
+  perm_lot:            { page: 0, x: 160, y: 433, maxWidth: 130 },
+  perm_street:         { page: 0, x: 298, y: 433, maxWidth:  95 },
 
-  // ADDRESS ROW 2 box: pdfplumber top=410.8–438.9 → pdf_lib 402.6–430.7
-  // Sub-labels (Subdivision…ZIP) at pdfplumber top=413 → fill is below at y=415
-  perm_subdivision:    { page: 0, x:  20, y: 415, maxWidth:  62 },
-  perm_barangay:       { page: 0, x:  86, y: 415, maxWidth:  65 },
-  perm_city:           { page: 0, x: 155, y: 415, maxWidth:  65 },
-  perm_province:       { page: 0, x: 223, y: 415, maxWidth:  88 },
-  perm_zip:            { page: 0, x: 357, y: 415, maxWidth:  38 },
+  // ADDRESS ROW 2 box: pdfplumber top=410.8–438.9 → pdf_lib y=415
+  // Col boundaries: Subdivision x0=19.8 | Barangay x0=86.4 | City x0=155.3 | Province x0=222.9 | ZIP x0=356.3 | end≈395
+  perm_subdivision:    { page: 0, x:  22, y: 415, maxWidth:  60 },
+  perm_barangay:       { page: 0, x:  88, y: 415, maxWidth:  63 },
+  perm_city:           { page: 0, x: 157, y: 415, maxWidth:  62 },
+  perm_province:       { page: 0, x: 225, y: 415, maxWidth: 127 },
+  perm_zip:            { page: 0, x: 359, y: 415, maxWidth:  33 },
 
   // RIGHT COLUMN – exact fill-box underlines (from PDF rects):
   // Home Phone underline: pdfplumber top=390.0–406.0 → pdf_lib bottom=435.5 → text baseline y=437
@@ -163,9 +174,13 @@ const PMRF_FIELD_COORDS: CoordsMap = {
   email:               { page: 0, x: 406, y: 344, maxWidth: 162 },
 
   // ── Section IV: Member Type handled via checkboxCoords ──
-  // Profession/Income label row at pdfplumber top≈770 → fill below at y=57
-  profession:          { page: 0, x:  20, y: 57, maxWidth: 160 },
-  monthly_income:      { page: 0, x: 195, y: 57, maxWidth:  75 },
+  // Bottom row cells: Profession x0=18-193.5 | Monthly Income x0=193.5-283.5 | Proof of Income x0=283.5-378
+  // Cell box pdfplumb top=767.7 bottom=803.6.
+  // Label text occupies top=770.5–784.7 (two lines ending at pdfplumb bottom≈784.7).
+  // Fill area: pdfplumb top≈793.5 (blank below label) → pdf_lib y = 841.5 - 793.5 - 8 ≈ 40
+  profession:          { page: 0, x:  22, y: 40, maxWidth: 168 },
+  monthly_income:      { page: 0, x: 197, y: 40, maxWidth:  82 },
+  proof_of_income:     { page: 0, x: 287, y: 40, maxWidth:  87 },
 };
 
 // ── PhilHealth PMRF checkbox coordinate map ───────────────────────────────────
