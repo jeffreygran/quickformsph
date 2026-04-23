@@ -3613,8 +3613,88 @@ const pagibigHlf858: FormSchema = {
   ],
 };
 
+// ─── Pag-IBIG HLF-068 (Housing Loan Application) ─────────────────────────────
+const pagibigHlf068: FormSchema = {
+  slug: 'pagibig-hlf-068',
+  code: 'HQP-HLF-068',
+  version: 'V01 (07/2021)',
+  name: 'Pag-IBIG Housing Loan Application',
+  agency: 'Pag-IBIG Fund',
+  category: 'Loans',
+  pdfPath: 'PagIbig - HLF068_HousingLoanApplication.pdf',
+  description:
+    'Apply for a Pag-IBIG Housing Loan. MVP fills the BORROWER\'S DATA section (identification, addresses, employer) on page 1. Loan particulars, property details, and spouse/co-borrower sections deferred to iteration 2.',
+  steps: [
+    { label: 'Identification', fieldIds: ['mid_no', 'housing_account_no', 'desired_loan_amount', 'last_name', 'first_name', 'ext_name', 'middle_name', 'citizenship', 'dob'] },
+    { label: 'Permanent Address', fieldIds: ['perm_unit', 'perm_street', 'perm_subdivision', 'perm_barangay', 'perm_city', 'perm_province', 'perm_zip'] },
+    { label: 'Present Address & Contacts', fieldIds: ['pres_unit', 'pres_street', 'pres_subdivision', 'pres_barangay', 'pres_city', 'pres_province', 'pres_zip', 'pres_cellphone', 'email_address', 'years_stay_present', 'sss_gsis'] },
+    { label: 'Employer', fieldIds: ['employer_name', 'tin', 'employer_address_line', 'occupation', 'employer_subdivision', 'employer_barangay', 'employer_city', 'employer_province', 'employer_zip', 'position_dept', 'years_employment', 'signature_date'] },
+  ],
+  fields: [
+    { id: 'mid_no', label: 'Pag-IBIG MID Number / RTN', type: 'text', required: true,
+      placeholder: '0000-0000-0000', inputMode: 'numeric', maxLength: 14, step: 1 },
+    { id: 'housing_account_no', label: 'Housing Account Number (HAN), if existing', type: 'text', required: false,
+      placeholder: 'Office use', maxLength: 14, step: 1 },
+    { id: 'desired_loan_amount', label: 'Desired Loan Amount (PHP)', type: 'text', required: true,
+      placeholder: '1500000', inputMode: 'numeric', step: 1 },
+    { id: 'last_name', label: 'Last Name', type: 'text', required: true,
+      placeholder: 'DELA CRUZ', autoUppercase: true, step: 1 },
+    { id: 'first_name', label: 'First Name', type: 'text', required: true,
+      placeholder: 'JUAN', autoUppercase: true, step: 1 },
+    { id: 'ext_name', label: 'Name Extension', type: 'dropdown', required: false,
+      options: ['N/A', 'Jr.', 'Sr.', 'II', 'III', 'IV'], step: 1 },
+    { id: 'middle_name', label: 'Middle Name', type: 'text', required: false,
+      autoUppercase: true, step: 1 },
+    { id: 'citizenship', label: 'Citizenship', type: 'text', required: true,
+      placeholder: 'Filipino', step: 1 },
+    { id: 'dob', label: 'Date of Birth (mm/dd/yyyy)', type: 'text', required: true,
+      placeholder: '01/15/1990', maxLength: 10, step: 1 },
+
+    { id: 'perm_unit', label: 'Permanent — Unit/Floor/Building/Lot/Block/Phase/House No.', type: 'text', required: true, step: 2 },
+    { id: 'perm_street', label: 'Street Name', type: 'text', required: true, step: 2 },
+    { id: 'perm_subdivision', label: 'Subdivision', type: 'text', required: false, step: 2 },
+    { id: 'perm_barangay', label: 'Barangay', type: 'text', required: true, step: 2 },
+    { id: 'perm_city', label: 'Municipality / City', type: 'text', required: true, step: 2 },
+    { id: 'perm_province', label: 'Province / State / Country', type: 'text', required: true, step: 2 },
+    { id: 'perm_zip', label: 'ZIP Code', type: 'text', required: true, inputMode: 'numeric', maxLength: 4, step: 2 },
+
+    { id: 'pres_unit', label: 'Present — Unit/Floor/Building/Lot/Block/Phase/House No.', type: 'text', required: false, step: 3 },
+    { id: 'pres_street', label: 'Street Name', type: 'text', required: false, step: 3 },
+    { id: 'pres_subdivision', label: 'Subdivision', type: 'text', required: false, step: 3 },
+    { id: 'pres_barangay', label: 'Barangay', type: 'text', required: false, step: 3 },
+    { id: 'pres_city', label: 'Municipality / City', type: 'text', required: false, step: 3 },
+    { id: 'pres_province', label: 'Province / State / Country', type: 'text', required: false, step: 3 },
+    { id: 'pres_zip', label: 'ZIP Code', type: 'text', required: false, inputMode: 'numeric', maxLength: 4, step: 3 },
+    { id: 'pres_cellphone', label: 'Cellphone Number', type: 'tel', required: true,
+      placeholder: '09171234567', inputMode: 'tel', maxLength: 11, step: 3 },
+    { id: 'email_address', label: 'Email Address', type: 'email', required: true,
+      inputMode: 'email', step: 3 },
+    { id: 'years_stay_present', label: 'Years of Stay in Present Home Address', type: 'text', required: false,
+      inputMode: 'numeric', maxLength: 3, step: 3 },
+    { id: 'sss_gsis', label: 'SSS / GSIS ID Number', type: 'text', required: false,
+      placeholder: '12-3456789-0', step: 3 },
+
+    { id: 'employer_name', label: 'Employer / Business Name', type: 'text', required: true, step: 4 },
+    { id: 'tin', label: 'Taxpayer Identification No. (TIN)', type: 'text', required: true,
+      inputMode: 'numeric', maxLength: 12, step: 4 },
+    { id: 'employer_address_line', label: 'Employer Address — Unit/Floor/Bldg/Street', type: 'text', required: true, step: 4 },
+    { id: 'occupation', label: 'Occupation', type: 'text', required: true,
+      placeholder: 'Software Engineer', step: 4 },
+    { id: 'employer_subdivision', label: 'Employer Subdivision', type: 'text', required: false, step: 4 },
+    { id: 'employer_barangay', label: 'Employer Barangay', type: 'text', required: true, step: 4 },
+    { id: 'employer_city', label: 'Employer City', type: 'text', required: true, step: 4 },
+    { id: 'employer_province', label: 'Employer Province / Country', type: 'text', required: true, step: 4 },
+    { id: 'employer_zip', label: 'Employer ZIP', type: 'text', required: false, inputMode: 'numeric', maxLength: 4, step: 4 },
+    { id: 'position_dept', label: 'Position & Department', type: 'text', required: true, step: 4 },
+    { id: 'years_employment', label: 'Years in Employment / Business', type: 'text', required: true,
+      inputMode: 'numeric', maxLength: 3, step: 4 },
+    { id: 'signature_date', label: 'Date Signed (mm/dd/yyyy)', type: 'text', required: true,
+      placeholder: '04/23/2026', maxLength: 10, step: 4 },
+  ],
+};
+
 // ─── Form Catalog ─────────────────────────────────────────────────────────────
-export const FORMS: FormSchema[] = [hqpPff356, philhealthPmrf, philhealthClaimForm1, philhealthClaimForm2, philhealthPmrfForeignNatl, philhealthClaimSignatureForm, pagibigPff049, pagibigSlf089, pagibigSlf065, pagibigHlf868, pagibigHlf858];
+export const FORMS: FormSchema[] = [hqpPff356, philhealthPmrf, philhealthClaimForm1, philhealthClaimForm2, philhealthPmrfForeignNatl, philhealthClaimSignatureForm, pagibigPff049, pagibigSlf089, pagibigSlf065, pagibigHlf868, pagibigHlf858, pagibigHlf068];
 
 export function getFormBySlug(slug: string): FormSchema | undefined {
   return FORMS.find((f) => f.slug === slug);
