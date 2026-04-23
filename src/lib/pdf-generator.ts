@@ -1769,8 +1769,8 @@ const HLF858_SKIP_VALUES: Record<string, string[]> = {
 const HLF068_PAGE_H = 936.0;
 const hlf068Y = (nextRowTop: number) => HLF068_PAGE_H - nextRowTop + 3;
 
-const HLF_068_Y_HEADER = hlf068Y(80);
-const HLF_068_Y_LOAN   = hlf068Y(125);
+const HLF_068_Y_HEADER = hlf068Y(73);  // per-digit box row baseline (box row top ≈ 63, text baseline ≈ 73)
+const HLF_068_Y_LOAN   = hlf068Y(148); // ₱ value line of DESIRED LOAN AMOUNT cell
 const HLF_068_Y_NAMES  = hlf068Y(394);
 const HLF_068_Y_PERM1  = hlf068Y(434);
 const HLF_068_Y_PERM2  = hlf068Y(464);
@@ -1785,7 +1785,7 @@ const HLF_068_Y_POS    = hlf068Y(779);
 const HLF068_FIELD_COORDS: CoordsMap = {
   mid_no:                { page: 0, x: 210, y: HLF_068_Y_HEADER, fontSize: 9, maxWidth: 185 },
   housing_account_no:    { page: 0, x: 400, y: HLF_068_Y_HEADER, fontSize: 9, maxWidth: 195 },
-  desired_loan_amount:   { page: 0, x: 200, y: HLF_068_Y_LOAN, fontSize: 9, maxWidth: 130 },
+  desired_loan_amount:   { page: 0, x: 475, y: HLF_068_Y_LOAN, fontSize: 9, maxWidth: 100 },
 
   last_name:             { page: 0, x: 30,  y: HLF_068_Y_NAMES, fontSize: 8, maxWidth: 70 },
   first_name:            { page: 0, x: 102, y: HLF_068_Y_NAMES, fontSize: 8, maxWidth: 75 },
