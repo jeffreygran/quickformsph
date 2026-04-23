@@ -511,6 +511,7 @@ These apply universally unless a form's dictionary entry says otherwise.
 | 2026-04-23 | All 12 forms | Initial Form Registry added; 12/12 QA pass confirmed | Gov Forms Specialist + PM |
 | 2026-04-24 | HLF-068 | Fixed `mid_no` / `housing_account_no`: replaced `x/maxWidth` with `boxCenters[]`; 12-digit exact box alignment verified (§25) | Gov Forms Specialist + QA (Mai) |
 | 2026-04-24 | (All) | Fixed pre-existing TypeScript build error in `page.tsx` (`pdf.getPage` → `npdf.getPage`) | Gov Forms Specialist |
+| 2026-04-24 | HLF-068 | Fixed address column misalignment: `perm_street`/`pres_street` moved to x=363 (Street Name col); address row 2 corrected to x=30/101/157/227/360; `occupation` moved to x=370 past checkboxes (§26) | Gov Forms Specialist + QA (Mai) |
 
 ---
 
@@ -1456,6 +1457,52 @@ but the `.getPage` call was not updated, blocking the production build).
 2. **Always rasterize (`pdftoppm -r 110`) and visually inspect after adding any new form.**
 3. **When writing coords for a new form, scan `page.rects` for small squares (w≈h≈10–14 pt)
    in the header row FIRST. If found → `boxCenters[]` required before writing any `x/maxWidth`.**
+
+---
+
+## 26. HLF-068 Address Column Misalignment Bug (Apr 24 2026)
+
+### Bug
+Full-fields QA revealed 20/38 fields missing from the PDF output for `pagibig-hlf-068`.
+All failures were address and employer fields. Char-level extraction showed text WAS present
+but in wrong columns — e.g. `perm_street` was rendering in the `perm_subdivision` column,
+`perm_subdivision` in `perm_barangay`, etc. (shifted right by one column throughout).
+
+Root cause: The address row coords used incorrect x values — `perm_street` at x=30 (which
+is the **Subdivision** column), rather than the correct x≈363 (the **Street Name** column).
+The layout for perm/pres/employer rows is:
+
+```
+Row 1: [Unit/Room No./Floor/Blk/Phase/House No.  x=30..325] [Street Name x=363..409] [Contact/Marital x=410+]
+Row 2: [Subdivision x=30] [Barangay x=101] [City x=157] [Province x=227] [ZIP x=360] [Right col x=412+]
+```
+
+Old coords had `perm_street` at x=30 with `maxWidth=60`, `perm_subdivision` at x=92, etc. —
+a completely wrong layout that mapped every field one column to the right of where it belonged.
+
+### Fix
+- `perm_unit` / `pres_unit`: stay at x=30; `maxWidth` trimmed to 330 (leaves room for Street Name)
+- `perm_street` / `pres_street`: moved to **x=363** (Street Name column on Row 1), same Y as unit
+- Address Row 2 columns corrected: `x=30, 101, 157, 227, 360` (matched to form label x positions)
+- `occupation`: was at x=300 (overlapping `❑ Employed / ❑ Self-Employed` checkboxes at 300–370);
+  moved to **x=370** with `maxWidth=222` so it appears after the checkboxes
+
+### Confirmed Column Map (from `page.words`, pdfplumber)
+
+| Column | x0 | Field (perm) | Field (pres) | Field (employer) |
+|--------|-----|-------------|-------------|-----------------|
+| Unit/Rm/Blk | 30 | `perm_unit` | `pres_unit` | `employer_address_line` |
+| Street Name | 363 | `perm_street` | `pres_street` | *(in addr line)* |
+| Subdivision | 30 (row 2) | `perm_subdivision` | `pres_subdivision` | `employer_subdivision` |
+| Barangay | 101 | `perm_barangay` | `pres_barangay` | `employer_barangay` |
+| City | 157 | `perm_city` | `pres_city` | `employer_city` |
+| Province | 227 | `perm_province` | `pres_province` | `employer_province` |
+| ZIP | 360 | `perm_zip` | `pres_zip` | `employer_zip` |
+| After checkboxes | 370 | — | — | `occupation` |
+
+### Outcome
+After fix: **39/39 checks PASS, 0 out-of-bounds**, all 3 pages clean.
+PDF saved: `~/Desktop/qfph-qa-pdfs/hlf068_maria_santos_fullfields.pdf`
 
 ---
 

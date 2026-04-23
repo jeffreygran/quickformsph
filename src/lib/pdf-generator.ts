@@ -21,7 +21,9 @@ type CoordEntry = {
 };
 type CoordsMap = Record<string, CoordEntry>;
 
-interface FormPdfConfig {
+export type { CoordEntry, CoordsMap };
+
+export interface FormPdfConfig {
   /** Field id → overlay coordinate (pdf-lib coords, y=0 at bottom). */
   fieldCoords: CoordsMap;
   /** Field values to treat as blank (not drawn). */
@@ -1810,24 +1812,28 @@ const HLF068_FIELD_COORDS: CoordsMap = {
   citizenship:           { page: 0, x: 346, y: HLF_068_Y_NAMES, fontSize: 8, maxWidth: 60 },
   dob:                   { page: 0, x: 410, y: HLF_068_Y_NAMES, fontSize: 9, maxWidth: 110 },
 
-  perm_unit:             { page: 0, x: 30,  y: HLF_068_Y_PERM1, fontSize: 7.5, maxWidth: 375 },
+  // perm row 1: unit/room fills the left block; street name goes in the Street Name column (x=363)
+  perm_unit:             { page: 0, x: 30,  y: HLF_068_Y_PERM1, fontSize: 7.5, maxWidth: 330 },
+  perm_street:           { page: 0, x: 363, y: HLF_068_Y_PERM1, fontSize: 8,   maxWidth: 225 },
 
-  perm_street:           { page: 0, x: 30,  y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 60 },
-  perm_subdivision:      { page: 0, x: 92,  y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 30 },
-  perm_barangay:         { page: 0, x: 124, y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 70 },
-  perm_city:             { page: 0, x: 196, y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 75 },
-  perm_province:         { page: 0, x: 273, y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 90 },
-  perm_zip:              { page: 0, x: 365, y: HLF_068_Y_PERM2, fontSize: 9, maxWidth: 45 },
+  // perm row 2: follow form column labels — Subdivision(30) | Barangay(101) | City(157) | Province(227) | ZIP(360)
+  perm_subdivision:      { page: 0, x: 30,  y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 68 },
+  perm_barangay:         { page: 0, x: 101, y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 54 },
+  perm_city:             { page: 0, x: 157, y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 68 },
+  perm_province:         { page: 0, x: 227, y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 130 },
+  perm_zip:              { page: 0, x: 360, y: HLF_068_Y_PERM2, fontSize: 9, maxWidth: 48 },
 
-  pres_unit:             { page: 0, x: 30,  y: HLF_068_Y_PRES1, fontSize: 7.5, maxWidth: 375 },
-  pres_cellphone:        { page: 0, x: 412, y: HLF_068_Y_PRES1, fontSize: 9, maxWidth: 175 },
+  // pres row 1: unit fills left block; street name at x=363 (47pt wide — contact col starts at x=410)
+  pres_unit:             { page: 0, x: 30,  y: HLF_068_Y_PRES1, fontSize: 7.5, maxWidth: 330 },
+  pres_street:           { page: 0, x: 363, y: HLF_068_Y_PRES1, fontSize: 7.5, maxWidth: 47 },
+  pres_cellphone:        { page: 0, x: 412, y: HLF_068_Y_PRES1, fontSize: 9,   maxWidth: 175 },
 
-  pres_street:           { page: 0, x: 30,  y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 60 },
-  pres_subdivision:      { page: 0, x: 92,  y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 30 },
-  pres_barangay:         { page: 0, x: 124, y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 70 },
-  pres_city:             { page: 0, x: 196, y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 75 },
-  pres_province:         { page: 0, x: 273, y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 90 },
-  pres_zip:              { page: 0, x: 365, y: HLF_068_Y_PRES2, fontSize: 9, maxWidth: 45 },
+  // pres row 2: same column positions as perm row 2
+  pres_subdivision:      { page: 0, x: 30,  y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 68 },
+  pres_barangay:         { page: 0, x: 101, y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 54 },
+  pres_city:             { page: 0, x: 157, y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 68 },
+  pres_province:         { page: 0, x: 227, y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 130 },
+  pres_zip:              { page: 0, x: 360, y: HLF_068_Y_PRES2, fontSize: 9, maxWidth: 48 },
   email_address:         { page: 0, x: 412, y: HLF_068_Y_PRES2, fontSize: 7.5, maxWidth: 175 },
 
   years_stay_present:    { page: 0, x: 220, y: HLF_068_Y_HOME, fontSize: 9, maxWidth: 75 },
@@ -1837,13 +1843,16 @@ const HLF068_FIELD_COORDS: CoordsMap = {
   tin:                   { page: 0, x: 296, y: HLF_068_Y_EMP1, fontSize: 9, maxWidth: 110 },
 
   employer_address_line: { page: 0, x: 30,  y: HLF_068_Y_EMP2, fontSize: 7.5, maxWidth: 265 },
-  occupation:            { page: 0, x: 300, y: HLF_068_Y_EMP2, fontSize: 8, maxWidth: 105 },
+  // occupation goes to the right of the pre-printed ❑ Employed / ❑ Self-Employed checkboxes
+  // (checkboxes occupy x=300-370 at Y_EMP2; place text after them)
+  occupation:            { page: 0, x: 370, y: HLF_068_Y_EMP2, fontSize: 8,   maxWidth: 222 },
 
-  employer_subdivision:  { page: 0, x: 30,  y: HLF_068_Y_EMP3, fontSize: 8, maxWidth: 90 },
-  employer_barangay:     { page: 0, x: 124, y: HLF_068_Y_EMP3, fontSize: 8, maxWidth: 70 },
-  employer_city:         { page: 0, x: 196, y: HLF_068_Y_EMP3, fontSize: 8, maxWidth: 75 },
-  employer_province:     { page: 0, x: 273, y: HLF_068_Y_EMP3, fontSize: 8, maxWidth: 90 },
-  employer_zip:          { page: 0, x: 365, y: HLF_068_Y_EMP3, fontSize: 9, maxWidth: 45 },
+  // emp row 3: same column positions as perm/pres address row 2
+  employer_subdivision:  { page: 0, x: 30,  y: HLF_068_Y_EMP3, fontSize: 8, maxWidth: 68 },
+  employer_barangay:     { page: 0, x: 101, y: HLF_068_Y_EMP3, fontSize: 8, maxWidth: 54 },
+  employer_city:         { page: 0, x: 157, y: HLF_068_Y_EMP3, fontSize: 8, maxWidth: 68 },
+  employer_province:     { page: 0, x: 227, y: HLF_068_Y_EMP3, fontSize: 8, maxWidth: 130 },
+  employer_zip:          { page: 0, x: 360, y: HLF_068_Y_EMP3, fontSize: 9, maxWidth: 48 },
 
   position_dept:         { page: 0, x: 412, y: HLF_068_Y_POS, fontSize: 8, maxWidth: 110 },
   years_employment:      { page: 0, x: 525, y: HLF_068_Y_POS, fontSize: 9, maxWidth: 65 },
@@ -1869,7 +1878,7 @@ const HLF068_SKIP_VALUES: Record<string, string[]> = {
   employer_zip: [''],
 };
 
-const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
+export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   'hqp-pff-356': {
     fieldCoords: FIELD_COORDS,
     skipValues: SKIP_VALUES,
