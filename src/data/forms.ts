@@ -3052,8 +3052,114 @@ const philhealthClaimSignatureForm: FormSchema = {
   ],
 };
 
+// ─── Pag-IBIG PFF-049 (MCIF) ─────────────────────────────────────────────────
+// Member's Change of Information Form (V12 12/2025), 2 pages legal 612×936.
+// MVP scope: covers the most common change requests — identity, membership
+// category, name, DOB, marital status, address/contacts, "others". Sections 6
+// (Employment) and 7 (Heirs) are intentionally omitted in this release.
+const pagibigPff049: FormSchema = {
+  slug: 'pagibig-pff-049',
+  code: 'HQP-PFF-049',
+  version: 'V12 (12/2025)',
+  name: "Member's Change of Information Form (MCIF)",
+  agency: 'Pag-IBIG Fund',
+  category: 'Membership',
+  pdfPath: 'Pagibig - PFF049_MembersChangeInformationForm.pdf',
+  description:
+    "Update your Pag-IBIG records — name, marital status, date of birth, address, and contact details. Only fill in the sections that apply to your change request.",
+  steps: [
+    { label: 'Identification', fieldIds: ['mid_no', 'housing_account_no', 'loyalty_card_holder', 'loyalty_partner_bank', 'current_last_name', 'current_first_name', 'current_ext_name', 'current_middle_name'] },
+    { label: 'Name / Category / DOB', fieldIds: ['category_from', 'category_to', 'name_from_last', 'name_from_first', 'name_from_ext', 'name_from_middle', 'name_to_last', 'name_to_first', 'name_to_ext', 'name_to_middle', 'dob_from', 'dob_to'] },
+    { label: 'Marital Status', fieldIds: ['marital_from', 'marital_to', 'spouse_last_name', 'spouse_first_name', 'spouse_ext_name', 'spouse_middle_name'] },
+    { label: 'Address & Contact', fieldIds: ['new_address_line', 'new_barangay', 'new_city', 'new_province', 'new_zip', 'new_cell_phone', 'new_email', 'preferred_mailing'] },
+    { label: 'Others & Signature', fieldIds: ['others_from', 'others_to', 'signature_date'] },
+  ],
+  fields: [
+    // ── Step 1: Identification ──
+    { id: 'mid_no', label: 'Pag-IBIG MID No.', type: 'text', required: true,
+      placeholder: '0000-0000-0000', hint: 'Your 12-digit Pag-IBIG MID', inputMode: 'numeric', step: 1 },
+    { id: 'housing_account_no', label: 'Housing Account No. (if applicable)', type: 'text', required: false,
+      placeholder: 'Leave blank if not applicable', step: 1 },
+    { id: 'loyalty_card_holder', label: 'Pag-IBIG Loyalty Card Holder?', type: 'dropdown', required: true,
+      options: ['No', 'Yes'], step: 1 },
+    { id: 'loyalty_partner_bank', label: 'Loyalty Card Issuing Partner-Bank/s', type: 'text', required: false,
+      placeholder: 'e.g., UnionBank', hint: 'Only if Loyalty Card = Yes', step: 1 },
+    { id: 'current_last_name', label: 'Current Last Name', type: 'text', required: true,
+      placeholder: 'DELA CRUZ', autoUppercase: true, step: 1 },
+    { id: 'current_first_name', label: 'Current First Name', type: 'text', required: true,
+      placeholder: 'JUAN', autoUppercase: true, step: 1 },
+    { id: 'current_ext_name', label: 'Current Name Extension', type: 'dropdown', required: false,
+      options: ['N/A', 'Jr.', 'Sr.', 'II', 'III', 'IV'], step: 1 },
+    { id: 'current_middle_name', label: 'Current Middle Name', type: 'text', required: false,
+      placeholder: 'SANTOS', autoUppercase: true, step: 1 },
+
+    // ── Step 2: Category / Name / DOB Changes ──
+    { id: 'category_from', label: 'Membership Category — FROM', type: 'text', required: false,
+      placeholder: 'e.g., Employed Local', hint: 'Leave both blank if no category change', step: 2 },
+    { id: 'category_to', label: 'Membership Category — TO', type: 'text', required: false,
+      placeholder: 'e.g., Self-Employed', step: 2 },
+    { id: 'name_from_last', label: 'Name Change — FROM Last Name', type: 'text', required: false,
+      autoUppercase: true, hint: 'Leave all Name fields blank if no name change', step: 2 },
+    { id: 'name_from_first', label: 'Name Change — FROM First Name', type: 'text', required: false,
+      autoUppercase: true, step: 2 },
+    { id: 'name_from_ext', label: 'Name Change — FROM Extension', type: 'dropdown', required: false,
+      options: ['N/A', 'Jr.', 'Sr.', 'II', 'III', 'IV'], step: 2 },
+    { id: 'name_from_middle', label: 'Name Change — FROM Middle Name', type: 'text', required: false,
+      autoUppercase: true, step: 2 },
+    { id: 'name_to_last', label: 'Name Change — TO Last Name', type: 'text', required: false,
+      autoUppercase: true, step: 2 },
+    { id: 'name_to_first', label: 'Name Change — TO First Name', type: 'text', required: false,
+      autoUppercase: true, step: 2 },
+    { id: 'name_to_ext', label: 'Name Change — TO Extension', type: 'dropdown', required: false,
+      options: ['N/A', 'Jr.', 'Sr.', 'II', 'III', 'IV'], step: 2 },
+    { id: 'name_to_middle', label: 'Name Change — TO Middle Name', type: 'text', required: false,
+      autoUppercase: true, step: 2 },
+    { id: 'dob_from', label: 'DOB Correction — FROM (mm/dd/yyyy)', type: 'text', required: false,
+      placeholder: '01/15/1985', hint: 'Only if correcting DOB', step: 2 },
+    { id: 'dob_to', label: 'DOB Correction — TO (mm/dd/yyyy)', type: 'text', required: false,
+      placeholder: '01/15/1986', step: 2 },
+
+    // ── Step 3: Marital Status ──
+    { id: 'marital_from', label: 'Marital Status — FROM', type: 'dropdown', required: false,
+      options: ['N/A', 'Single', 'Married', 'Legally Separated', 'Annulled/Nullified', 'Widowed', 'Divorced'], step: 3 },
+    { id: 'marital_to', label: 'Marital Status — TO', type: 'dropdown', required: false,
+      options: ['N/A', 'Single', 'Married', 'Legally Separated', 'Annulled/Nullified', 'Widowed', 'Divorced'], step: 3 },
+    { id: 'spouse_last_name', label: 'Spouse Last Name', type: 'text', required: false,
+      autoUppercase: true, hint: 'Only if Married', step: 3 },
+    { id: 'spouse_first_name', label: 'Spouse First Name', type: 'text', required: false,
+      autoUppercase: true, step: 3 },
+    { id: 'spouse_ext_name', label: 'Spouse Name Extension', type: 'dropdown', required: false,
+      options: ['N/A', 'Jr.', 'Sr.', 'II', 'III', 'IV'], step: 3 },
+    { id: 'spouse_middle_name', label: 'Spouse Middle Name', type: 'text', required: false,
+      autoUppercase: true, step: 3 },
+
+    // ── Step 4: Address & Contact ──
+    { id: 'new_address_line', label: 'New Address — Street / House / Unit', type: 'text', required: false,
+      placeholder: 'Unit 4B, 123 Rizal Street, Brgy. San Jose',
+      hint: 'Leave all address fields blank if no address change', step: 4 },
+    { id: 'new_barangay', label: 'New Barangay', type: 'text', required: false, step: 4 },
+    { id: 'new_city', label: 'New City / Municipality', type: 'text', required: false, step: 4 },
+    { id: 'new_province', label: 'New Province / State / Country', type: 'text', required: false, step: 4 },
+    { id: 'new_zip', label: 'New Zip Code', type: 'text', required: false, inputMode: 'numeric', maxLength: 10, step: 4 },
+    { id: 'new_cell_phone', label: 'New Cell Phone', type: 'tel', required: false,
+      placeholder: '09171234567', inputMode: 'tel', step: 4 },
+    { id: 'new_email', label: 'New Email Address', type: 'email', required: false,
+      placeholder: 'juan@example.com', inputMode: 'email', step: 4 },
+    { id: 'preferred_mailing', label: 'Preferred Mailing Address', type: 'dropdown', required: false,
+      options: ['N/A', 'Present Home Address', 'Permanent Home Address', 'Employer/Business Address'], step: 4 },
+
+    // ── Step 5: Others & Signature ──
+    { id: 'others_from', label: 'Other Update — FROM', type: 'text', required: false,
+      placeholder: 'e.g., Place of Birth — Manila', hint: 'For Place of Birth / Mother\u2019s Maiden Name / Sex corrections', step: 5 },
+    { id: 'others_to', label: 'Other Update — TO', type: 'text', required: false,
+      placeholder: 'e.g., Place of Birth — Quezon City', step: 5 },
+    { id: 'signature_date', label: 'Date Signed (mm/dd/yyyy)', type: 'text', required: true,
+      placeholder: '04/15/2026', inputMode: 'numeric', step: 5 },
+  ],
+};
+
 // ─── Form Catalog ─────────────────────────────────────────────────────────────
-export const FORMS: FormSchema[] = [hqpPff356, philhealthPmrf, philhealthClaimForm1, philhealthClaimForm2, philhealthPmrfForeignNatl, philhealthClaimSignatureForm];
+export const FORMS: FormSchema[] = [hqpPff356, philhealthPmrf, philhealthClaimForm1, philhealthClaimForm2, philhealthPmrfForeignNatl, philhealthClaimSignatureForm, pagibigPff049];
 
 export function getFormBySlug(slug: string): FormSchema | undefined {
   return FORMS.find((f) => f.slug === slug);
