@@ -20,6 +20,7 @@ export type AuditEventType =
   | 'login_fail'
   | 'login_lockout'
   | 'logout'
+  | 'password_changed'
   | 'rate_limit_hit'
   | 'ip_blocked'
   | 'ip_unblocked'
