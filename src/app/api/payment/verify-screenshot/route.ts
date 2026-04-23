@@ -181,6 +181,11 @@ export async function POST(req: NextRequest) {
     await markRefUsed(refNo);
   }
 
-  return NextResponse.json({ valid: errors.length === 0, errors });
+  return NextResponse.json({
+    valid: errors.length === 0,
+    errors,
+    refNo:     errors.length === 0 ? (refNo ?? null)     : null,
+    ocrAmount: errors.length === 0 ? (ocrAmount ?? null) : null,
+  });
 }
 

@@ -66,7 +66,22 @@ export default function FormWizardPage() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleChange = useCallback((id: string, value: string) => {
     setValues((prev) => {
-      const next = { ...prev, [id]: value };
+      let next = { ...prev, [id]: value };
+      // "Same as Above" — copy permanent address to mailing address when checked
+      if (id === 'mail_same_as_above' && value === 'true') {
+        next = {
+          ...next,
+          mail_unit:        prev.perm_unit        ?? '',
+          mail_building:    prev.perm_building    ?? '',
+          mail_lot:         prev.perm_lot         ?? '',
+          mail_street:      prev.perm_street      ?? '',
+          mail_subdivision: prev.perm_subdivision ?? '',
+          mail_barangay:    prev.perm_barangay    ?? '',
+          mail_city:        prev.perm_city        ?? '',
+          mail_province:    prev.perm_province    ?? '',
+          mail_zip:         prev.perm_zip         ?? '',
+        };
+      }
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => saveDraft(slug, next), 600);
       return next;
@@ -118,40 +133,155 @@ export default function FormWizardPage() {
     ];
     const pmrfSamples = [
       {
+        // ── Step 1: Personal Info ──
         pin: '12-345-678-9012',
+        purpose: 'Registration',
+        konsulta_provider: '01-234-567-8901',
         last_name: 'DELA CRUZ', first_name: 'JUAN ANDRES', middle_name: 'REYES', name_ext: 'Jr.',
         dob_month: '03', dob_day: '15', dob_year: '1990',
         place_of_birth: 'Quezon City, Metro Manila',
         sex: 'Male', civil_status: 'Single', citizenship: 'Filipino',
+        philsys_id: '1234-5678901-2', tin: '123-456-789-000',
+        // ── Step 2: Family Names ──
         mother_last_name: 'REYES', mother_first_name: 'MARIA', mother_middle_name: 'SANTOS',
-        spouse_last_name: 'N/A', spouse_first_name: 'N/A', spouse_middle_name: 'N/A',
-        perm_unit: 'Unit 4B', perm_building: 'Sunrise Tower', perm_lot: 'Lot 12',
-        perm_street: 'Rizal Street', perm_subdivision: 'Loyola Grand Villas',
-        perm_barangay: 'Brgy. San Jose', perm_city: 'Quezon City',
-        perm_province: 'Metro Manila (NCR)', perm_zip: '1100',
+        spouse_last_name: '', spouse_first_name: '', spouse_middle_name: '',
+        // ── Step 3: Address & Contact ──
+        perm_unit: 'Unit 4B', perm_building: 'Sunrise Tower', perm_lot: 'Lot 12 Blk 3',
+        perm_street: 'Katipunan Avenue', perm_subdivision: 'Loyola Grand Villas',
+        perm_barangay: 'Brgy. Batasan Hills', perm_city: 'Quezon City',
+        perm_province: 'Metro Manila (NCR)', perm_zip: '1126',
+        mail_same_as_above: '',
+        mail_unit: 'Room 2', mail_building: 'MNL Suites', mail_lot: 'Lot 3',
+        mail_street: 'Taft Avenue', mail_subdivision: '',
+        mail_barangay: 'Brgy. Ermita', mail_city: 'Manila',
+        mail_province: 'Metro Manila (NCR)', mail_zip: '1000',
         mobile: '09171234567', home_phone: '028123-4567', email: 'juan.delacruz@gmail.com',
-        member_type: 'Employed Private', profession: 'Engineer', monthly_income: '55000',
+        // ── Step 4: Dependents ──
+        dep1_last_name: 'REYES', dep1_first_name: 'CARLOS', dep1_name_ext: '',
+        dep1_middle_name: 'SANTOS', dep1_relationship: 'Brother',
+        dep1_dob: '05-22-1995', dep1_citizenship: 'Filipino',
+        dep1_no_middle_name: '', dep1_mononym: '', dep1_disability: '',
+        dep2_last_name: 'DELA CRUZ', dep2_first_name: 'ELENA', dep2_name_ext: '',
+        dep2_middle_name: 'REYES', dep2_relationship: 'Sister',
+        dep2_dob: '09-14-1993', dep2_citizenship: 'Filipino',
+        dep2_no_middle_name: '', dep2_mononym: '', dep2_disability: '',
+        dep3_last_name: '', dep3_first_name: '', dep3_name_ext: '',
+        dep3_middle_name: '', dep3_relationship: '', dep3_dob: '', dep3_citizenship: '',
+        dep3_no_middle_name: '', dep3_mononym: '', dep3_disability: '',
+        dep4_last_name: '', dep4_first_name: '', dep4_name_ext: '',
+        dep4_middle_name: '', dep4_relationship: '', dep4_dob: '', dep4_citizenship: '',
+        dep4_no_middle_name: '', dep4_mononym: '', dep4_disability: '',
+        // ── Step 5: Member Type ──
+        member_type: 'Employed Private', indirect_contributor: '',
+        profession: 'Civil Engineer', monthly_income: '55000',
+        proof_of_income: 'Certificate of Employment',
       },
       {
+        // ── Step 1: Personal Info ──
         pin: '09-876-543-2109',
-        last_name: 'SANTOS', first_name: 'ANNA MARIE', middle_name: 'GARCIA', name_ext: 'N/A',
+        purpose: 'Updating/Amendment',
+        konsulta_provider: '09-876-543-0001',
+        last_name: 'SANTOS', first_name: 'ANNA MARIE', middle_name: 'GARCIA', name_ext: '',
         dob_month: '07', dob_day: '22', dob_year: '1985',
         place_of_birth: 'Cebu City, Cebu',
         sex: 'Female', civil_status: 'Married', citizenship: 'Filipino',
+        philsys_id: '9876-5432109-8', tin: '987-654-321-000',
+        // ── Step 2: Family Names ──
         mother_last_name: 'GARCIA', mother_first_name: 'LUCIA', mother_middle_name: 'VIDAL',
         spouse_last_name: 'SANTOS', spouse_first_name: 'PEDRO', spouse_middle_name: 'LIM',
+        // ── Step 3: Address & Contact ──
         perm_unit: 'Unit 3A', perm_building: 'Greenfield Residences', perm_lot: 'Blk 5 Lot 7',
         perm_street: 'Mabini Street', perm_subdivision: 'Greenfield Village',
-        perm_barangay: 'Brgy. Poblacion', perm_city: 'Makati',
+        perm_barangay: 'Brgy. Poblacion', perm_city: 'Makati City',
         perm_province: 'Metro Manila (NCR)', perm_zip: '1210',
+        mail_same_as_above: 'true',
+        mail_unit: '', mail_building: '', mail_lot: '',
+        mail_street: '', mail_subdivision: '',
+        mail_barangay: '', mail_city: '',
+        mail_province: '', mail_zip: '',
         mobile: '09281234567', home_phone: '028765-4321', email: 'anna.santos@gmail.com',
-        member_type: 'Self-Earning Individual', profession: 'Freelance Designer', monthly_income: '25000',
+        // ── Step 4: Dependents ──
+        dep1_last_name: 'SANTOS', dep1_first_name: 'PEDRO', dep1_name_ext: '',
+        dep1_middle_name: 'LIM', dep1_relationship: 'Spouse',
+        dep1_dob: '04-05-1983', dep1_citizenship: 'Filipino',
+        dep1_no_middle_name: '', dep1_mononym: '', dep1_disability: '',
+        dep2_last_name: 'SANTOS', dep2_first_name: 'CLAIRE ANNE', dep2_name_ext: '',
+        dep2_middle_name: 'LIM', dep2_relationship: 'Child',
+        dep2_dob: '11-02-2010', dep2_citizenship: 'Filipino',
+        dep2_no_middle_name: '', dep2_mononym: '', dep2_disability: 'true',
+        dep3_last_name: 'SANTOS', dep3_first_name: 'MIGUEL', dep3_name_ext: '',
+        dep3_middle_name: 'LIM', dep3_relationship: 'Child',
+        dep3_dob: '03-18-2013', dep3_citizenship: 'Filipino',
+        dep3_no_middle_name: '', dep3_mononym: '', dep3_disability: '',
+        dep4_last_name: '', dep4_first_name: '', dep4_name_ext: '',
+        dep4_middle_name: '', dep4_relationship: '', dep4_dob: '', dep4_citizenship: '',
+        dep4_no_middle_name: '', dep4_mononym: '', dep4_disability: '',
+        // ── Step 5: Member Type ──
+        member_type: 'Self-Earning Individual', indirect_contributor: '',
+        profession: 'Freelance Designer', monthly_income: '25000',
+        proof_of_income: 'Notarized Affidavit of Income',
+      },
+    ];
+
+    const cf1Samples = [
+      {
+        // ── Sample 1: Member is the patient (employed, with employer cert) ──
+        // Step 1: Member Info
+        member_pin: '123456789012',
+        member_last_name: 'DELA CRUZ', member_first_name: 'JUAN ANDRES',
+        member_name_ext: 'Jr.', member_middle_name: 'SANTOS',
+        member_dob_month: '03', member_dob_day: '15', member_dob_year: '1990',
+        member_sex: 'Male',
+        // Step 2: Mailing Address
+        addr_unit: 'Unit 4B', addr_building: 'Sunrise Tower', addr_lot: 'Lot 12 Blk 3',
+        addr_street: 'Katipunan Avenue', addr_subdivision: 'Loyola Grand Villas',
+        addr_barangay: 'Brgy. Batasan Hills', addr_city: 'Quezon City',
+        addr_province: 'Metro Manila (NCR)', addr_country: 'Philippines', addr_zip: '1126',
+        // Step 3: Contact & Patient Type
+        contact_landline: '(02) 8123-4567', contact_mobile: '09171234567',
+        contact_email: 'juan.delacruz@gmail.com',
+        patient_is_member: 'Yes — I am the Patient',
+        // Step 4: Dependent (blank — patient is the member)
+        patient_pin: '', patient_last_name: '', patient_first_name: '',
+        patient_name_ext: '', patient_middle_name: '',
+        patient_dob_month: '', patient_dob_day: '', patient_dob_year: '',
+        patient_relationship: '', patient_sex: '',
+        // Step 5: Employer Certification
+        employer_pen: '17-123456789-0', employer_contact: '(02) 8888-9999',
+        employer_business_name: 'ABC COMPANY INC',
+      },
+      {
+        // ── Sample 2: Dependent (child) is the patient, self-employed member ──
+        // Step 1: Member Info
+        member_pin: '098765432109',
+        member_last_name: 'SANTOS', member_first_name: 'ANNA MARIE',
+        member_name_ext: 'N/A', member_middle_name: 'GARCIA',
+        member_dob_month: '07', member_dob_day: '22', member_dob_year: '1985',
+        member_sex: 'Female',
+        // Step 2: Mailing Address
+        addr_unit: '', addr_building: 'Greenfield Residences', addr_lot: 'Blk 5 Lot 7',
+        addr_street: 'Mabini Street', addr_subdivision: 'Greenfield Village',
+        addr_barangay: 'Brgy. Poblacion', addr_city: 'Makati City',
+        addr_province: 'Metro Manila (NCR)', addr_country: 'Philippines', addr_zip: '1210',
+        // Step 3: Contact & Patient Type
+        contact_landline: '', contact_mobile: '09281234567',
+        contact_email: 'anna.santos@gmail.com',
+        patient_is_member: 'No — Patient is a Dependent',
+        // Step 4: Dependent (child)
+        patient_pin: '112233445566',
+        patient_last_name: 'SANTOS', patient_first_name: 'CLAIRE ANNE',
+        patient_name_ext: 'N/A', patient_middle_name: 'GARCIA',
+        patient_dob_month: '11', patient_dob_day: '02', patient_dob_year: '2010',
+        patient_relationship: 'Child', patient_sex: 'Female',
+        // Step 5: Employer (blank — self-employed)
+        employer_pen: '', employer_contact: '', employer_business_name: '',
       },
     ];
 
     const samplesBySlug: Record<string, Record<string, string>[]> = {
       'hqp-pff-356': hqpSamples,
-      'philhealth-pmrf': pmrfSamples,
+      'philhealth-pmrf': pmrfSamples as Record<string, string>[],
+      'philhealth-claim-form-1': cf1Samples,
     };
     const samples = samplesBySlug[slug] ?? hqpSamples;
     const pick = samples[Math.floor(Math.random() * samples.length)];
@@ -243,12 +373,12 @@ export default function FormWizardPage() {
   }
 
   // ── Payment confirmed → generate final PDF + return 5-digit code ──────────
-  async function handlePaymentConfirm() {
+  async function handlePaymentConfirm(meta: { refNo: string | null; ocrAmount: number | null }) {
     if (!form) return;
     const res = await fetch('/api/payment/confirm', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, values }),
+      body: JSON.stringify({ slug, values, refNo: meta.refNo, amount: meta.ocrAmount ?? 5 }),
     });
     if (!res.ok) throw new Error('PDF generation failed');
 
@@ -382,14 +512,14 @@ export default function FormWizardPage() {
 
       {/* Step progress bar */}
       <div className="mx-auto max-w-lg px-4 pt-4 pb-2">
-        <div className="flex items-center">
+        <div className="flex items-start">
           {form.steps.map((step, i) => {
             const filled = stepFilledCount(i);
             const required = stepRequiredCount(i);
             const done = filled >= required && required > 0;
             const active = i === currentStep;
             return (
-              <div key={i} className="flex flex-1 items-center">
+              <div key={i} className="flex flex-1 items-start">
                 <button
                   onClick={() => setCurrentStep(i as StepIndex)}
                   className="flex flex-col items-center gap-1"
@@ -402,21 +532,21 @@ export default function FormWizardPage() {
                     {done ? '✓' : i + 1}
                   </div>
                   <span
-                    className={`text-[10px] font-medium ${
+                    className={`text-[10px] font-medium text-center leading-tight min-h-[2.5em] ${
                       active ? 'text-blue-700' : done ? 'text-green-600' : 'text-gray-400'
                     }`}
                   >
                     {step.label}
                   </span>
                 </button>
-                <div className="flex-1 h-0.5 mx-1 bg-gray-200 rounded" />
+                <div className="flex-1 h-0.5 mx-1 bg-gray-200 rounded mt-[14px]" />
               </div>
             );
           })}
           {/* Review pseudo-step */}
           <div className="flex flex-col items-center gap-1">
             <div className="step-dot step-dot-idle">✎</div>
-            <span className="text-[10px] font-medium text-gray-400">Review</span>
+            <span className="text-[10px] font-medium text-gray-400 text-center leading-tight min-h-[2.5em]">Review</span>
           </div>
         </div>
       </div>
@@ -968,13 +1098,14 @@ function PaymentModal({
 }: {
   gcashNumber: string;
   gcashName: string;
-  onConfirm: () => Promise<void>;
+  onConfirm: (meta: { refNo: string | null; ocrAmount: number | null }) => Promise<void>;
   onClose: () => void;
 }) {
   const [step, setStep]                   = useState<PaymentStep>('details');
   const [verifyErrors, setVerifyErrors]   = useState<string[]>([]);
   const [screenshotUrl, setScreenshotUrl] = useState<string>('');
   const [amount] = useState<number>(5);
+  const [verifiedMeta, setVerifiedMeta]   = useState<{ refNo: string | null; ocrAmount: number | null }>({ refNo: null, ocrAmount: null });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -990,8 +1121,9 @@ function PaymentModal({
     fd.append('amount', String(Math.max(amount, 5)));
     try {
       const res  = await fetch('/api/payment/verify-screenshot', { method: 'POST', body: fd });
-      const data = await res.json() as { valid: boolean; errors: string[] };
+      const data = await res.json() as { valid: boolean; errors: string[]; refNo: string | null; ocrAmount: number | null };
       if (data.valid) {
+        setVerifiedMeta({ refNo: data.refNo ?? null, ocrAmount: data.ocrAmount ?? null });
         setStep('verified');
       } else {
         setVerifyErrors(data.errors ?? ['Verification failed']);
@@ -1151,7 +1283,7 @@ function PaymentModal({
               onClick={async () => {
                 setStep('generating');
                 try {
-                  await onConfirm();
+                  await onConfirm(verifiedMeta);
                 } catch {
                   setStep('gen_failed');
                 }

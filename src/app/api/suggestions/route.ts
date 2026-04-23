@@ -6,6 +6,14 @@ import os from 'os';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit-log';
 import { sanitizeText, sanitizeEmail } from '@/lib/sanitize';
+import {
+  insertSuggestion,
+  getAllSuggestions,
+  deleteSuggestion,
+  deleteAllSuggestions,
+  updateSuggestionStatus,
+  type Suggestion,
+} from '@/lib/db';
 
 function getIP(req: NextRequest): string {
   return (
@@ -15,19 +23,34 @@ function getIP(req: NextRequest): string {
   );
 }
 
-const DATA_DIR = process.env.DATA_DIR
+const JSON_DIR = process.env.DATA_DIR
   ? path.join(process.env.DATA_DIR, 'suggestions')
   : path.join(os.tmpdir(), 'qfph', 'suggestions');
 
-function ensureDir(dir: string) {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+/** One-time backfill from legacy JSON files into SQLite */
+function backfillFromJSON(existingIds: Set<string>) {
+  if (!fs.existsSync(JSON_DIR)) return;
+  const files = fs.readdirSync(JSON_DIR).filter((f) => f.endsWith('.json'));
+  for (const file of files) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(path.join(JSON_DIR, file), 'utf-8')) as Partial<Suggestion>;
+      if (!raw.id || existingIds.has(raw.id)) continue;
+      insertSuggestion({
+        id:         raw.id,
+        name:       raw.name       ?? '',
+        email:      raw.email      ?? '',
+        suggestion: raw.suggestion ?? '',
+        status:     (raw.status as Suggestion['status']) ?? 'pending',
+        created_at: raw.created_at ?? Date.now(),
+      });
+    } catch { /* skip invalid */ }
+  }
 }
 
 /** POST /api/suggestions — public, submit a suggestion */
 export async function POST(req: NextRequest) {
   const ip = getIP(req);
 
-  // Rate limit: 5 suggestions / hour per IP
   const rl = checkRateLimit(ip, 'suggestions', { max: 5, windowMs: 60 * 60 * 1000 });
   if (!rl.allowed) {
     auditLog('rate_limit_hit', ip, 'Suggestions rate limit exceeded');
@@ -48,106 +71,87 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Suggestion is too short' }, { status: 400 });
   }
 
-  ensureDir(DATA_DIR);
-
   const id  = crypto.randomBytes(8).toString('hex');
   const now = Date.now();
 
-  const entry = {
+  const entry: Suggestion = {
     id,
     name:       sanitizeText(body.name  ?? '', 100),
     email:      sanitizeEmail(body.email ?? ''),
     suggestion,
     created_at: now,
-    status:     'pending' as const,
+    status:     'pending',
   };
 
-  fs.writeFileSync(
-    path.join(DATA_DIR, `${now}-${id}.json`),
-    JSON.stringify(entry, null, 2),
-    'utf-8',
-  );
+  insertSuggestion(entry);
 
   return NextResponse.json({ success: true, id });
 }
 
 /** GET /api/suggestions — admin only */
 export async function GET(req: NextRequest) {
-  const auth = req.cookies.get('qfph_admin')?.value;
-  if (!auth) {
+  if (!req.cookies.get('qfph_admin')?.value) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  ensureDir(DATA_DIR);
+  // Backfill any legacy JSON-file suggestions on first load
+  const existing    = getAllSuggestions();
+  const existingIds = new Set(existing.map((s) => s.id));
+  backfillFromJSON(existingIds);
 
-  const files = fs.readdirSync(DATA_DIR)
-    .filter((f) => f.endsWith('.json'))
-    .sort()
-    .reverse();
-
-  const suggestions = files
-    .map((f) => {
-      try {
-        return JSON.parse(fs.readFileSync(path.join(DATA_DIR, f), 'utf-8'));
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean);
-
+  const suggestions = getAllSuggestions();
   return NextResponse.json({ suggestions });
 }
 
 /** DELETE /api/suggestions — admin only */
 export async function DELETE(req: NextRequest) {
-  const auth = req.cookies.get('qfph_admin')?.value;
-  if (!auth) {
+  if (!req.cookies.get('qfph_admin')?.value) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await req.json().catch(() => ({})) as { id?: string };
-  const id   = (body.id ?? '').trim();
+  const body = await req.json().catch(() => ({})) as { id?: string; all?: boolean };
+
+  if (body.all) {
+    const deleted = deleteAllSuggestions();
+    // Also remove legacy JSON files
+    if (fs.existsSync(JSON_DIR)) {
+      fs.readdirSync(JSON_DIR)
+        .filter((f) => f.endsWith('.json'))
+        .forEach((f) => { try { fs.unlinkSync(path.join(JSON_DIR, f)); } catch { /* ignore */ } });
+    }
+    return NextResponse.json({ success: true, deleted });
+  }
+
+  const id = (body.id ?? '').trim();
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
 
-  ensureDir(DATA_DIR);
+  deleteSuggestion(id);
 
-  const files = fs.readdirSync(DATA_DIR)
-    .filter((f) => f.includes(id) && f.endsWith('.json'));
-
-  files.forEach((f) => {
-    try { fs.unlinkSync(path.join(DATA_DIR, f)); } catch { /* ignore */ }
-  });
+  // Also remove matching legacy JSON file if present
+  if (fs.existsSync(JSON_DIR)) {
+    fs.readdirSync(JSON_DIR)
+      .filter((f) => f.includes(id) && f.endsWith('.json'))
+      .forEach((f) => { try { fs.unlinkSync(path.join(JSON_DIR, f)); } catch { /* ignore */ } });
+  }
 
   return NextResponse.json({ success: true });
 }
 
 /** PATCH /api/suggestions — admin only, mark status */
 export async function PATCH(req: NextRequest) {
-  const auth = req.cookies.get('qfph_admin')?.value;
-  if (!auth) {
+  if (!req.cookies.get('qfph_admin')?.value) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const body = await req.json().catch(() => ({})) as { id?: string; status?: string };
-  const id     = (body.id ?? '').trim();
+  const id     = (body.id     ?? '').trim();
   const status = (body.status ?? '').trim();
   if (!id || !status) {
     return NextResponse.json({ error: 'Missing id or status' }, { status: 400 });
   }
 
-  ensureDir(DATA_DIR);
-
-  const files = fs.readdirSync(DATA_DIR)
-    .filter((f) => f.includes(id) && f.endsWith('.json'));
-
-  for (const f of files) {
-    const fp = path.join(DATA_DIR, f);
-    try {
-      const entry = JSON.parse(fs.readFileSync(fp, 'utf-8'));
-      entry.status = status;
-      fs.writeFileSync(fp, JSON.stringify(entry, null, 2), 'utf-8');
-    } catch { /* ignore */ }
-  }
+  updateSuggestionStatus(id, status);
 
   return NextResponse.json({ success: true });
 }
+

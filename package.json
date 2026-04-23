@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "better-sqlite3": "^12.9.0",
     "jose": "^5.9.3",
     "next": "14.2.35",
     "pdf-lib": "^1.17.1",
@@ -18,6 +19,7 @@
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

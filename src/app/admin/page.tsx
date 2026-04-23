@@ -423,6 +423,7 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
 function SuggestionsTab() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading]         = useState(true);
+  const [bulkBusy, setBulkBusy]       = useState(false);
   const [error, setError]             = useState('');
   const [filter, setFilter]           = useState<'all' | 'pending' | 'reviewed' | 'added'>('all');
 
@@ -461,6 +462,18 @@ function SuggestionsTab() {
     });
   }
 
+  async function handleDeleteAll() {
+    if (!confirm(`Delete all ${suggestions.length} suggestions? This cannot be undone.`)) return;
+    setBulkBusy(true);
+    await fetch('/api/suggestions', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ all: true }),
+    });
+    setBulkBusy(false);
+    load();
+  }
+
   const displayed = suggestions.filter((s) => filter === 'all' || s.status === filter);
   const counts    = {
     all:      suggestions.length,
@@ -473,9 +486,20 @@ function SuggestionsTab() {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-base font-semibold text-gray-900">💡 User Suggestions</h2>
-        <button onClick={load} className="text-xs text-blue-600 border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50">
-          ↻ Refresh
-        </button>
+        <div className="flex gap-2">
+          <button onClick={load} className="text-xs text-blue-600 border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50">
+            ↻ Refresh
+          </button>
+          {suggestions.length > 0 && (
+            <button
+              onClick={handleDeleteAll}
+              disabled={bulkBusy}
+              className="text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-40"
+            >
+              🗑 Delete All
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter tabs */}
