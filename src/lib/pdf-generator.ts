@@ -1001,6 +1001,92 @@ const PMRF_FN_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
   },
 };
 
+// ── PhilHealth Claim Signature Form (CSF_2018) — calibrated coords ──────────
+// Page: 612 × 936 pts (Legal, 1 page). Box rows have h=12.3, fontSize 9 → offset
+// +(12.3-6.51)/2 = 2.895. Formula: y_box = 936 - row_top - 12.3 + 2.895
+// Checkbox (ZapfDingbats ✓) y = 936 - (row_top + 12.3) + 5
+const CSF_PAGE_H = 936.0;
+const csfBoxY = (rowTop: number) => CSF_PAGE_H - rowTop - 12.3 + 2.895;
+const csfCheckY = (rowTop: number) => CSF_PAGE_H - rowTop - 12.3 + 5;
+
+const CSF_FIELD_COORDS: CoordsMap = {
+  // Series # boxes at top=101, h=11.8
+  series_no: {
+    page: 0, y: 936 - 101 - 11.8 + (11.8 - 6.51) / 2, x: 0, fontSize: 9,
+    boxCenters: [438.8, 450.7, 462.5, 474.3, 486.2, 498.0, 510.0, 521.9, 533.7, 545.7, 557.5, 569.4, 581.4],
+  },
+  // ── Step 1: Member ──
+  member_pin: {
+    page: 0, y: csfBoxY(163), x: 0, fontSize: 9,
+    boxCenters: [265.6, 277.9, 297.9, 310.2, 322.5, 334.8, 347.0, 359.3, 371.6, 383.9, 396.1, 415.5],
+  },
+  // Name underlines at top=196, y = 936 - 196 - 2 = 738
+  member_last_name:   { page: 0, x:  28, y: 738, maxWidth:  95, fontSize: 9 },
+  member_first_name:  { page: 0, x: 139, y: 738, maxWidth:  95, fontSize: 9 },
+  member_ext_name:    { page: 0, x: 248, y: 738, maxWidth:  95, fontSize: 9 },
+  member_middle_name: { page: 0, x: 358, y: 738, maxWidth:  78, fontSize: 9 },
+  member_dob_month: { page: 0, y: csfBoxY(194), x: 0, fontSize: 9, boxCenters: [464.3, 476.6] },
+  member_dob_day:   { page: 0, y: csfBoxY(194), x: 0, fontSize: 9, boxCenters: [496.0, 508.3] },
+  member_dob_year:  { page: 0, y: csfBoxY(194), x: 0, fontSize: 9, boxCenters: [527.7, 540.0, 552.3, 564.6] },
+  // ── Step 2: Patient ──
+  dependent_pin: {
+    page: 0, y: csfBoxY(229), x: 0, fontSize: 9,
+    boxCenters: [276.9, 289.2, 309.3, 321.6, 333.8, 346.1, 358.4, 370.7, 382.9, 395.2, 407.5, 426.8],
+  },
+  // Patient name underlines at top=261, y = 936 - 261 - 2 = 673
+  patient_last_name:   { page: 0, x:  28, y: 673, maxWidth:  95, fontSize: 9 },
+  patient_first_name:  { page: 0, x: 139, y: 673, maxWidth:  95, fontSize: 9 },
+  patient_ext_name:    { page: 0, x: 248, y: 673, maxWidth:  95, fontSize: 9 },
+  patient_middle_name: { page: 0, x: 358, y: 673, maxWidth:  78, fontSize: 9 },
+  date_admitted_month:   { page: 0, y: csfBoxY(307), x: 0, fontSize: 9, boxCenters: [ 95.7, 108.0] },
+  date_admitted_day:     { page: 0, y: csfBoxY(307), x: 0, fontSize: 9, boxCenters: [127.4, 139.7] },
+  date_admitted_year:    { page: 0, y: csfBoxY(307), x: 0, fontSize: 9, boxCenters: [159.0, 171.4, 183.6, 196.0] },
+  date_discharged_month: { page: 0, y: csfBoxY(307), x: 0, fontSize: 9, boxCenters: [299.4, 311.7] },
+  date_discharged_day:   { page: 0, y: csfBoxY(307), x: 0, fontSize: 9, boxCenters: [331.1, 343.4] },
+  date_discharged_year:  { page: 0, y: csfBoxY(307), x: 0, fontSize: 9, boxCenters: [362.8, 375.1, 387.4, 399.7] },
+  patient_dob_month:     { page: 0, y: csfBoxY(307), x: 0, fontSize: 9, boxCenters: [464.3, 476.6] },
+  patient_dob_day:       { page: 0, y: csfBoxY(307), x: 0, fontSize: 9, boxCenters: [496.0, 508.3] },
+  patient_dob_year:      { page: 0, y: csfBoxY(307), x: 0, fontSize: 9, boxCenters: [527.7, 540.0, 552.3, 564.6] },
+  // ── Step 3: Employer ──
+  employer_pen: {
+    page: 0, y: csfBoxY(483), x: 0, fontSize: 9,
+    boxCenters: [200.6, 212.8, 232.9, 245.2, 257.5, 269.8, 282.0, 294.3, 306.5, 318.8, 331.1, 350.5],
+  },
+  employer_contact_no: { page: 0, x: 460, y: 449, maxWidth: 127, fontSize: 9 },
+  business_name:       { page: 0, x: 125, y: 434, maxWidth: 460, fontSize: 9 },
+  employer_date_signed_month: { page: 0, y: csfBoxY(573), x: 0, fontSize: 9, boxCenters: [473.7, 486.0] },
+  employer_date_signed_day:   { page: 0, y: csfBoxY(573), x: 0, fontSize: 9, boxCenters: [505.4, 517.7] },
+  employer_date_signed_year:  { page: 0, y: csfBoxY(573), x: 0, fontSize: 9, boxCenters: [537.0, 549.4, 561.6, 574.0] },
+  // ── Step 4: Consent Date Signed ──
+  consent_date_signed_month: { page: 0, y: csfBoxY(655), x: 0, fontSize: 9, boxCenters: [406.0, 418.3] },
+  consent_date_signed_day:   { page: 0, y: csfBoxY(655), x: 0, fontSize: 9, boxCenters: [437.7, 450.0] },
+  consent_date_signed_year:  { page: 0, y: csfBoxY(655), x: 0, fontSize: 9, boxCenters: [469.4, 481.7, 494.0, 506.3] },
+};
+
+// Relationship row top=258; cx [454.3, 496.2, 541.4] = [child, parent, spouse]
+const CSF_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
+  relationship_to_member: {
+    'Child':  { x: 450.5, y: csfCheckY(258) },
+    'Parent': { x: 492.3, y: csfCheckY(258) },
+    'Spouse': { x: 537.5, y: csfCheckY(258) },
+    // 'Self' → no checkbox (member IS the patient)
+  },
+};
+
+const CSF_SKIP_VALUES: Record<string, string[]> = {
+  member_ext_name: ['', 'N/A'],
+  patient_ext_name: ['', 'N/A'],
+  series_no: [''],
+  dependent_pin: [''],
+  employer_pen: [''],
+  employer_contact_no: [''],
+  business_name: [''],
+  employer_date_signed_month: [''],
+  employer_date_signed_day: [''],
+  employer_date_signed_year: [''],
+  relationship_to_member: ['Self'],
+};
+
 const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   'hqp-pff-356': {
     fieldCoords: FIELD_COORDS,
@@ -1057,6 +1143,12 @@ const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
     skipValues: {},
     copyYOffsets: [0],
     checkboxCoords: PMRF_FN_CHECKBOX_COORDS,
+  },
+  'philhealth-claim-signature-form': {
+    fieldCoords: CSF_FIELD_COORDS,
+    skipValues: CSF_SKIP_VALUES,
+    copyYOffsets: [0],
+    checkboxCoords: CSF_CHECKBOX_COORDS,
   },
 };
 

@@ -2926,8 +2926,134 @@ const philhealthPmrfForeignNatl: FormSchema = {
   ],
 };
 
+// ─── PhilHealth Claim Signature Form (CSF_2018) ──────────────────────────────
+// Source: PhilHealth - ClaimSignatureForm_2018.pdf (Legal, 1 page, 612 × 936).
+// Filled by member + (optionally) employer + HCI consenter. We implement the
+// member/employer portions only — HCI/HCP sections (Part IV/V) are outside
+// the scope of a self-service workflow.
+const philhealthClaimSignatureForm: FormSchema = {
+  slug: 'philhealth-claim-signature-form',
+  code: 'CSF-2018',
+  version: 'Revised September 2018',
+  name: 'PhilHealth Claim Signature Form',
+  agency: 'PhilHealth',
+  category: 'Claims',
+  pdfPath: 'PhilHealth - ClaimSignatureForm_2018.pdf',
+  description:
+    'Sign-off companion form for PhilHealth claims — member/patient certification, employer certification, and consent to access patient records.',
+  steps: [
+    {
+      label: 'Member Info',
+      fieldIds: [
+        'series_no',
+        'member_pin',
+        'member_last_name', 'member_first_name', 'member_ext_name', 'member_middle_name',
+        'member_dob_month', 'member_dob_day', 'member_dob_year',
+      ],
+    },
+    {
+      label: 'Patient & Confinement',
+      fieldIds: [
+        'dependent_pin',
+        'patient_last_name', 'patient_first_name', 'patient_ext_name', 'patient_middle_name',
+        'relationship_to_member',
+        'date_admitted_month', 'date_admitted_day', 'date_admitted_year',
+        'date_discharged_month', 'date_discharged_day', 'date_discharged_year',
+        'patient_dob_month', 'patient_dob_day', 'patient_dob_year',
+      ],
+    },
+    {
+      label: 'Employer (if employed)',
+      fieldIds: [
+        'employer_pen',
+        'employer_contact_no',
+        'business_name',
+        'employer_date_signed_month', 'employer_date_signed_day', 'employer_date_signed_year',
+      ],
+    },
+    {
+      label: 'Consent Signature',
+      fieldIds: [
+        'consent_date_signed_month', 'consent_date_signed_day', 'consent_date_signed_year',
+      ],
+    },
+  ],
+  fields: [
+    // ── Step 1: Member Info ──
+    { id: 'series_no', label: 'Series #', type: 'text', required: false,
+      optional_note: 'Provided by HCI — leave blank if unknown',
+      placeholder: 'up to 13 digits', inputMode: 'numeric', maxLength: 13, step: 1 },
+    { id: 'member_pin', label: 'Member PhilHealth PIN', type: 'text', required: true,
+      placeholder: '12-345678901-2', inputMode: 'numeric', maxLength: 14, step: 1 },
+    { id: 'member_last_name', label: 'Member — Last Name', type: 'text', required: true, autoUppercase: true, step: 1 },
+    { id: 'member_first_name', label: 'Member — First Name', type: 'text', required: true, autoUppercase: true, step: 1 },
+    { id: 'member_ext_name', label: 'Member — Name Extension (JR/SR/III)', type: 'text', required: false,
+      optional_note: 'Leave blank if none', autoUppercase: true, step: 1 },
+    { id: 'member_middle_name', label: 'Member — Middle Name', type: 'text', required: false, autoUppercase: true, step: 1 },
+    { id: 'member_dob_month', label: 'Member DOB — Month', type: 'text', required: true,
+      placeholder: 'MM', inputMode: 'numeric', maxLength: 2, step: 1 },
+    { id: 'member_dob_day', label: 'Member DOB — Day', type: 'text', required: true,
+      placeholder: 'DD', inputMode: 'numeric', maxLength: 2, step: 1 },
+    { id: 'member_dob_year', label: 'Member DOB — Year', type: 'text', required: true,
+      placeholder: 'YYYY', inputMode: 'numeric', maxLength: 4, step: 1 },
+
+    // ── Step 2: Patient ──
+    { id: 'dependent_pin', label: 'Dependent PhilHealth PIN (if applicable)', type: 'text', required: false,
+      optional_note: 'Leave blank if patient is the member',
+      placeholder: '12-345678901-2', inputMode: 'numeric', maxLength: 14, step: 2 },
+    { id: 'patient_last_name', label: 'Patient — Last Name', type: 'text', required: true, autoUppercase: true, step: 2 },
+    { id: 'patient_first_name', label: 'Patient — First Name', type: 'text', required: true, autoUppercase: true, step: 2 },
+    { id: 'patient_ext_name', label: 'Patient — Name Extension', type: 'text', required: false,
+      optional_note: 'Leave blank if none', autoUppercase: true, step: 2 },
+    { id: 'patient_middle_name', label: 'Patient — Middle Name', type: 'text', required: false, autoUppercase: true, step: 2 },
+    { id: 'relationship_to_member', label: 'Relationship to Member', type: 'dropdown', required: true,
+      options: ['Self', 'Child', 'Parent', 'Spouse'], step: 2 },
+    { id: 'date_admitted_month', label: 'Date Admitted — Month', type: 'text', required: true,
+      placeholder: 'MM', inputMode: 'numeric', maxLength: 2, step: 2 },
+    { id: 'date_admitted_day', label: 'Date Admitted — Day', type: 'text', required: true,
+      placeholder: 'DD', inputMode: 'numeric', maxLength: 2, step: 2 },
+    { id: 'date_admitted_year', label: 'Date Admitted — Year', type: 'text', required: true,
+      placeholder: 'YYYY', inputMode: 'numeric', maxLength: 4, step: 2 },
+    { id: 'date_discharged_month', label: 'Date Discharged — Month', type: 'text', required: true,
+      placeholder: 'MM', inputMode: 'numeric', maxLength: 2, step: 2 },
+    { id: 'date_discharged_day', label: 'Date Discharged — Day', type: 'text', required: true,
+      placeholder: 'DD', inputMode: 'numeric', maxLength: 2, step: 2 },
+    { id: 'date_discharged_year', label: 'Date Discharged — Year', type: 'text', required: true,
+      placeholder: 'YYYY', inputMode: 'numeric', maxLength: 4, step: 2 },
+    { id: 'patient_dob_month', label: 'Patient DOB — Month', type: 'text', required: true,
+      placeholder: 'MM', inputMode: 'numeric', maxLength: 2, step: 2 },
+    { id: 'patient_dob_day', label: 'Patient DOB — Day', type: 'text', required: true,
+      placeholder: 'DD', inputMode: 'numeric', maxLength: 2, step: 2 },
+    { id: 'patient_dob_year', label: 'Patient DOB — Year', type: 'text', required: true,
+      placeholder: 'YYYY', inputMode: 'numeric', maxLength: 4, step: 2 },
+
+    // ── Step 3: Employer ──
+    { id: 'employer_pen', label: 'Employer PhilHealth Number (PEN)', type: 'text', required: false,
+      optional_note: 'Leave blank if not employed',
+      placeholder: '12 digits', inputMode: 'numeric', maxLength: 14, step: 3 },
+    { id: 'employer_contact_no', label: 'Employer Contact No.', type: 'tel', required: false,
+      optional_note: 'Leave blank if not employed', step: 3 },
+    { id: 'business_name', label: 'Business Name (Employer)', type: 'text', required: false,
+      optional_note: 'Leave blank if not employed', autoUppercase: true, step: 3 },
+    { id: 'employer_date_signed_month', label: 'Employer Date Signed — Month', type: 'text', required: false,
+      optional_note: 'Leave blank if not employed', placeholder: 'MM', inputMode: 'numeric', maxLength: 2, step: 3 },
+    { id: 'employer_date_signed_day', label: 'Employer Date Signed — Day', type: 'text', required: false,
+      optional_note: 'Leave blank if not employed', placeholder: 'DD', inputMode: 'numeric', maxLength: 2, step: 3 },
+    { id: 'employer_date_signed_year', label: 'Employer Date Signed — Year', type: 'text', required: false,
+      optional_note: 'Leave blank if not employed', placeholder: 'YYYY', inputMode: 'numeric', maxLength: 4, step: 3 },
+
+    // ── Step 4: Consent Signature ──
+    { id: 'consent_date_signed_month', label: 'Consent Date Signed — Month', type: 'text', required: true,
+      placeholder: 'MM', inputMode: 'numeric', maxLength: 2, step: 4 },
+    { id: 'consent_date_signed_day', label: 'Consent Date Signed — Day', type: 'text', required: true,
+      placeholder: 'DD', inputMode: 'numeric', maxLength: 2, step: 4 },
+    { id: 'consent_date_signed_year', label: 'Consent Date Signed — Year', type: 'text', required: true,
+      placeholder: 'YYYY', inputMode: 'numeric', maxLength: 4, step: 4 },
+  ],
+};
+
 // ─── Form Catalog ─────────────────────────────────────────────────────────────
-export const FORMS: FormSchema[] = [hqpPff356, philhealthPmrf, philhealthClaimForm1, philhealthClaimForm2, philhealthPmrfForeignNatl];
+export const FORMS: FormSchema[] = [hqpPff356, philhealthPmrf, philhealthClaimForm1, philhealthClaimForm2, philhealthPmrfForeignNatl, philhealthClaimSignatureForm];
 
 export function getFormBySlug(slug: string): FormSchema | undefined {
   return FORMS.find((f) => f.slug === slug);

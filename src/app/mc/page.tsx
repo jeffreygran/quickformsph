@@ -54,14 +54,16 @@ export default function AdminPage() {
         }`}
       >
         <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
-          <Image
-            src="/quickformsph-logo-transparent-slogan.png"
-            alt="QuickFormsPH"
-            width={140}
-            height={38}
-            className="h-8 w-auto object-contain"
-            priority
-          />
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <Image
+              src="/quickformsph-logo-transparent-slogan.png"
+              alt="QuickFormsPH"
+              width={140}
+              height={38}
+              className="h-8 w-auto object-contain"
+              priority
+            />
+          </Link>
           <span className="ml-1 text-[10px] font-semibold text-gray-400 border border-gray-200 rounded px-1.5 py-0.5">Admin</span>
         </div>
 
@@ -432,6 +434,7 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
 function SuggestionsTab() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading]         = useState(true);
+  const [bulkBusy, setBulkBusy]       = useState(false);
   const [error, setError]             = useState('');
   const [filter, setFilter]           = useState<'all' | 'pending' | 'reviewed' | 'added'>('all');
 
@@ -470,6 +473,18 @@ function SuggestionsTab() {
     });
   }
 
+  async function handleDeleteAll() {
+    if (!confirm(`Delete all ${suggestions.length} suggestions? This cannot be undone.`)) return;
+    setBulkBusy(true);
+    await fetch('/api/suggestions', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ all: true }),
+    });
+    setBulkBusy(false);
+    load();
+  }
+
   const displayed = suggestions.filter((s) => filter === 'all' || s.status === filter);
   const counts    = {
     all:      suggestions.length,
@@ -482,9 +497,20 @@ function SuggestionsTab() {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-base font-semibold text-gray-900">💡 User Suggestions</h2>
-        <button onClick={load} className="text-xs text-blue-600 border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50">
-          ↻ Refresh
-        </button>
+        <div className="flex gap-2">
+          <button onClick={load} className="text-xs text-blue-600 border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50">
+            ↻ Refresh
+          </button>
+          {suggestions.length > 0 && (
+            <button
+              onClick={handleDeleteAll}
+              disabled={bulkBusy}
+              className="text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-40"
+            >
+              🗑 Delete All
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter tabs */}
@@ -1000,10 +1026,12 @@ function SecurityTab() {
 // ─── GeneratedPDFsTab ─────────────────────────────────────────────────────────
 type PDFEntry = {
   code: string;
-  name: string;
-  formName: string;
-  formCode: string;
+  full_name: string;
+  form_name: string;
+  form_code: string;
   agency: string;
+  ref_no: string | null;
+  amount: number | null;
   created_at: number | null;
   expires_at: number | null;
   expired: boolean;
@@ -1088,7 +1116,7 @@ function GeneratedPDFsTab() {
   const [deleting, setDeleting]     = useState<string | null>(null);
   const [bulkBusy, setBulkBusy]     = useState(false);
   const [storageDir, setStorageDir] = useState('');
-  const [preview, setPreview]       = useState<{ code: string; name: string } | null>(null);
+  const [preview, setPreview]       = useState<{ code: string; full_name: string } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -1145,11 +1173,12 @@ function GeneratedPDFsTab() {
   const filtered = q
     ? entries.filter(
         (e) =>
-          e.name.toLowerCase().includes(q) ||
-          e.formName.toLowerCase().includes(q) ||
-          e.formCode.toLowerCase().includes(q) ||
+          e.full_name.toLowerCase().includes(q) ||
+          e.form_name.toLowerCase().includes(q) ||
+          e.form_code.toLowerCase().includes(q) ||
           e.agency.toLowerCase().includes(q) ||
-          e.code.toLowerCase().includes(q),
+          e.code.toLowerCase().includes(q) ||
+          (e.ref_no ?? '').toLowerCase().includes(q),
       )
     : entries;
 
@@ -1161,7 +1190,7 @@ function GeneratedPDFsTab() {
       {preview && (
         <PDFPreviewModal
           code={preview.code}
-          name={preview.name}
+          name={preview.full_name}
           onClose={() => setPreview(null)}
         />
       )}
@@ -1229,6 +1258,8 @@ function GeneratedPDFsTab() {
               <tr>
                 <th className="px-4 py-2.5 text-left">Name</th>
                 <th className="px-4 py-2.5 text-left">Form</th>
+                <th className="px-4 py-2.5 text-left">Ref No.</th>
+                <th className="px-4 py-2.5 text-right">Amount (₱)</th>
                 <th className="px-4 py-2.5 text-left">Created</th>
                 <th className="px-4 py-2.5 text-left">Expires</th>
                 <th className="px-4 py-2.5 text-left">Code</th>
@@ -1238,10 +1269,14 @@ function GeneratedPDFsTab() {
             <tbody className="divide-y divide-gray-100">
               {filtered.map((e) => (
                 <tr key={e.code} className={`hover:bg-gray-50 ${e.expired ? 'opacity-50' : ''}`}>
-                  <td className="px-4 py-2.5 font-medium text-gray-900 whitespace-nowrap">{e.name}</td>
+                  <td className="px-4 py-2.5 font-medium text-gray-900 whitespace-nowrap">{e.full_name}</td>
                   <td className="px-4 py-2.5 text-gray-600">
-                    <div className="font-semibold">{e.formCode}</div>
+                    <div className="font-semibold">{e.form_code}</div>
                     <div className="text-gray-400 text-[10px]">{e.agency}</div>
+                  </td>
+                  <td className="px-4 py-2.5 font-mono text-gray-700 whitespace-nowrap">{e.ref_no ?? '—'}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-700 whitespace-nowrap">
+                    {e.amount != null ? `₱${e.amount.toFixed(2)}` : '—'}
                   </td>
                   <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">
                     {e.created_at
@@ -1263,7 +1298,7 @@ function GeneratedPDFsTab() {
                       {!e.expired && (
                         <>
                           <button
-                            onClick={() => setPreview({ code: e.code, name: e.name })}
+                            onClick={() => setPreview({ code: e.code, full_name: e.full_name })}
                             className="text-blue-600 hover:text-blue-800 border border-blue-200 rounded-lg px-2.5 py-1 hover:bg-blue-50"
                           >
                             👁 Preview

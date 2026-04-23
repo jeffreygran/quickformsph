@@ -39,7 +39,7 @@ export default function SuggestionModal({ onClose }: { onClose: () => void }) {
             <span className="text-xl">💡</span>
             <div>
               <div className="text-white font-bold text-sm">Suggest a Form</div>
-              <div className="text-blue-200 text-[11px]">Which government form should we add next?</div>
+              <div className="text-blue-200 text-[11px]">Which government form should we add next? Positive feedback welcome too!</div>
             </div>
           </div>
           <button onClick={onClose} className="text-blue-200 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center">×</button>
@@ -48,8 +48,8 @@ export default function SuggestionModal({ onClose }: { onClose: () => void }) {
         {submitted ? (
           <div className="p-8 text-center space-y-3">
             <div className="text-4xl">🙏</div>
-            <p className="text-sm font-semibold text-gray-900">Suggestion received — salamat!</p>
-            <p className="text-xs text-gray-500">We&apos;ll review it and add it to the roadmap.</p>
+            <p className="text-sm font-semibold text-gray-900">Salamat! Your message has been received.</p>
+            <p className="text-xs text-gray-500">We&apos;ll review it and add it to our roadmap.<br />If you shared kind words, it may be featured as a review — thank you for the support!</p>
             <button
               onClick={() => { setSubmitted(false); setSuggestion(''); setName(''); setEmail(''); }}
               className="text-xs text-blue-600 underline"
@@ -72,7 +72,7 @@ export default function SuggestionModal({ onClose }: { onClose: () => void }) {
             <div>
               <label className="field-label">Your Suggestion <span className="text-red-500">*</span></label>
               <textarea
-                placeholder="e.g. BIR Form 2316, SSS Contribution Form, PhilHealth MDR…"
+                placeholder="e.g. BIR Form 2316, SSS Contribution Form, PhilHealth MDR… or just let us know if this helped you!"
                 className="input-field min-h-[90px] resize-none"
                 rows={3}
                 value={suggestion}
@@ -80,6 +80,9 @@ export default function SuggestionModal({ onClose }: { onClose: () => void }) {
                 maxLength={2000}
                 required
               />
+              <p className="mt-1.5 text-[11px] text-gray-400 leading-relaxed">
+                💬 Positive feedback is greatly appreciated — with your permission, kind words may be featured as a review on the site. Maraming salamat! 🙏
+              </p>
             </div>
             {error && <p className="text-xs text-red-500">{error}</p>}
             <div className="flex gap-3 pt-1">

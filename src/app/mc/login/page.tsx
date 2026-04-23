@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+
+const STORAGE_KEY = 'qfph_admin_user';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -10,6 +12,12 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Pre-fill remembered username
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) setUsername(saved);
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -22,6 +30,7 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ username, password }),
       });
       if (res.ok) {
+        localStorage.setItem(STORAGE_KEY, username);
         router.push('/mc');
         router.refresh();
       } else {

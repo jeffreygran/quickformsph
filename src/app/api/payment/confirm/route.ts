@@ -6,6 +6,7 @@ import { auditLog } from '@/lib/audit-log';
 import { isBlocked } from '@/lib/ip-blocklist';
 import { sanitizeSlug, sanitizeText, isValidSlug } from '@/lib/sanitize';
 import { encryptValues } from '@/lib/encrypt';
+import { insertPDFRecord, insertPaymentRef } from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -58,8 +59,10 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const rawSlug = body?.slug;
+  const rawSlug   = body?.slug;
   const rawValues = body?.values;
+  const rawRefNo  = typeof body?.refNo  === 'string' ? body.refNo.trim()      : null;
+  const rawAmount = typeof body?.amount === 'number' ? body.amount            : 5;
 
   const slug = sanitizeSlug(rawSlug);
   if (!slug || !rawValues || typeof rawValues !== 'object') {
@@ -97,6 +100,8 @@ export async function POST(req: NextRequest) {
     const lastName  = (values.last_name  ?? '').trim();
     const fullName  = [firstName, lastName].filter(Boolean).join(' ') || 'Applicant';
     const now       = Date.now();
+    const refNo     = rawRefNo ?? null;
+    const amount    = Math.max(isNaN(rawAmount) ? 5 : rawAmount, 5);
 
     // Encrypt form values before writing to disk (DPA RA 10173 — security safeguards).
     // Non-identifying metadata (slug, agency, timestamps) stays in plaintext so expiry
@@ -110,6 +115,8 @@ export async function POST(req: NextRequest) {
       formName: form.name,
       formCode: form.code,
       agency: form.agency,
+      refNo,
+      amount,
       created_at: now,
       expires_at: now + CODE_TTL_MS,
     };
@@ -119,6 +126,29 @@ export async function POST(req: NextRequest) {
       JSON.stringify(entry, null, 2),
       'utf-8',
     );
+
+    // Persist to SQLite for admin reporting
+    try {
+      insertPDFRecord({
+        code,
+        slug,
+        form_name:  form.name,
+        form_code:  form.code,
+        agency:     form.agency,
+        full_name:  fullName,
+        created_at: now,
+        expires_at: now + CODE_TTL_MS,
+      });
+      insertPaymentRef({
+        code,
+        ref_no: refNo,
+        amount,
+        created_at: now,
+      });
+    } catch (dbErr) {
+      // Non-fatal — log but don't fail the PDF delivery
+      console.error('[payment/confirm] DB insert failed:', dbErr);
+    }
 
     const safeName = fullName
       .replace(/[^\w\s-]/g, '')

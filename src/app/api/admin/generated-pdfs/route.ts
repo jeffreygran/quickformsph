@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import {
+  getAllPDFRecords,
+  deletePDFRecord,
+  deleteExpiredPDFRecords,
+  deleteAllPDFRecords,
+  insertPDFRecord,
+  insertPaymentRef,
+} from '@/lib/db';
 
 const DATA_DIR = process.env.DATA_DIR
   ? path.join(process.env.DATA_DIR, 'codes')
@@ -16,35 +24,47 @@ function isAdmin(req: NextRequest) {
   return !!cookie?.value;
 }
 
+/** Backfill: import JSON-only entries into SQLite that aren't already there */
+function backfillFromJSON(existingCodes: Set<string>) {
+  ensureDir(DATA_DIR);
+  const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json'));
+  for (const file of files) {
+    const code = file.replace('.json', '');
+    if (existingCodes.has(code)) continue;
+    try {
+      const raw = JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf-8'));
+      const now = Date.now();
+      insertPDFRecord({
+        code,
+        slug:       raw.slug       ?? '',
+        form_name:  raw.formName   ?? '—',
+        form_code:  raw.formCode   ?? '—',
+        agency:     raw.agency     ?? '—',
+        full_name:  raw.name       ?? '—',
+        created_at: raw.created_at ?? now,
+        expires_at: raw.expires_at ?? (now + 48 * 60 * 60 * 1000),
+      });
+      if (raw.refNo != null || raw.amount != null) {
+        insertPaymentRef({
+          code,
+          ref_no:     raw.refNo  ?? null,
+          amount:     raw.amount ?? null,
+          created_at: raw.created_at ?? now,
+        });
+      }
+    } catch { /* skip invalid files */ }
+  }
+}
+
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   ensureDir(DATA_DIR);
+  const existing = getAllPDFRecords();
+  const existingCodes = new Set(existing.map((e) => e.code));
+  backfillFromJSON(existingCodes);
 
-  const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json'));
-  const entries = files.map((file) => {
-    const code = file.replace('.json', '');
-    try {
-      const raw = JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf-8'));
-      return {
-        code,
-        name: raw.name ?? '—',
-        formName: raw.formName ?? '—',
-        formCode: raw.formCode ?? '—',
-        agency: raw.agency ?? '—',
-        slug: raw.slug ?? '',
-        created_at: raw.created_at ?? null,
-        expires_at: raw.expires_at ?? null,
-        expired: raw.expires_at ? Date.now() > raw.expires_at : false,
-      };
-    } catch {
-      return { code, name: '—', formName: '—', formCode: '—', agency: '—', slug: '', created_at: null, expires_at: null, expired: false };
-    }
-  });
-
-  // Sort newest first
-  entries.sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0));
-
+  const entries = getAllPDFRecords();
   return NextResponse.json({ entries, dir: DATA_DIR });
 }
 
@@ -54,17 +74,18 @@ export async function DELETE(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as { code?: string; all?: boolean; expired?: boolean };
   ensureDir(DATA_DIR);
 
-  const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json'));
-
   if (body.all) {
+    const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json'));
     let deleted = 0;
     for (const file of files) {
       try { fs.unlinkSync(path.join(DATA_DIR, file)); deleted++; } catch { /* ignore */ }
     }
+    deleteAllPDFRecords();
     return NextResponse.json({ deleted });
   }
 
   if (body.expired) {
+    const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json'));
     let deleted = 0;
     for (const file of files) {
       try {
@@ -75,14 +96,17 @@ export async function DELETE(req: NextRequest) {
         }
       } catch { /* ignore */ }
     }
+    deleteExpiredPDFRecords();
     return NextResponse.json({ deleted });
   }
 
   if (body.code) {
     const safe = body.code.toUpperCase().replace(/[^A-Z0-9]/g, '');
     const filePath = path.join(DATA_DIR, `${safe}.json`);
-    if (!fs.existsSync(filePath)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    fs.unlinkSync(filePath);
+    if (fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+    }
+    deletePDFRecord(safe);
     return NextResponse.json({ deleted: 1 });
   }
 
