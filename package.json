@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:coverage": "npx tsx scripts/check-coords-coverage.ts",
+    "test:smoke": "npx tsx scripts/test-random-data.ts",
+    "test:smoke:http": "npx tsx scripts/test-random-data.ts --http",
+    "test": "npm run test:coverage && npm run test:smoke"
   },
   "dependencies": {
     "better-sqlite3": "^12.9.0",
