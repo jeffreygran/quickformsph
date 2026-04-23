@@ -67,11 +67,14 @@ function parseGCashDate(text: string): Date | null {
 
 function extractRefNo(text: string): string | null {
   // GCash Ref No. format: "Ref No. 0040 047 436595" (4-3-6 groups = 13 digits)
-  // OCR may or may not preserve spaces within the number
-  const m = text.match(/ref\s*no\.?\s+(\d[\d\s]{10,17}\d)/i);
+  // OCR variations: "Ref No", "Ref. No.", "RefNo.", spaces/dashes between groups.
+  // Also handle cases where OCR merges "Ref No." into surrounding text.
+  const m =
+    text.match(/ref\.?\s*no\.?\s+(\d[\d\s-]{10,17}\d)/i) ??
+    text.match(/ref\s+no\.?\s*[:\-]?\s*(\d[\d\s-]{10,17}\d)/i);
   if (!m) return null;
-  // Normalize: strip spaces to get raw 13-digit string
-  return m[1].replace(/\s+/g, '');
+  // Normalize: strip spaces and dashes to get raw 13-digit string
+  return m[1].replace(/[\s-]+/g, '');
 }
 
 export async function POST(req: NextRequest) {
@@ -133,9 +136,33 @@ export async function POST(req: NextRequest) {
     }
 
     await writeFile(tmpIn, buffer);
-    const { stdout } = await execFileAsync('tesseract', [tmpIn, 'stdout', '-l', 'eng'], {
-      timeout: 30_000,
-    });
+
+    // ── Preprocess with ImageMagick for better OCR accuracy ────────────────
+    // Handles: photos-of-screens, dark backgrounds, low contrast, small text.
+    // Steps: auto-orient, convert to grayscale, auto-level, sharpen, 2× upscale.
+    const tmpProcessed = join(tmpdir(), `qfph-ocr-${randomUUID()}-proc.png`);
+    try {
+      await execFileAsync('convert', [
+        tmpIn,
+        '-auto-orient',          // fix EXIF rotation (important for phone photos)
+        '-colorspace', 'Gray',   // grayscale improves Tesseract accuracy significantly
+        '-auto-level',           // maximize dynamic range / contrast
+        '-sharpen', '0x1',       // light sharpen to crisp text edges
+        '-resize', '200%',       // upscale 2× so small text reads better
+        '-density', '300',       // hint at 300 DPI
+        tmpProcessed,
+      ], { timeout: 15_000 });
+    } catch {
+      // If ImageMagick fails fall back to original
+      await execFileAsync('cp', [tmpIn, tmpProcessed]);
+    }
+
+    const { stdout } = await execFileAsync(
+      'tesseract',
+      [tmpProcessed, 'stdout', '-l', 'eng', '--oem', '3', '--psm', '3'],
+      { timeout: 30_000 },
+    );
+    unlink(tmpProcessed).catch(() => {});
     text = stdout;
   } catch (err) {
     console.error('[verify-screenshot] OCR error:', err);
@@ -150,15 +177,27 @@ export async function POST(req: NextRequest) {
   const errors: string[] = [];
 
   // ── 1. Mobile number ──────────────────────────────────────────────────────
-  const phoneOk = /(?:\+63|0)\s*917[\s.-]*551[\s.-]*4822/.test(text);
+  // Be lenient with separators — OCR may insert spaces, dots, or dashes
+  // between digit groups. Also allow OCR-mangled "+" as empty prefix.
+  const phoneOk = /(?:\+63|0063|0)?[\s.-]*9[\s.-]*1[\s.-]*7[\s.-]*[5s][\s.-]*5[\s.-]*1[\s.-]*4[\s.-]*8[\s.-]*2[\s.-]*2/i.test(
+    text.replace(/\s+/g, ' '),
+  );
   if (!phoneOk) {
     errors.push('Mobile number does not match (expected: +63 917 551 4822)');
   }
 
   // ── 2. Amount — must be >= expectedAmount ─────────────────────────────────
-  // OCR may render ₱ as P, £, or omit it. Accept integer or decimal form.
-  const amountMatch = text.match(/(?:[₱P£]\s*)(\d+(?:\.\d+)?)/);
-  const ocrAmount = amountMatch ? parseFloat(amountMatch[1]) : null;
+  // OCR may render ₱ as P, F, R, £, or omit it entirely.
+  // Also scan for bare numbers near 'Total Amount Sent' as a fallback.
+  let ocrAmount: number | null = null;
+  const amountMatch =
+    text.match(/(?:[₱P£F]\s*)(\d+(?:\.\d+)?)/) ||
+    text.match(/total\s+amount\s+sent[^\d]*(\d+(?:\.\d+)?)/i) ||
+    text.match(/amount[^\d]*(\d+(?:\.\d+)?)/i);
+  if (amountMatch) {
+    const parsed = parseFloat(amountMatch[1]);
+    if (!isNaN(parsed)) ocrAmount = parsed;
+  }
   if (ocrAmount === null) {
     errors.push('Amount not found in screenshot');
   } else if (ocrAmount < expectedAmount) {
