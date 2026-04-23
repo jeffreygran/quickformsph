@@ -706,3 +706,120 @@ Applied §18 shortcut end-to-end. Full form (39 fields across Profile / Address 
 - **Signature date** — this form has a single line for date (not a mm/dd/yyyy digit row);
   send ISO `YYYY-MM-DD` strings unchanged. No `boxCenters[]` required.
 
+---
+
+## 21. Deep-QA + Visual Regression Workflow (Apr 2026 Session)
+
+After implementing all 7 forms we ran a full QA sweep that exposed 7 defects in PFF-049
+despite 28/28 functional tests passing. Key learnings:
+
+### 21.1 Functional QA alone is insufficient — always rasterize
+A form can pass all of:
+- HTTP 200 response
+- Non-empty PDF bytes
+- No off-page glyphs (bbox within `[10,605]×[10,926]`)
+- >70% of values appear in `extract_text()` output
+
+…and still have **catastrophic visual misalignment** (e.g. 12 digits stacked above a box
+row instead of 1-per-box). The functional harness cannot see this. **Always** follow with:
+
+```bash
+pdftoppm -r 110 -png /tmp/<form>.pdf /tmp/renders/<form>
+# then view the PNG
+```
+
+Skip heuristic "alignment checkers" (`alignment.py` / "nearest anchor" logic) — they
+produce false positives on form table borders. Human visual inspection of ~120 DPI PNGs
+is faster and more reliable.
+
+### 21.2 Per-digit boxes are the #1 source of silent misalignment bugs
+If a form has **any** row of per-character boxes (MID, Housing Account, PIN, PEN, ZIP,
+series number, dates broken into mm/dd/yyyy cells), the field MUST use `boxCenters[]`.
+A single `{x, y, maxWidth}` coord will:
+- Fit all digits into the width (no off-page error)
+- Pass text-extraction checks (digits are present in extract_text)
+- **Visually stack every digit above the first box** — looks like one text blob, not per-cell
+
+**Red flag during calibration:** if the source PDF has ≥ 10 vertical rules in a tight
+horizontal span (e.g., 14 rules × 12pt apart = 14 box cells), that field is per-digit.
+Look at `page.rects` for `w ≈ 12, h ≈ 17` rectangles — count them — that's your
+`boxCenters` length.
+
+### 21.3 Dash-separated ID fields use skip-cells, not skip-digits
+Pag-IBIG MID format is `4-4-4` rendered as 14 cells where cells 4 and 9 hold **pre-printed
+dashes**. The renderer already strips dashes from input (`text.replace(/\D/g, '')`).
+Solution: provide 12 `boxCenters` — only for the digit cells — skipping cx values of the
+dash cells (indices 4 and 9):
+```typescript
+mid_no: {
+  page: 0, x: 0, y: 857.5, fontSize: 9,
+  boxCenters: [
+    427.9, 439.95, 452.05, 464.2,       // digits 1-4
+    488.55, 500.75, 512.95, 525.1,      // digits 5-8 (skip dash cell idx 4)
+    549.55, 561.7, 573.75, 585.95,      // digits 9-12 (skip dash cell idx 9)
+  ],
+},
+```
+
+### 21.4 Don't invent checkboxes the source form doesn't have
+PFF-049 has no Yes/No checkbox for "Loyalty Card Holder" — a bank name in
+`loyalty_partner_bank` is the sole indicator. I added a checkbox coord anyway, which
+produced a stray `✔` floating inside the MID digit row at y≈70.
+
+**Check before adding `checkboxCoords`:** is there actually a printed square in that
+region? Run `page.rects` filter for small squares (`w ≈ h ≈ 8–12 pts`) in the expected
+zone. If none, don't add a checkbox — treat the value as text-only or just drive
+conditional rendering of other fields.
+
+### 21.5 `inputMode: 'numeric'` breaks date fields on mobile
+A field with `type: 'text', inputMode: 'numeric', maxLength: 10` **locks the mobile
+keyboard to digits only**, preventing the user from typing the `/` separator in
+`mm/dd/yyyy`. It also causes auto-populate / QA harnesses to fill with pure digits.
+
+**Rule:** for any date-style text field, either:
+- `type: 'date'` (native picker, auto-formats), OR
+- `type: 'text'` **without** `inputMode: 'numeric'` + validate with onBlur regex
+
+### 21.6 Always audit `maxLength` against real domain constraints
+PH ZIP codes are 4 digits. Schema had `maxLength: 10`. QA harness dutifully generated
+10-digit values. Root fix: tighten `maxLength` to the domain truth (4 for ZIP, 11 for
+mobile, 12 for MID/PIN, 9 for TIN) — the harness and the UI both follow the schema.
+
+### 21.7 Auto-populate script must respect schema constraints AND produce realistic values
+`/tmp/qa_apr26/render_all.py` drives all 7 forms with a single "Juan Dela Cruz" profile
+using an id-fragment lookup table (`last_name → "DELA CRUZ"`, `mid_no → "123456789012"`,
+`zip → "1100"`, etc.). This is invaluable for:
+- Catching schema drift (new field added without a default value → harness prints the placeholder)
+- Side-by-side visual comparison across forms (same person → same PIN/MID/name everywhere)
+- PM demos without manually typing 392 fields
+
+Keep this harness alongside the form code — run after every multi-form change.
+
+### 21.8 Next.js `next start` serves from `.next/` build cache
+A `systemctl restart quickformsph` does **not** pick up source changes — you must
+`npm run build` **before** restart. A stale restart will silently serve the old code
+with the old schemas. Build succeeded → BUILD_ID file mtime updates → only then restart.
+
+**Deploy sequence (non-negotiable):**
+```bash
+npm run build 2>&1 | tail -5         # must show "Compiled successfully" + route table
+echo sap12345 | sudo -S systemctl restart quickformsph
+sleep 3 && systemctl is-active quickformsph   # active
+curl -s -w "\nHTTP=%{http_code}\n" http://localhost:3400/api/forms -o /dev/null   # 200
+```
+
+### 21.9 API endpoint is `/api/generate` with `{slug, values}` body — NOT `/api/forms/:slug/generate`
+Wasted 3 round-trips probing 404s because I assumed a REST-style slug-in-path route.
+The actual route is:
+```bash
+curl -X POST http://localhost:3400/api/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"slug":"<form-slug>","values":{"field_id":"value",...}}'
+```
+
+### 21.10 `FormField` type does not support `pattern` — validate client-side only
+Adding `pattern: '\\d{4}'` to a schema entry fails `tsc` with `Object literal may only
+specify known properties`. If you need regex validation, do it in the wizard component's
+onBlur handler or a Zod schema layer — not in `FormField`.
+
+
