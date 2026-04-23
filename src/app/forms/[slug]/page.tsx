@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getFormBySlug, FormField, FormSchema } from '@/data/forms';
@@ -50,16 +50,24 @@ export default function FormWizardPage() {
   const [downloadCode, setDownloadCode]         = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+  // Draft resume modal
+  const [draftModalOpen, setDraftModalOpen] = useState(false);
+  const [pendingDraft, setPendingDraft]     = useState<FormValues | null>(null);
+
   // Populate today's date for the date field
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     setValues((v) => ({ ...v, date: v.date ?? today }));
   }, []);
 
-  // Clear any saved draft on mount — always start fresh
+  // On mount: check for an existing draft and prompt instead of silently clearing
   useEffect(() => {
     if (!slug) return;
-    clearDraft(slug);
+    const draft = loadDraft(slug);
+    if (draft && Object.keys(draft).length > 0) {
+      setPendingDraft(draft);
+      setDraftModalOpen(true);
+    }
   }, [slug]);
 
   // Auto-save draft on every change
@@ -105,8 +113,10 @@ export default function FormWizardPage() {
     return form.fields.filter((f) => (values[f.id] ?? '').trim() !== '').length;
   }
 
-  // ── Auto-populate (dev helper) ───────────────────────────────────────────
-  function autoPopulate() {
+  // ── Auto-populate ────────────────────────────────────────────────────────
+  const [showSamplePicker, setShowSamplePicker] = useState(false);
+
+  function autoPopulate(sampleIndex?: number) {
     const hqpSamples = [
       {
         mp2_account_no: '01-2345-6789-0', last_name: 'DELA CRUZ', first_name: 'JUAN',
@@ -328,8 +338,8 @@ export default function FormWizardPage() {
       const pdfjsLib = await import('pdfjs-dist');
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
-      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-      const page = await pdf.getPage(1);
+      const npdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+      const page = await npdf.getPage(1);
       const viewport = page.getViewport({ scale: 2.0 });
 
       const canvas = document.createElement('canvas');
@@ -412,6 +422,20 @@ export default function FormWizardPage() {
     clearDraft(slug);
   }
 
+  function handleResumeDraft() {
+    if (pendingDraft) {
+      setValues(pendingDraft);
+    }
+    setPendingDraft(null);
+    setDraftModalOpen(false);
+  }
+
+  function handleDiscardDraft() {
+    clearDraft(slug);
+    setPendingDraft(null);
+    setDraftModalOpen(false);
+  }
+
   if (!form) {
     return (
       <div className="flex min-h-screen items-center justify-center p-8 text-center">
@@ -429,6 +453,18 @@ export default function FormWizardPage() {
           </button>
         </div>
       </div>
+    );
+  }
+
+  if (draftModalOpen && pendingDraft) {
+    const fieldCount = Object.values(pendingDraft).filter((v) => v.trim() !== '').length;
+    return (
+      <DraftResumeModal
+        formName={form?.name ?? ''}
+        filledCount={fieldCount}
+        onResume={handleResumeDraft}
+        onStartNew={handleDiscardDraft}
+      />
     );
   }
 
@@ -519,10 +555,13 @@ export default function FormWizardPage() {
             const done = filled >= required && required > 0;
             const active = i === currentStep;
             return (
-              <div key={i} className="flex flex-1 items-start">
+              <React.Fragment key={i}>
+                {i > 0 && (
+                  <div className="flex-1 h-0.5 mx-1 bg-gray-200 rounded mt-[14px] min-w-[4px]" />
+                )}
                 <button
                   onClick={() => setCurrentStep(i as StepIndex)}
-                  className="flex flex-col items-center gap-1"
+                  className="flex flex-shrink-0 flex-col items-center gap-1"
                 >
                   <div
                     className={`step-dot ${
@@ -532,21 +571,22 @@ export default function FormWizardPage() {
                     {done ? '✓' : i + 1}
                   </div>
                   <span
-                    className={`text-[10px] font-medium text-center leading-tight min-h-[2.5em] ${
+                    className={`text-[10px] font-medium text-center leading-tight min-h-[2.5em] max-w-[52px] ${
                       active ? 'text-blue-700' : done ? 'text-green-600' : 'text-gray-400'
                     }`}
                   >
                     {step.label}
                   </span>
                 </button>
-                <div className="flex-1 h-0.5 mx-1 bg-gray-200 rounded mt-[14px]" />
-              </div>
+              </React.Fragment>
             );
           })}
+          {/* Connector to Review */}
+          <div className="flex-1 h-0.5 mx-1 bg-gray-200 rounded mt-[14px] min-w-[4px]" />
           {/* Review pseudo-step */}
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-shrink-0 flex-col items-center gap-1">
             <div className="step-dot step-dot-idle">✎</div>
-            <span className="text-[10px] font-medium text-gray-400 text-center leading-tight min-h-[2.5em]">Review</span>
+            <span className="text-[10px] font-medium text-gray-400 text-center leading-tight min-h-[2.5em] max-w-[52px]">Review</span>
           </div>
         </div>
       </div>
@@ -682,6 +722,43 @@ function FieldInput({
   );
 }
 
+// ─── DraftResumeModal ────────────────────────────────────────────────────────
+function DraftResumeModal({
+  formName,
+  filledCount,
+  onResume,
+  onStartNew,
+}: {
+  formName: string;
+  filledCount: number;
+  onResume: () => void;
+  onStartNew: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+        <div className="text-center text-3xl mb-3">📝</div>
+        <h3 className="text-base font-bold text-gray-900 text-center">Unsaved Draft Found</h3>
+        <p className="mt-2 text-sm text-center text-gray-600">
+          You have an unfinished <span className="font-medium">{formName}</span> with{' '}
+          <span className="font-semibold text-blue-700">{filledCount} field{filledCount !== 1 ? 's' : ''}</span> already filled in.
+        </p>
+        <p className="mt-1 text-xs text-center text-gray-400">
+          This was saved because your last PDF generation was not completed.
+        </p>
+        <div className="mt-5 flex flex-col gap-2">
+          <button className="btn-primary w-full" onClick={onResume}>
+            Continue Editing
+          </button>
+          <button className="btn-secondary w-full" onClick={onStartNew}>
+            Start New (discard draft)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── ConfirmModal ─────────────────────────────────────────────────────────────
 function ConfirmModal({
   totalFilled,
@@ -701,6 +778,7 @@ function ConfirmModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
         <div className="text-center text-3xl mb-3">📄</div>
+
         <h3 className="text-base font-bold text-gray-900 text-center">Generate PDF?</h3>
         <p className="mt-2 text-sm text-center text-gray-600">
           {totalFilled} of {totalFields} fields are filled.
