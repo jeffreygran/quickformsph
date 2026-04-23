@@ -1632,6 +1632,135 @@ const HLF868_SKIP_VALUES: Record<string, string[]> = {
   place_assignment: [''],
 };
 
+// ── Pag-IBIG HLF-858 (HEAL Principal) — coords (612×792, page 0 only) ────────
+// pdfplumber row tops (page 0): 75, 94, 107, 112, 118, 136, 168, 177, 213, 239,
+//   265, 282, 315, 349, 380, 403, 436, 466, 484, 503, 540, 569, 605, 642, 677, 748.
+// Layout: top has LOAN PARTICULARS section (mostly checkboxes); PRINCIPAL
+// BORROWER'S DATA starts at top=271. Same structural pattern as HLF-868.
+const HLF858_PAGE_H = 792.0;
+const hlf858Y = (nextRowTop: number) => HLF858_PAGE_H - nextRowTop + 3;
+
+const HLF_858_Y_HEADER  = hlf858Y(136);  // Header MID/Housing label row 94→136
+const HLF_858_Y_LOAN    = hlf858Y(168);  // Desired Loan Amount cell (top=147→168)
+const HLF_858_Y_NAMES   = hlf858Y(315);  // Names (top=287→315)
+const HLF_858_Y_PERSON  = hlf858Y(349);  // DOB/Citizenship/Marital/No.Dep (top=318→349)
+const HLF_858_Y_PERM1   = hlf858Y(380);  // Permanent address row 1
+const HLF_858_Y_PERM2   = hlf858Y(403);  // Permanent address row 2
+const HLF_858_Y_PRES1   = hlf858Y(436);  // Present address row 1
+const HLF_858_Y_PRES2   = hlf858Y(466);  // Present address row 2
+const HLF_858_Y_HOME    = hlf858Y(503);  // Home ownership / years / email
+const HLF_858_Y_OCC     = hlf858Y(540);  // Occupation / TIN / SSS / Employer tel
+const HLF_858_Y_EMP1    = hlf858Y(569);  // Employer name + email
+const HLF_858_Y_EMP2    = hlf858Y(605);  // Employer addr row 1
+const HLF_858_Y_EMP3    = hlf858Y(642);  // Employer addr row 2
+const HLF_858_Y_POS     = hlf858Y(677);  // Position / time / place / years
+
+const HLF858_FIELD_COORDS: CoordsMap = {
+  // Header (top=107-136)
+  mid_no:                { page: 0, x: 240, y: HLF_858_Y_HEADER, fontSize: 9, maxWidth: 175 },
+  housing_account_no:    { page: 0, x: 420, y: HLF_858_Y_HEADER, fontSize: 9, maxWidth: 168 },
+
+  // Loan particulars — only filling Desired Loan Amount text field (rest are checkboxes)
+  desired_loan_amount:   { page: 0, x: 190, y: HLF_858_Y_LOAN, fontSize: 9, maxWidth: 130 },
+
+  // Names row (top=287-315)
+  last_name:             { page: 0, x: 30,  y: HLF_858_Y_NAMES, fontSize: 8, maxWidth: 105 },
+  first_name:            { page: 0, x: 140, y: HLF_858_Y_NAMES, fontSize: 8, maxWidth: 105 },
+  ext_name:              { page: 0, x: 250, y: HLF_858_Y_NAMES, fontSize: 8, maxWidth: 125 },
+  middle_name:           { page: 0, x: 380, y: HLF_858_Y_NAMES, fontSize: 8, maxWidth: 130 },
+  maiden_middle_name:    { page: 0, x: 515, y: HLF_858_Y_NAMES, fontSize: 8, maxWidth: 73 },
+
+  // Personal/DOB row (top=318-349)
+  dob:                   { page: 0, x: 30,  y: HLF_858_Y_PERSON, fontSize: 9, maxWidth: 165 },
+  citizenship:           { page: 0, x: 200, y: HLF_858_Y_PERSON, fontSize: 8, maxWidth: 80 },
+  no_dependents:         { page: 0, x: 490, y: HLF_858_Y_PERSON, fontSize: 9, maxWidth: 95 },
+
+  // Permanent Address row 1 (top=362-380)
+  perm_unit:             { page: 0, x: 30,  y: HLF_858_Y_PERM1, fontSize: 7.5, maxWidth: 395 },
+  perm_country_tel:      { page: 0, x: 449, y: HLF_858_Y_PERM1, fontSize: 9, maxWidth: 138 },
+
+  // Permanent Address row 2 (top=383-403) — left address subdiv→zip + right home tel
+  perm_street:           { page: 0, x: 30,  y: HLF_858_Y_PERM2, fontSize: 8, maxWidth: 60 },
+  perm_subdivision:      { page: 0, x: 92,  y: HLF_858_Y_PERM2, fontSize: 8, maxWidth: 30 },
+  perm_barangay:         { page: 0, x: 124, y: HLF_858_Y_PERM2, fontSize: 8, maxWidth: 70 },
+  perm_city:             { page: 0, x: 196, y: HLF_858_Y_PERM2, fontSize: 8, maxWidth: 75 },
+  perm_province:         { page: 0, x: 273, y: HLF_858_Y_PERM2, fontSize: 8, maxWidth: 120 },
+  perm_zip:              { page: 0, x: 395, y: HLF_858_Y_PERM2, fontSize: 9, maxWidth: 50 },
+  perm_home_tel:         { page: 0, x: 449, y: HLF_858_Y_PERM2, fontSize: 9, maxWidth: 138 },
+  perm_business_tel:     { page: 0, x: 449, y: HLF_858_Y_PERM2 - 18, fontSize: 9, maxWidth: 138 },
+
+  // Present Address row 1 (top=415-436)
+  pres_unit:             { page: 0, x: 30,  y: HLF_858_Y_PRES1, fontSize: 7.5, maxWidth: 395 },
+  pres_cellphone:        { page: 0, x: 449, y: HLF_858_Y_PRES1, fontSize: 9, maxWidth: 138 },
+
+  // Present Address row 2 (top=438-466)
+  pres_street:           { page: 0, x: 30,  y: HLF_858_Y_PRES2, fontSize: 8, maxWidth: 60 },
+  pres_subdivision:      { page: 0, x: 92,  y: HLF_858_Y_PRES2, fontSize: 8, maxWidth: 30 },
+  pres_barangay:         { page: 0, x: 124, y: HLF_858_Y_PRES2, fontSize: 8, maxWidth: 70 },
+  pres_city:             { page: 0, x: 196, y: HLF_858_Y_PRES2, fontSize: 8, maxWidth: 75 },
+  pres_province:         { page: 0, x: 273, y: HLF_858_Y_PRES2, fontSize: 8, maxWidth: 120 },
+  pres_zip:              { page: 0, x: 395, y: HLF_858_Y_PRES2, fontSize: 9, maxWidth: 50 },
+  email_address:         { page: 0, x: 449, y: HLF_858_Y_PRES2, fontSize: 7.5, maxWidth: 138 },
+
+  // Home ownership / years stay (top=466-503)
+  years_stay_present:    { page: 0, x: 320, y: HLF_858_Y_HOME, fontSize: 9, maxWidth: 100 },
+
+  // Occupation / TIN / SSS (top=503-540)
+  occupation:            { page: 0, x: 30,  y: HLF_858_Y_OCC, fontSize: 8, maxWidth: 124 },
+  tin:                   { page: 0, x: 156, y: HLF_858_Y_OCC, fontSize: 9, maxWidth: 145 },
+  sss_gsis:              { page: 0, x: 305, y: HLF_858_Y_OCC, fontSize: 9, maxWidth: 138 },
+  employer_business_tel: { page: 0, x: 449, y: HLF_858_Y_OCC, fontSize: 9, maxWidth: 138 },
+
+  // Employer name (top=545-569)
+  employer_name:         { page: 0, x: 30,  y: HLF_858_Y_EMP1, fontSize: 8, maxWidth: 395 },
+  employer_email:        { page: 0, x: 449, y: HLF_858_Y_EMP1, fontSize: 7.5, maxWidth: 138 },
+
+  // Employer address row 1 (top=581-605)
+  employer_address_line: { page: 0, x: 30,  y: HLF_858_Y_EMP2, fontSize: 7.5, maxWidth: 395 },
+
+  // Employer address row 2 (top=605-642)
+  employer_subdivision:  { page: 0, x: 30,  y: HLF_858_Y_EMP3, fontSize: 8, maxWidth: 90 },
+  employer_barangay:     { page: 0, x: 124, y: HLF_858_Y_EMP3, fontSize: 8, maxWidth: 70 },
+  employer_city:         { page: 0, x: 196, y: HLF_858_Y_EMP3, fontSize: 8, maxWidth: 75 },
+  employer_province:     { page: 0, x: 273, y: HLF_858_Y_EMP3, fontSize: 8, maxWidth: 120 },
+  employer_zip:          { page: 0, x: 395, y: HLF_858_Y_EMP3, fontSize: 9, maxWidth: 50 },
+
+  // Position / Preferred time / Place / Years (top=644-678)
+  position_dept:         { page: 0, x: 27,  y: HLF_858_Y_POS, fontSize: 8, maxWidth: 138 },
+  preferred_time_contact:{ page: 0, x: 168, y: HLF_858_Y_POS, fontSize: 8, maxWidth: 110 },
+  place_assignment:      { page: 0, x: 280, y: HLF_858_Y_POS, fontSize: 8, maxWidth: 130 },
+  years_employment:      { page: 0, x: 415, y: HLF_858_Y_POS, fontSize: 9, maxWidth: 175 },
+
+  // Signature date — page 1 (similar to 868)
+  signature_date:        { page: 1, x: 100, y: 285, fontSize: 9, maxWidth: 130 },
+};
+
+const HLF858_SKIP_VALUES: Record<string, string[]> = {
+  housing_account_no: [''],
+  ext_name: ['', 'N/A'],
+  middle_name: [''],
+  maiden_middle_name: [''],
+  perm_subdivision: [''],
+  perm_country_tel: [''],
+  perm_home_tel: [''],
+  perm_business_tel: [''],
+  pres_unit: [''],
+  pres_street: [''],
+  pres_subdivision: [''],
+  pres_barangay: [''],
+  pres_city: [''],
+  pres_province: [''],
+  pres_zip: [''],
+  years_stay_present: [''],
+  sss_gsis: [''],
+  employer_subdivision: [''],
+  employer_zip: [''],
+  employer_business_tel: [''],
+  employer_email: [''],
+  preferred_time_contact: [''],
+  place_assignment: [''],
+};
+
 const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   'hqp-pff-356': {
     fieldCoords: FIELD_COORDS,
@@ -1714,6 +1843,11 @@ const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   'pagibig-hlf-868': {
     fieldCoords: HLF868_FIELD_COORDS,
     skipValues: HLF868_SKIP_VALUES,
+    copyYOffsets: [0],
+  },
+  'pagibig-hlf-858': {
+    fieldCoords: HLF858_FIELD_COORDS,
+    skipValues: HLF858_SKIP_VALUES,
     copyYOffsets: [0],
   },
 };

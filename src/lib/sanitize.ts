@@ -59,4 +59,4 @@ export function isPdfBuffer(buffer: Buffer | Uint8Array): boolean {
 }
 
 /** Max allowed upload size: 10 MB */
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB — enforced server-side and client-side
