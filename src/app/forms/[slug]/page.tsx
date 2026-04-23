@@ -292,11 +292,557 @@ export default function FormWizardPage() {
       'hqp-pff-356': hqpSamples,
       'philhealth-pmrf': pmrfSamples as Record<string, string>[],
       'philhealth-claim-form-1': cf1Samples,
+
+      // ── PhilHealth Claim Form 2 ───────────────────────────────────────────
+      'philhealth-claim-form-2': [
+        {
+          // Sample 1: Standard appendicitis admission
+          hci_pan: '10-1234-5678', hci_name: 'Makati Medical Center',
+          hci_bldg_street: '2 Amorsolo St', hci_city: 'Makati City',
+          hci_province: 'Metro Manila (NCR)',
+          patient_last_name: 'DELA CRUZ', patient_first_name: 'JUAN', patient_name_ext: 'N/A', patient_middle_name: 'SANTOS',
+          referred_by_hci: 'NO',
+          referring_hci_name: '', referring_hci_bldg_street: '', referring_hci_city: '', referring_hci_province: '', referring_hci_zip: '',
+          date_admitted_month: '04', date_admitted_day: '10', date_admitted_year: '2026',
+          time_admitted_hour: '08', time_admitted_min: '30', time_admitted_ampm: 'AM',
+          date_discharged_month: '04', date_discharged_day: '15', date_discharged_year: '2026',
+          time_discharged_hour: '02', time_discharged_min: '00', time_discharged_ampm: 'PM',
+          patient_disposition: 'Recovered',
+          expired_month: '', expired_day: '', expired_year: '', expired_hour: '', expired_min: '', expired_ampm: '',
+          transferred_hci_name: '', transferred_hci_bldg_street: '', transferred_hci_city: '', transferred_hci_province: '', transferred_hci_zip: '',
+          reason_for_referral: '',
+          accommodation_type: 'Non-Private (Charity/Service)',
+          admission_diagnosis_1: 'Acute Appendicitis', admission_diagnosis_2: '',
+          discharge_diagnosis_1: 'Appendicitis', discharge_icd10_1: 'K37', discharge_procedure_1: 'Appendectomy', discharge_rvs_1: '10060', discharge_procedure_date_1: '04/11/2026', discharge_laterality_1: 'N/A',
+          discharge_diagnosis_2: '', discharge_icd10_2: '', discharge_procedure_2: '', discharge_rvs_2: '', discharge_procedure_date_2: '', discharge_laterality_2: 'N/A',
+          discharge_diagnosis_3: '', discharge_icd10_3: '', discharge_procedure_3: '', discharge_rvs_3: '', discharge_procedure_date_3: '', discharge_laterality_3: 'N/A',
+          discharge_diagnosis_4: '', discharge_icd10_4: '', discharge_procedure_4: '', discharge_rvs_4: '', discharge_procedure_date_4: '', discharge_laterality_4: 'N/A',
+          discharge_diagnosis_5: '', discharge_icd10_5: '', discharge_procedure_5: '', discharge_rvs_5: '', discharge_procedure_date_5: '', discharge_laterality_5: 'N/A',
+          discharge_diagnosis_6: '', discharge_icd10_6: '', discharge_procedure_6: '', discharge_rvs_6: '', discharge_procedure_date_6: '', discharge_laterality_6: 'N/A',
+          special_hemodialysis: '', special_peritoneal_dialysis: '', special_radiotherapy_linac: '', special_radiotherapy_cobalt: '', special_blood_transfusion: '', special_brachytherapy: '', special_chemotherapy: '', special_simple_debridement: '',
+          zbenefit_package_code: '', mcp_dates: '', tbdots_intensive_phase: '', tbdots_maintenance_phase: '',
+          animal_bite_arv_day1: '', animal_bite_arv_day2: '', animal_bite_arv_day3: '', animal_bite_rig: '', animal_bite_others: '',
+          newborn_essential_care: '', newborn_hearing_screening: '', newborn_screening_test: '', hiv_lab_number: '',
+          philhealth_benefit_first_case_rate: 'Appendectomy', philhealth_benefit_second_case_rate: '', philhealth_benefit_icd_rvs_code: 'K37 / 10060',
+          hcp1_accreditation_no: 'DR-2025-01234 — DR. RICARDO GOMEZ', hcp1_date_signed_month: '04', hcp1_date_signed_day: '15', hcp1_date_signed_year: '2026', hcp1_copay: '',
+          hcp2_accreditation_no: '', hcp2_date_signed_month: '', hcp2_date_signed_day: '', hcp2_date_signed_year: '', hcp2_copay: '',
+          hcp3_accreditation_no: '', hcp3_date_signed_month: '', hcp3_date_signed_day: '', hcp3_date_signed_year: '', hcp3_copay: '',
+          total_hci_fees: '35000', total_professional_fees: '8000', grand_total: '43000',
+          total_actual_charges: '43000', discount_amount: '0', philhealth_benefit_amount: '18000', amount_after_philhealth: '25000',
+          hci_amount_paid_by: '25000', hci_paid_member_patient: '', hci_paid_hmo: '', hci_paid_others: '',
+          pf_amount_paid_by: '8000', pf_paid_member_patient: '', pf_paid_hmo: '', pf_paid_others: '',
+          drug_purchase_none: '', drug_purchase_total_amount: '2500',
+          diagnostic_purchase_none: '', diagnostic_purchase_total_amount: '3500',
+        },
+        {
+          // Sample 2: Pneumonia admission with referral
+          hci_pan: '20-9876-5432', hci_name: 'Philippine General Hospital',
+          hci_bldg_street: 'Taft Avenue', hci_city: 'Manila', hci_province: 'Metro Manila (NCR)',
+          patient_last_name: 'SANTOS', patient_first_name: 'ANNA MARIE', patient_name_ext: 'N/A', patient_middle_name: 'GARCIA',
+          referred_by_hci: 'YES',
+          referring_hci_name: 'City Health Center Malate', referring_hci_bldg_street: 'Adriatico St', referring_hci_city: 'Manila', referring_hci_province: 'Metro Manila', referring_hci_zip: '1004',
+          date_admitted_month: '03', date_admitted_day: '22', date_admitted_year: '2026',
+          time_admitted_hour: '11', time_admitted_min: '45', time_admitted_ampm: 'AM',
+          date_discharged_month: '03', date_discharged_day: '28', date_discharged_year: '2026',
+          time_discharged_hour: '10', time_discharged_min: '00', time_discharged_ampm: 'AM',
+          patient_disposition: 'Improved',
+          expired_month: '', expired_day: '', expired_year: '', expired_hour: '', expired_min: '', expired_ampm: '',
+          transferred_hci_name: '', transferred_hci_bldg_street: '', transferred_hci_city: '', transferred_hci_province: '', transferred_hci_zip: '',
+          reason_for_referral: 'Requires higher level of care',
+          accommodation_type: 'Non-Private (Charity/Service)',
+          admission_diagnosis_1: 'Community Acquired Pneumonia', admission_diagnosis_2: 'Hypertension',
+          discharge_diagnosis_1: 'CAP-Moderate Risk', discharge_icd10_1: 'J18.9', discharge_procedure_1: 'Supportive Management', discharge_rvs_1: '', discharge_procedure_date_1: '', discharge_laterality_1: 'N/A',
+          discharge_diagnosis_2: 'Hypertension Stage 2', discharge_icd10_2: 'I10', discharge_procedure_2: '', discharge_rvs_2: '', discharge_procedure_date_2: '', discharge_laterality_2: 'N/A',
+          discharge_diagnosis_3: '', discharge_icd10_3: '', discharge_procedure_3: '', discharge_rvs_3: '', discharge_procedure_date_3: '', discharge_laterality_3: 'N/A',
+          discharge_diagnosis_4: '', discharge_icd10_4: '', discharge_procedure_4: '', discharge_rvs_4: '', discharge_procedure_date_4: '', discharge_laterality_4: 'N/A',
+          discharge_diagnosis_5: '', discharge_icd10_5: '', discharge_procedure_5: '', discharge_rvs_5: '', discharge_procedure_date_5: '', discharge_laterality_5: 'N/A',
+          discharge_diagnosis_6: '', discharge_icd10_6: '', discharge_procedure_6: '', discharge_rvs_6: '', discharge_procedure_date_6: '', discharge_laterality_6: 'N/A',
+          special_hemodialysis: '', special_peritoneal_dialysis: '', special_radiotherapy_linac: '', special_radiotherapy_cobalt: '', special_blood_transfusion: '', special_brachytherapy: '', special_chemotherapy: '', special_simple_debridement: '',
+          zbenefit_package_code: 'CAP-MR', mcp_dates: '', tbdots_intensive_phase: '', tbdots_maintenance_phase: '',
+          animal_bite_arv_day1: '', animal_bite_arv_day2: '', animal_bite_arv_day3: '', animal_bite_rig: '', animal_bite_others: '',
+          newborn_essential_care: '', newborn_hearing_screening: '', newborn_screening_test: '', hiv_lab_number: '',
+          philhealth_benefit_first_case_rate: 'CAP-MR', philhealth_benefit_second_case_rate: '', philhealth_benefit_icd_rvs_code: 'J18.9',
+          hcp1_accreditation_no: 'DR-2024-98765 — DR. ELENA REYES', hcp1_date_signed_month: '03', hcp1_date_signed_day: '28', hcp1_date_signed_year: '2026', hcp1_copay: '',
+          hcp2_accreditation_no: '', hcp2_date_signed_month: '', hcp2_date_signed_day: '', hcp2_date_signed_year: '', hcp2_copay: '',
+          hcp3_accreditation_no: '', hcp3_date_signed_month: '', hcp3_date_signed_day: '', hcp3_date_signed_year: '', hcp3_copay: '',
+          total_hci_fees: '28000', total_professional_fees: '6000', grand_total: '34000',
+          total_actual_charges: '34000', discount_amount: '0', philhealth_benefit_amount: '16000', amount_after_philhealth: '18000',
+          hci_amount_paid_by: '18000', hci_paid_member_patient: '', hci_paid_hmo: '', hci_paid_others: '',
+          pf_amount_paid_by: '6000', pf_paid_member_patient: '', pf_paid_hmo: '', pf_paid_others: '',
+          drug_purchase_none: '', drug_purchase_total_amount: '4500',
+          diagnostic_purchase_none: '', diagnostic_purchase_total_amount: '2200',
+        },
+        {
+          // Sample 3: FULL — all fields including special packages, multiple diagnoses, 3 HCPs
+          hci_pan: '33-1111-2222', hci_name: 'St. Luke\'s Medical Center',
+          hci_bldg_street: 'E. Rodriguez Sr. Blvd', hci_city: 'Quezon City', hci_province: 'Metro Manila (NCR)',
+          patient_last_name: 'REYES', patient_first_name: 'CARLOS MIGUEL', patient_name_ext: 'Jr.', patient_middle_name: 'VILLANUEVA',
+          referred_by_hci: 'YES',
+          referring_hci_name: 'Quezon City General Hospital', referring_hci_bldg_street: 'Seminary Rd', referring_hci_city: 'Quezon City', referring_hci_province: 'Metro Manila', referring_hci_zip: '1100',
+          date_admitted_month: '02', date_admitted_day: '14', date_admitted_year: '2026',
+          time_admitted_hour: '09', time_admitted_min: '15', time_admitted_ampm: 'AM',
+          date_discharged_month: '02', date_discharged_day: '28', date_discharged_year: '2026',
+          time_discharged_hour: '03', time_discharged_min: '30', time_discharged_ampm: 'PM',
+          patient_disposition: 'Improved',
+          expired_month: '', expired_day: '', expired_year: '', expired_hour: '', expired_min: '', expired_ampm: '',
+          transferred_hci_name: 'National Kidney Institute', transferred_hci_bldg_street: 'East Ave', transferred_hci_city: 'Quezon City', transferred_hci_province: 'Metro Manila', transferred_hci_zip: '1101',
+          reason_for_referral: 'Requires dialysis management',
+          accommodation_type: 'Private',
+          admission_diagnosis_1: 'End Stage Renal Disease', admission_diagnosis_2: 'Diabetes Mellitus Type 2',
+          discharge_diagnosis_1: 'ESRD on Hemodialysis', discharge_icd10_1: 'N18.6', discharge_procedure_1: 'Hemodialysis', discharge_rvs_1: '90935', discharge_procedure_date_1: '02/16/2026', discharge_laterality_1: 'N/A',
+          discharge_diagnosis_2: 'DM Type 2 uncontrolled', discharge_icd10_2: 'E11.9', discharge_procedure_2: 'Insulin Therapy', discharge_rvs_2: '', discharge_procedure_date_2: '', discharge_laterality_2: 'N/A',
+          discharge_diagnosis_3: 'Hypertension', discharge_icd10_3: 'I10', discharge_procedure_3: 'Antihypertensive meds', discharge_rvs_3: '', discharge_procedure_date_3: '', discharge_laterality_3: 'N/A',
+          discharge_diagnosis_4: 'Anemia of CKD', discharge_icd10_4: 'D63.1', discharge_procedure_4: 'Blood Transfusion', discharge_rvs_4: '86950', discharge_procedure_date_4: '02/18/2026', discharge_laterality_4: 'N/A',
+          discharge_diagnosis_5: '', discharge_icd10_5: '', discharge_procedure_5: '', discharge_rvs_5: '', discharge_procedure_date_5: '', discharge_laterality_5: 'N/A',
+          discharge_diagnosis_6: '', discharge_icd10_6: '', discharge_procedure_6: '', discharge_rvs_6: '', discharge_procedure_date_6: '', discharge_laterality_6: 'N/A',
+          special_hemodialysis: '3', special_peritoneal_dialysis: '', special_radiotherapy_linac: '', special_radiotherapy_cobalt: '', special_blood_transfusion: '2', special_brachytherapy: '', special_chemotherapy: '', special_simple_debridement: '',
+          zbenefit_package_code: 'ESRD-HD', mcp_dates: '', tbdots_intensive_phase: '', tbdots_maintenance_phase: '',
+          animal_bite_arv_day1: '', animal_bite_arv_day2: '', animal_bite_arv_day3: '', animal_bite_rig: '', animal_bite_others: '',
+          newborn_essential_care: '', newborn_hearing_screening: '', newborn_screening_test: '', hiv_lab_number: '',
+          philhealth_benefit_first_case_rate: 'ESRD (HD)', philhealth_benefit_second_case_rate: 'Anemia of CKD', philhealth_benefit_icd_rvs_code: 'N18.6 / 90935',
+          hcp1_accreditation_no: 'DR-2025-11111 — DR. JOSE MENDOZA (Nephrologist)', hcp1_date_signed_month: '02', hcp1_date_signed_day: '28', hcp1_date_signed_year: '2026', hcp1_copay: '',
+          hcp2_accreditation_no: 'DR-2025-22222 — DR. LINDA TAN (Endocrinologist)', hcp2_date_signed_month: '02', hcp2_date_signed_day: '28', hcp2_date_signed_year: '2026', hcp2_copay: '',
+          hcp3_accreditation_no: 'DR-2025-33333 — DR. ROBERTO CRUZ (Hematologist)', hcp3_date_signed_month: '02', hcp3_date_signed_day: '28', hcp3_date_signed_year: '2026', hcp3_copay: '',
+          total_hci_fees: '95000', total_professional_fees: '18000', grand_total: '113000',
+          total_actual_charges: '113000', discount_amount: '5000', philhealth_benefit_amount: '45000', amount_after_philhealth: '63000',
+          hci_amount_paid_by: '63000', hci_paid_member_patient: '', hci_paid_hmo: '', hci_paid_others: '',
+          pf_amount_paid_by: '18000', pf_paid_member_patient: '', pf_paid_hmo: '', pf_paid_others: '',
+          drug_purchase_none: '', drug_purchase_total_amount: '12500',
+          diagnostic_purchase_none: '', diagnostic_purchase_total_amount: '8700',
+        },
+      ],
+
+      // ── PhilHealth PMRF (Foreign National) ───────────────────────────────
+      'philhealth-pmrf-foreign-natl': [
+        {
+          philhealth_number: '22-0000001234', acr_icard_number: 'A12345678', pra_srrv_number: '',
+          last_name: 'SMITH', first_name: 'JOHN WILLIAM', middle_name: 'ANDERSON',
+          sex: 'Male', nationality: 'American', dob_month: '09', dob_day: '14', dob_year: '1982',
+          civil_status: 'Married',
+          philippine_address_line1: '88 Legaspi St, Legaspi Village',
+          philippine_address_line2: 'Makati City, Metro Manila 1229',
+          contact_phone: '09171002020', email: 'j.smith@company.com.ph',
+          signature_printed_name: 'JOHN WILLIAM ANDERSON SMITH', signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          philhealth_number: '', acr_icard_number: 'B98765432', pra_srrv_number: 'SRRV-2022-00123',
+          last_name: 'TANAKA', first_name: 'HIROSHI', middle_name: '',
+          sex: 'Male', nationality: 'Japanese', dob_month: '03', dob_day: '22', dob_year: '1975',
+          civil_status: 'Married',
+          philippine_address_line1: 'Unit 12F, One Bonifacio High Street',
+          philippine_address_line2: 'BGC, Taguig, Metro Manila 1634',
+          contact_phone: '09281112233', email: 'h.tanaka@jp-corp.ph',
+          signature_printed_name: 'HIROSHI TANAKA', signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          // Full — all fields
+          philhealth_number: '22-9999888777', acr_icard_number: 'C11223344', pra_srrv_number: 'SRRV-2023-00456',
+          last_name: 'GARCIA', first_name: 'MARIA ELENA', middle_name: 'RODRIGUEZ',
+          sex: 'Female', nationality: 'Spanish', dob_month: '06', dob_day: '15', dob_year: '1988',
+          civil_status: 'Single',
+          philippine_address_line1: '32 Escolta Street, Binondo',
+          philippine_address_line2: 'Manila, Metro Manila 1006',
+          contact_phone: '09171234567', email: 'maria.garcia@eu-company.ph',
+          signature_printed_name: 'MARIA ELENA RODRIGUEZ GARCIA', signature_date: new Date().toISOString().split('T')[0],
+        },
+      ],
+
+      // ── PhilHealth Claim Signature Form ──────────────────────────────────
+      'philhealth-claim-signature-form': [
+        {
+          series_no: '2026-001-00123',
+          member_pin: '123456789012', member_last_name: 'DELA CRUZ', member_first_name: 'JUAN ANDRES',
+          member_ext_name: 'Jr.', member_middle_name: 'SANTOS',
+          member_dob_month: '03', member_dob_day: '15', member_dob_year: '1990',
+          dependent_pin: '', patient_last_name: 'DELA CRUZ', patient_first_name: 'JUAN ANDRES',
+          patient_ext_name: 'Jr.', patient_middle_name: 'SANTOS',
+          relationship_to_member: 'Self',
+          date_admitted_month: '04', date_admitted_day: '10', date_admitted_year: '2026',
+          date_discharged_month: '04', date_discharged_day: '15', date_discharged_year: '2026',
+          patient_dob_month: '03', patient_dob_day: '15', patient_dob_year: '1990',
+          employer_pen: '17-123456789-0', employer_contact_no: '0288889999',
+          business_name: 'ABC COMPANY INC',
+          employer_date_signed_month: '04', employer_date_signed_day: '16', employer_date_signed_year: '2026',
+          consent_date_signed_month: '04', consent_date_signed_day: '16', consent_date_signed_year: '2026',
+        },
+        {
+          series_no: '2026-001-00456',
+          member_pin: '098765432109', member_last_name: 'SANTOS', member_first_name: 'ANNA MARIE',
+          member_ext_name: '', member_middle_name: 'GARCIA',
+          member_dob_month: '07', member_dob_day: '22', member_dob_year: '1985',
+          dependent_pin: '112233445566', patient_last_name: 'SANTOS', patient_first_name: 'CLAIRE ANNE',
+          patient_ext_name: '', patient_middle_name: 'GARCIA',
+          relationship_to_member: 'Child',
+          date_admitted_month: '03', date_admitted_day: '22', date_admitted_year: '2026',
+          date_discharged_month: '03', date_discharged_day: '28', date_discharged_year: '2026',
+          patient_dob_month: '11', patient_dob_day: '02', patient_dob_year: '2010',
+          employer_pen: '', employer_contact_no: '', business_name: '',
+          employer_date_signed_month: '', employer_date_signed_day: '', employer_date_signed_year: '',
+          consent_date_signed_month: '03', consent_date_signed_day: '28', consent_date_signed_year: '2026',
+        },
+        {
+          // Full — all fields filled
+          series_no: '2026-001-00789',
+          member_pin: '556677889900', member_last_name: 'REYES', member_first_name: 'PEDRO JOSE',
+          member_ext_name: 'Sr.', member_middle_name: 'VILLANUEVA',
+          member_dob_month: '05', member_dob_day: '10', member_dob_year: '1978',
+          dependent_pin: '445566778899', patient_last_name: 'REYES', patient_first_name: 'PEDRO MIGUEL',
+          patient_ext_name: 'Jr.', patient_middle_name: 'VILLANUEVA',
+          relationship_to_member: 'Child',
+          date_admitted_month: '02', date_admitted_day: '01', date_admitted_year: '2026',
+          date_discharged_month: '02', date_discharged_day: '10', date_discharged_year: '2026',
+          patient_dob_month: '08', patient_dob_day: '25', patient_dob_year: '2005',
+          employer_pen: '33-987654321-0', employer_contact_no: '0277778888',
+          business_name: 'XYZ CORPORATION',
+          employer_date_signed_month: '02', employer_date_signed_day: '11', employer_date_signed_year: '2026',
+          consent_date_signed_month: '02', consent_date_signed_day: '11', consent_date_signed_year: '2026',
+        },
+      ],
+
+      // ── Pag-IBIG PFF-049 (MCIF) ──────────────────────────────────────────
+      'pagibig-pff-049': [
+        {
+          mid_no: '1234-5678-9012', housing_account_no: '',
+          loyalty_card_holder: 'No', loyalty_partner_bank: '',
+          current_last_name: 'DELA CRUZ', current_first_name: 'JUAN ANDRES', current_ext_name: 'Jr.', current_middle_name: 'SANTOS',
+          category_from: '', category_to: '',
+          name_from_last: '', name_from_first: '', name_from_ext: 'N/A', name_from_middle: '',
+          name_to_last: '', name_to_first: '', name_to_ext: 'N/A', name_to_middle: '',
+          dob_from: '', dob_to: '',
+          marital_from: 'Single', marital_to: 'Married',
+          spouse_last_name: 'REYES', spouse_first_name: 'MARIA', spouse_ext_name: 'N/A', spouse_middle_name: 'GARCIA',
+          new_address_line: '123 Rizal St, Sampaloc', new_barangay: 'Brgy. 101', new_city: 'Manila', new_province: 'Metro Manila (NCR)', new_zip: '1008',
+          new_cell_phone: '09171234567', new_email: 'juan.delacruz@gmail.com',
+          preferred_mailing: 'Present Home Address',
+          others_from: '', others_to: '',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          mid_no: '9876-5432-1098', housing_account_no: 'HL-2024-001234',
+          loyalty_card_holder: 'Yes', loyalty_partner_bank: 'BDO Unibank',
+          current_last_name: 'SANTOS', current_first_name: 'ANNA MARIE', current_ext_name: 'N/A', current_middle_name: 'GARCIA',
+          category_from: '', category_to: '',
+          name_from_last: '', name_from_first: '', name_from_ext: 'N/A', name_from_middle: '',
+          name_to_last: '', name_to_first: '', name_to_ext: 'N/A', name_to_middle: '',
+          dob_from: '', dob_to: '',
+          marital_from: 'Married', marital_to: 'Widowed',
+          spouse_last_name: '', spouse_first_name: '', spouse_ext_name: 'N/A', spouse_middle_name: '',
+          new_address_line: 'Blk 5 Lot 7, Greenfield Village, Mabini St', new_barangay: 'Brgy. Poblacion', new_city: 'Makati City', new_province: 'Metro Manila (NCR)', new_zip: '1210',
+          new_cell_phone: '09281234567', new_email: 'anna.santos@gmail.com',
+          preferred_mailing: 'Permanent Home Address',
+          others_from: '', others_to: '',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          // Full — name change + all categories
+          mid_no: '5555-6666-7777', housing_account_no: 'HL-2023-009876',
+          loyalty_card_holder: 'Yes', loyalty_partner_bank: 'BPI Family Savings Bank',
+          current_last_name: 'REYES', current_first_name: 'MARIA ELENA', current_ext_name: 'N/A', current_middle_name: 'GARCIA',
+          category_from: 'Employed', category_to: 'Self-Employed',
+          name_from_last: 'GARCIA', name_from_first: 'MARIA ELENA', name_from_ext: 'N/A', name_from_middle: 'VILLANUEVA',
+          name_to_last: 'REYES', name_to_first: 'MARIA ELENA', name_to_ext: 'N/A', name_to_middle: 'GARCIA',
+          dob_from: '06/15/1988', dob_to: '06/15/1988',
+          marital_from: 'Single', marital_to: 'Married',
+          spouse_last_name: 'REYES', spouse_first_name: 'CARLOS', spouse_ext_name: 'N/A', spouse_middle_name: 'SANTOS',
+          new_address_line: '32 Escolta St, Binondo', new_barangay: 'Brgy. 292', new_city: 'Manila', new_province: 'Metro Manila (NCR)', new_zip: '1006',
+          new_cell_phone: '09171112233', new_email: 'maria.reyes@biz.ph',
+          preferred_mailing: 'Employer/Business Address',
+          others_from: 'Government Employed', others_to: 'Private Self-Employed',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+      ],
+
+      // ── Pag-IBIG SLF-089 (HELPs) ────────────────────────────────────────
+      'pagibig-slf-089': [
+        {
+          mid_no: '9876543210 98', application_no: '',
+          last_name: 'MENDOZA', first_name: 'ROBERTO', ext_name: 'N/A', middle_name: 'LINDO', no_maiden_middle_name: '',
+          dob: '07/04/1980', place_of_birth: 'Manila, Metro Manila', mothers_maiden_name: 'LINDO, CECILIA SANTOS',
+          sex: 'Male', marital_status: 'Married', citizenship: 'Filipino', nationality: 'Filipino',
+          perm_unit: '', perm_street: '789 Tindalo St', perm_cell_phone: '09203334444', perm_home_tel: '028234-5678',
+          perm_subdivision: 'Sta. Mesa Heights', perm_barangay: 'Brgy. Sta. Mesa', perm_city: 'Manila', perm_province: 'Metro Manila (NCR)', perm_zip: '1016',
+          perm_email: 'roberto.mendoza@yahoo.com', perm_tin: '456-789-012',
+          pres_unit: 'Unit 3B', pres_street: 'Ortigas Ave', pres_employee_id: 'EMP-2022-001', pres_nature_of_work: 'Permanent',
+          pres_subdivision: 'Wack-Wack Village', pres_barangay: 'Brgy. Wack-Wack', pres_city: 'Mandaluyong', pres_province: 'Metro Manila (NCR)', pres_zip: '1550',
+          pres_sss_gsis: '34-5678901-2', pres_business_tel: '026321-9999',
+          employer_name: 'Manila Electric Company', date_of_employment: '06/01/2015',
+          desired_loan_amount: '50000', loan_amount_type: 'Others (specify in Desired Amount)',
+          employer_address_line: 'Ortigas Ave', source_of_fund: 'Provident Fund',
+          employer_subdivision: 'Wack-Wack', employer_barangay: 'Brgy. Wack-Wack', employer_city: 'Mandaluyong', employer_province: 'Metro Manila (NCR)', employer_zip: '1550',
+          loan_purpose: 'Educational Expenses',
+          beneficiary_last: 'MENDOZA', beneficiary_first: 'LORNA', beneficiary_ext: 'N/A', beneficiary_middle: 'SANTOS',
+          student_id_no: '2024-STU-001234', loan_term: '24 months',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          mid_no: '1111222233 34', application_no: 'APP-2026-003456',
+          last_name: 'GARCIA', first_name: 'PATRICIA ANN', ext_name: 'N/A', middle_name: 'REYES', no_maiden_middle_name: '',
+          dob: '03/18/1992', place_of_birth: 'Cebu City, Cebu', mothers_maiden_name: 'REYES, LINDA SANTOS',
+          sex: 'Female', marital_status: 'Single/Unmarried', citizenship: 'Filipino', nationality: 'Filipino',
+          perm_unit: 'Unit 2A', perm_street: 'Aurora Blvd', perm_cell_phone: '09162223333', perm_home_tel: '',
+          perm_subdivision: '', perm_barangay: 'Brgy. Cubao', perm_city: 'Quezon City', perm_province: 'Metro Manila (NCR)', perm_zip: '1109',
+          perm_email: 'p.garcia@work.com', perm_tin: '789-012-345',
+          pres_unit: '', pres_street: 'Ortigas Center', pres_employee_id: 'BD-2023-9876', pres_nature_of_work: 'Regular',
+          pres_subdivision: '', pres_barangay: 'Ortigas', pres_city: 'Pasig', pres_province: 'Metro Manila (NCR)', pres_zip: '1605',
+          pres_sss_gsis: '11-2345678-9', pres_business_tel: '028840-7000',
+          employer_name: 'BDO Unibank Inc', date_of_employment: '01/15/2019',
+          desired_loan_amount: '30000', loan_amount_type: 'Others (specify in Desired Amount)',
+          employer_address_line: 'BDO Corporate Center, Ortigas', source_of_fund: 'Provident Fund',
+          employer_subdivision: '', employer_barangay: 'Ortigas', employer_city: 'Pasig', employer_province: 'Metro Manila (NCR)', employer_zip: '1605',
+          loan_purpose: 'Medical Expenses',
+          beneficiary_last: 'GARCIA', beneficiary_first: 'ELENA', beneficiary_ext: 'N/A', beneficiary_middle: 'REYES',
+          student_id_no: '', loan_term: '12 months',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          // Full — all fields
+          mid_no: '3333444455 56', application_no: 'APP-2026-007890',
+          last_name: 'VILLANUEVA', first_name: 'CARLO MIGUEL', ext_name: 'Jr.', middle_name: 'NAVARRO', no_maiden_middle_name: '',
+          dob: '11/25/1987', place_of_birth: 'Davao City, Davao del Sur', mothers_maiden_name: 'NAVARRO, ROSA DELA CRUZ',
+          sex: 'Male', marital_status: 'Married', citizenship: 'Filipino', nationality: 'Filipino',
+          perm_unit: 'House 12', perm_street: 'Sampaguita St', perm_cell_phone: '09177778888', perm_home_tel: '0822234567',
+          perm_subdivision: 'Greenfield Subdivision', perm_barangay: 'Brgy. Mintal', perm_city: 'Davao City', perm_province: 'Davao del Sur', perm_zip: '8023',
+          perm_email: 'carlo.villanueva@corp.ph', perm_tin: '321-654-987',
+          pres_unit: '', pres_street: 'Torres St', pres_employee_id: 'EMP-CORP-0001', pres_nature_of_work: 'Permanent',
+          pres_subdivision: 'Bajada Commercial', pres_barangay: 'Brgy. Bajada', pres_city: 'Davao City', pres_province: 'Davao del Sur', pres_zip: '8000',
+          pres_sss_gsis: '34-1122334-5', pres_business_tel: '0822345678',
+          employer_name: 'Southern Philippine Bank', date_of_employment: '03/01/2012',
+          desired_loan_amount: '80000', loan_amount_type: 'Others (specify in Desired Amount)',
+          employer_address_line: 'Magsaysay Ave', source_of_fund: 'Savings',
+          employer_subdivision: 'Poblacion District', employer_barangay: 'Brgy. Poblacion', employer_city: 'Davao City', employer_province: 'Davao del Sur', employer_zip: '8000',
+          loan_purpose: 'Healthcare Plan from accredited HMO',
+          beneficiary_last: 'VILLANUEVA', beneficiary_first: 'DIANA ROSE', beneficiary_ext: 'N/A', beneficiary_middle: 'NAVARRO',
+          student_id_no: '', loan_term: '36 months',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+      ],
+
+      // ── Pag-IBIG SLF-065 (Multi-Purpose Loan) ───────────────────────────
+      'pagibig-slf-065': [
+        {
+          mid_no: '555566667777', application_no: '',
+          last_name: 'GARCIA', first_name: 'PATRICIA ANN', ext_name: 'N/A', middle_name: 'REYES', no_maiden_middle_name: '',
+          dob: '03/18/1992', place_of_birth: 'Quezon City, Metro Manila', mothers_maiden_name: 'REYES, LINDA SANTOS',
+          nationality: 'Filipino', sex: 'Female', marital_status: 'Single/Unmarried', citizenship: 'Filipino',
+          email: 'p.garcia@work.com',
+          perm_unit: 'Unit 2A', perm_cell_phone: '09162223333', perm_home_tel: '',
+          perm_street: 'Aurora Blvd', perm_subdivision: '', perm_barangay: 'Brgy. Cubao', perm_city: 'Quezon City', perm_province: 'Metro Manila (NCR)', perm_zip: '1109',
+          perm_tin: '789-012-345', perm_sss_gsis: '11-2345678-9',
+          pres_unit: '', pres_business_tel: '028840-7000', pres_nature_of_work: 'Regular',
+          pres_street: 'BDO Corporate Center Ortigas', pres_subdivision: '', pres_barangay: 'Ortigas', pres_city: 'Pasig', pres_province: 'Metro Manila (NCR)', pres_zip: '1605',
+          loan_term: '24 months', desired_loan_amount: '80000',
+          employer_name: 'BDO Unibank Inc', loan_purpose: 'Healthcare Plan from accredited HMO',
+          employer_address_line: 'BDO Corporate Center, Ortigas', employer_subdivision: '', employer_barangay: 'Ortigas', employer_city: 'Pasig', employer_province: 'Metro Manila (NCR)', employer_zip: '1605',
+          employee_id_no: 'BD-2023-9876', date_of_employment: '01/15/2019',
+          source_of_fund: 'Provident Fund', payroll_bank_name: 'BDO Unibank — Ortigas Branch',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          mid_no: '888899990001', application_no: 'APP-2026-011234',
+          last_name: 'TORRES', first_name: 'MARIO JOSE', ext_name: 'N/A', middle_name: 'DELA VEGA', no_maiden_middle_name: '',
+          dob: '09/25/1985', place_of_birth: 'Cebu City, Cebu', mothers_maiden_name: 'DELA VEGA, CARLA SANTOS',
+          nationality: 'Filipino', sex: 'Male', marital_status: 'Married', citizenship: 'Filipino',
+          email: 'mario.torres@cebu.ph',
+          perm_unit: 'House 3', perm_cell_phone: '09221112222', perm_home_tel: '0322345678',
+          perm_street: '12 Sampaguita St', perm_subdivision: 'Cebu Village', perm_barangay: 'Brgy. Camputhaw', perm_city: 'Cebu City', perm_province: 'Cebu', perm_zip: '6000',
+          perm_tin: '654-321-098', perm_sss_gsis: '34-9876543-2',
+          pres_unit: '', pres_business_tel: '0322234567', pres_nature_of_work: 'Regular',
+          pres_street: 'Jones Ave', pres_subdivision: '', pres_barangay: 'Brgy. Kamputhaw', pres_city: 'Cebu City', pres_province: 'Cebu', pres_zip: '6000',
+          loan_term: '36 months', desired_loan_amount: '120000',
+          employer_name: 'Cebu Pacific Air', loan_purpose: 'Healthcare Plan from accredited HMO',
+          employer_address_line: 'MIA Road, Pasay City', employer_subdivision: '', employer_barangay: 'Brgy. 183', employer_city: 'Pasay', employer_province: 'Metro Manila (NCR)', employer_zip: '1300',
+          employee_id_no: 'CEB-2018-4567', date_of_employment: '06/01/2018',
+          source_of_fund: 'Savings', payroll_bank_name: 'BPI — Cebu City Branch',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          // Full — all fields
+          mid_no: '111122223334', application_no: 'APP-2026-099999',
+          last_name: 'NAVARRO', first_name: 'DIANA ROSE', ext_name: 'N/A', middle_name: 'ESPIRITU', no_maiden_middle_name: '',
+          dob: '04/12/1979', place_of_birth: 'Davao City, Davao del Sur', mothers_maiden_name: 'ESPIRITU, NORA SANTOS',
+          nationality: 'Filipino', sex: 'Female', marital_status: 'Married', citizenship: 'Filipino',
+          email: 'diana.navarro@southbank.ph',
+          perm_unit: 'Unit 4C', perm_cell_phone: '09257778888', perm_home_tel: '0822227777',
+          perm_street: '100 Sampaguita Ave', perm_subdivision: 'Poblacion Heights', perm_barangay: 'Brgy. Poblacion', perm_city: 'Davao City', perm_province: 'Davao del Sur', perm_zip: '8000',
+          perm_tin: '321-654-099', perm_sss_gsis: '34-9876543-9',
+          pres_unit: '', pres_business_tel: '0822234560', pres_nature_of_work: 'Permanent',
+          pres_street: 'Magsaysay Ave', pres_subdivision: '', pres_barangay: 'Brgy. Poblacion', pres_city: 'Davao City', pres_province: 'Davao del Sur', pres_zip: '8000',
+          loan_term: '48 months', desired_loan_amount: '200000',
+          employer_name: 'Southern Philippine Bank', loan_purpose: 'Healthcare Plan from accredited HMO',
+          employer_address_line: 'Magsaysay Ave, Davao City', employer_subdivision: '', employer_barangay: 'Brgy. Poblacion', employer_city: 'Davao City', employer_province: 'Davao del Sur', employer_zip: '8000',
+          employee_id_no: 'SPB-2005-00123', date_of_employment: '03/01/2005',
+          source_of_fund: 'Provident Fund', payroll_bank_name: 'Southern Philippine Bank — Main Branch',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+      ],
+
+      // ── Pag-IBIG HLF-868 (HEAL Co-Borrower) ─────────────────────────────
+      'pagibig-hlf-868': [
+        {
+          mid_no: '333344445555', housing_account_no: 'HL-2024-000123',
+          last_name: 'TORRES', first_name: 'MARK CHRISTIAN', ext_name: 'N/A', middle_name: 'DELA VEGA', maiden_middle_name: '',
+          dob: '09/25/1983', citizenship: 'Filipino', proportionate_share: '50',
+          perm_unit: '', perm_street: '12 Sampaguita St', perm_subdivision: 'Primavera Residences', perm_barangay: 'Brgy. Sta. Cruz', perm_city: 'Antipolo', perm_province: 'Rizal', perm_zip: '1870',
+          perm_country_tel: '', perm_home_tel: '028123-4567',
+          pres_unit: '', pres_street: '12 Sampaguita St', pres_subdivision: 'Primavera Residences', pres_barangay: 'Brgy. Sta. Cruz', pres_city: 'Antipolo', pres_province: 'Rizal', pres_zip: '1870',
+          pres_business_tel: '028765-4321', pres_cellphone: '09221112222',
+          email_address: 'm.torres@email.com', years_stay_present: '5',
+          tin: '789-012-345', sss_gsis: '34-9876543-1',
+          occupation: 'Civil Engineer', employer_name: 'Torres Construction Inc',
+          employer_address_line: 'EDSA cor Shaw Blvd', employer_subdivision: 'Wack-Wack', employer_barangay: 'Brgy. Wack-Wack', employer_city: 'Mandaluyong', employer_province: 'Metro Manila (NCR)', employer_zip: '1550',
+          employer_business_tel: '026321-1111', employer_email: 'hr@torrresconstruction.ph',
+          position_dept: 'Senior Engineer / Engineering Dept', preferred_time_contact: '9:00 AM - 5:00 PM',
+          place_assignment: 'Mandaluyong Main Office', years_employment: '8', no_dependents: '2',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          mid_no: '666677778888', housing_account_no: '',
+          last_name: 'FLORES', first_name: 'JOSE RAMON', ext_name: 'Jr.', middle_name: 'ABAD', maiden_middle_name: '',
+          dob: '12/01/1980', citizenship: 'Filipino', proportionate_share: '30',
+          perm_unit: 'Unit 5A', perm_street: 'Magnolia St', perm_subdivision: 'Valle Verde', perm_barangay: 'Brgy. Ugong', perm_city: 'Pasig', perm_province: 'Metro Manila (NCR)', perm_zip: '1604',
+          perm_country_tel: '', perm_home_tel: '027234-5678',
+          pres_unit: 'Unit 5A', pres_street: 'Magnolia St', pres_subdivision: 'Valle Verde', pres_barangay: 'Brgy. Ugong', pres_city: 'Pasig', pres_province: 'Metro Manila (NCR)', pres_zip: '1604',
+          pres_business_tel: '027222-3333', pres_cellphone: '09335556666',
+          email_address: 'jr.flores@email.ph', years_stay_present: '3',
+          tin: '321-654-099', sss_gsis: '11-9876543-0',
+          occupation: 'IT Manager', employer_name: 'TechPH Solutions Inc',
+          employer_address_line: 'E. Rodriguez Jr. Ave', employer_subdivision: 'Bagumbayan', employer_barangay: 'Brgy. Bagumbayan', employer_city: 'Quezon City', employer_province: 'Metro Manila (NCR)', employer_zip: '1110',
+          employer_business_tel: '028765-9999', employer_email: 'hr@techph.com',
+          position_dept: 'IT Manager / Technology Dept', preferred_time_contact: '8:00 AM - 5:00 PM',
+          place_assignment: 'Quezon City Head Office', years_employment: '6', no_dependents: '1',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          // Full — all fields
+          mid_no: '999900001112', housing_account_no: 'HL-2025-004567',
+          last_name: 'REYES', first_name: 'MARIA THERESA', ext_name: 'N/A', middle_name: 'SANTOS', maiden_middle_name: 'VILLANUEVA',
+          dob: '06/15/1988', citizenship: 'Filipino', proportionate_share: '50',
+          perm_unit: 'Lot 12 Block 5', perm_street: 'Rosal Street', perm_subdivision: 'Greenfield Subdivision', perm_barangay: 'Brgy. San Isidro', perm_city: 'Antipolo', perm_province: 'Rizal', perm_zip: '1870',
+          perm_country_tel: '63-2-8123-4567', perm_home_tel: '028123-4567',
+          pres_unit: 'Torre de Manila Unit 304', pres_street: 'Pablo Ocampo Avenue', pres_subdivision: 'Malate', pres_barangay: 'Brgy. 708 Zone 77', pres_city: 'Manila', pres_province: 'Metro Manila (NCR)', pres_zip: '1004',
+          pres_business_tel: '027234-5678', pres_cellphone: '09171234567',
+          email_address: 'mtheresa.reyes@globalbank.ph', years_stay_present: '2',
+          tin: '456-789-012', sss_gsis: '34-1122334-5',
+          occupation: 'Branch Manager', employer_name: 'Global Bank Philippines',
+          employer_address_line: 'GT Tower, Ayala Avenue', employer_subdivision: 'Makati Central Business District', employer_barangay: 'Brgy. San Lorenzo', employer_city: 'Makati City', employer_province: 'Metro Manila (NCR)', employer_zip: '1223',
+          employer_business_tel: '028888-8888', employer_email: 'hr@globalbank.ph',
+          position_dept: 'Branch Manager / Retail Banking', preferred_time_contact: '8:00 AM - 6:00 PM',
+          place_assignment: 'Makati Main Branch', years_employment: '10', no_dependents: '3',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+      ],
+
+      // ── Pag-IBIG HLF-858 (HEAL Principal Borrower) ──────────────────────
+      'pagibig-hlf-858': [
+        {
+          mid_no: '111122223333', housing_account_no: 'HL-2024-001111',
+          desired_loan_amount: '3000000',
+          last_name: 'FLORES', first_name: 'CARMEN', ext_name: 'N/A', middle_name: 'ABAD', maiden_middle_name: 'SANTOS',
+          dob: '12/01/1975', citizenship: 'Filipino', no_dependents: '2',
+          perm_unit: '', perm_street: '56 Magnolia St', perm_subdivision: 'Valle Verde', perm_barangay: 'Brgy. Kapasigan', perm_city: 'Pasig', perm_province: 'Metro Manila (NCR)', perm_zip: '1600',
+          perm_country_tel: '', perm_home_tel: '027234-1111', perm_business_tel: '027234-2222',
+          pres_unit: '', pres_street: '56 Magnolia St', pres_subdivision: 'Valle Verde', pres_barangay: 'Brgy. Kapasigan', pres_city: 'Pasig', pres_province: 'Metro Manila (NCR)', pres_zip: '1600',
+          pres_cellphone: '09235556666', email_address: 'c.flores@business.ph', years_stay_present: '7',
+          occupation: 'Accountant', tin: '321-654-987', sss_gsis: '34-0000001-2',
+          employer_business_tel: '028840-1234', employer_name: 'Metrobank',
+          employer_address_line: 'Metrobank Plaza, Gil Puyat Ave', employer_subdivision: '', employer_barangay: 'Brgy. Bel-Air', employer_city: 'Makati City', employer_province: 'Metro Manila (NCR)', employer_zip: '1209',
+          employer_email: 'hr@metrobank.com.ph',
+          position_dept: 'Senior Accountant / Finance Division', preferred_time_contact: '9:00 AM - 5:00 PM',
+          place_assignment: 'Makati Head Office', years_employment: '10',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          mid_no: '444455556667', housing_account_no: '',
+          desired_loan_amount: '1500000',
+          last_name: 'AQUINO', first_name: 'ELENA GRACE', ext_name: 'N/A', middle_name: 'CRUZ', maiden_middle_name: 'SANTOS',
+          dob: '11/30/1987', citizenship: 'Filipino', no_dependents: '3',
+          perm_unit: '', perm_street: '22 Colon St', perm_subdivision: '', perm_barangay: 'Brgy. Kamputhaw', perm_city: 'Cebu City', perm_province: 'Cebu', perm_zip: '6000',
+          perm_country_tel: '', perm_home_tel: '0322345678', perm_business_tel: '',
+          pres_unit: '', pres_street: '22 Colon St', pres_subdivision: '', pres_barangay: 'Brgy. Kamputhaw', pres_city: 'Cebu City', pres_province: 'Cebu', pres_zip: '6000',
+          pres_cellphone: '09198887777', email_address: 'elena.aquino@cebu.ph', years_stay_present: '4',
+          occupation: 'Nurse', tin: '456-789-123', sss_gsis: '34-8765432-0',
+          employer_business_tel: '0322234567', employer_name: 'Cebu Doctor\'s University Hospital',
+          employer_address_line: 'Osmeña Blvd', employer_subdivision: '', employer_barangay: 'Brgy. Capitol Site', employer_city: 'Cebu City', employer_province: 'Cebu', employer_zip: '6000',
+          employer_email: 'hr@cduhosp.ph',
+          position_dept: 'Registered Nurse / ICU Dept', preferred_time_contact: '8:00 AM - 4:00 PM',
+          place_assignment: 'Cebu City Main Campus', years_employment: '5',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          // Full — all fields
+          mid_no: '777788889990', housing_account_no: 'HL-2023-009999',
+          desired_loan_amount: '6000000',
+          last_name: 'REYES', first_name: 'MARIA THERESA', ext_name: 'N/A', middle_name: 'SANTOS', maiden_middle_name: 'VILLANUEVA',
+          dob: '06/15/1988', citizenship: 'Filipino', no_dependents: '2',
+          perm_unit: 'Lot 12 Block 5', perm_street: 'Rosal Street', perm_subdivision: 'Greenfield Subdivision', perm_barangay: 'Brgy. San Isidro', perm_city: 'Antipolo', perm_province: 'Rizal', perm_zip: '1870',
+          perm_country_tel: '63-2-8123-4567', perm_home_tel: '028123-4567', perm_business_tel: '028888-8888',
+          pres_unit: 'Torre de Manila Unit 304', pres_street: 'Pablo Ocampo Avenue', pres_subdivision: 'Malate', pres_barangay: 'Brgy. 708 Zone 77', pres_city: 'Manila', pres_province: 'Metro Manila (NCR)', pres_zip: '1004',
+          pres_cellphone: '09171234567', email_address: 'mtheresa.reyes@globalbank.ph', years_stay_present: '2',
+          occupation: 'Branch Manager', tin: '456-789-012', sss_gsis: '34-1122334-5',
+          employer_business_tel: '028888-8888', employer_name: 'Global Bank Philippines',
+          employer_address_line: 'GT Tower, Ayala Avenue', employer_subdivision: 'Makati Central Business District', employer_barangay: 'Brgy. San Lorenzo', employer_city: 'Makati City', employer_province: 'Metro Manila (NCR)', employer_zip: '1223',
+          employer_email: 'hr@globalbank.ph',
+          position_dept: 'Branch Manager / Retail Banking', preferred_time_contact: '8:00 AM - 6:00 PM',
+          place_assignment: 'Makati Main Branch', years_employment: '10',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+      ],
+
+      // ── Pag-IBIG HLF-068 (Housing Loan Application) ─────────────────────
+      'pagibig-hlf-068': [
+        {
+          mid_no: '888899990000', housing_account_no: '',
+          desired_loan_amount: '6000000',
+          last_name: 'NAVARRO', first_name: 'DANIEL JOSE', ext_name: 'N/A', middle_name: 'RICO',
+          citizenship: 'Filipino', dob: '06/20/1979',
+          perm_unit: '', perm_street: '100 Sampaguita Ave', perm_subdivision: 'Poblacion Heights', perm_barangay: 'Brgy. Poblacion', perm_city: 'Davao City', perm_province: 'Davao del Sur', perm_zip: '8000',
+          pres_unit: '', pres_street: '100 Sampaguita Ave', pres_subdivision: 'Poblacion Heights', pres_barangay: 'Brgy. Poblacion', pres_city: 'Davao City', pres_province: 'Davao del Sur', pres_zip: '8000',
+          pres_cellphone: '09257778888', email_address: 'd.navarro@corp.com', years_stay_present: '10',
+          sss_gsis: '34-9876543-1', employer_name: 'Southern Philippine Bank', tin: '654-321-098',
+          employer_address_line: 'Magsaysay Ave', occupation: 'Bank Manager',
+          employer_subdivision: '', employer_barangay: 'Brgy. Poblacion', employer_city: 'Davao City', employer_province: 'Davao del Sur', employer_zip: '8000',
+          position_dept: 'Manager / Branch Banking', years_employment: '15',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          mid_no: '222233334445', housing_account_no: 'HL-2022-004567',
+          desired_loan_amount: '3500000',
+          last_name: 'REYES', first_name: 'PEDRO JOSE', ext_name: 'Sr.', middle_name: 'SANTOS',
+          citizenship: 'Filipino', dob: '05/10/1976',
+          perm_unit: 'Blk 3 Lot 8', perm_street: 'Acacia Ave', perm_subdivision: 'Ayala Alabang Village', perm_barangay: 'Brgy. Ayala Alabang', perm_city: 'Muntinlupa', perm_province: 'Metro Manila (NCR)', perm_zip: '1780',
+          pres_unit: 'Blk 3 Lot 8', pres_street: 'Acacia Ave', pres_subdivision: 'Ayala Alabang Village', pres_barangay: 'Brgy. Ayala Alabang', pres_city: 'Muntinlupa', pres_province: 'Metro Manila (NCR)', pres_zip: '1780',
+          pres_cellphone: '09191234567', email_address: 'p.reyes@mnlcorp.com', years_stay_present: '8',
+          sss_gsis: '11-1234567-8', employer_name: 'Manila Corporation', tin: '123-456-789',
+          employer_address_line: 'Ayala Ave', occupation: 'Operations Director',
+          employer_subdivision: 'Ayala Triangle', employer_barangay: 'Brgy. Legazpi Village', employer_city: 'Makati City', employer_province: 'Metro Manila (NCR)', employer_zip: '1226',
+          position_dept: 'Operations Director / Corporate Affairs', years_employment: '18',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+        {
+          // Full — all fields
+          mid_no: '111122223334', housing_account_no: 'HL-2024-010101',
+          desired_loan_amount: '8000000',
+          last_name: 'DELA VEGA', first_name: 'MARIA CARLA', ext_name: 'N/A', middle_name: 'TORRES',
+          citizenship: 'Filipino', dob: '09/30/1981',
+          perm_unit: 'House 5 Block 3', perm_street: 'Ilang-Ilang Street', perm_subdivision: 'Filinvest East', perm_barangay: 'Brgy. San Isidro', perm_city: 'Cainta', perm_province: 'Rizal', perm_zip: '1900',
+          pres_unit: 'Unit 22A', pres_street: 'Annapolis St', pres_subdivision: 'Greenhills', pres_barangay: 'Brgy. Addition Hills', pres_city: 'San Juan', pres_province: 'Metro Manila (NCR)', pres_zip: '1500',
+          pres_cellphone: '09178889990', email_address: 'carla.delavega@ph-corp.com', years_stay_present: '3',
+          sss_gsis: '34-5566778-9', employer_name: 'PhilCorp Global Inc',
+          tin: '654-999-333', employer_address_line: 'Emerald Ave, Ortigas Center', occupation: 'CFO',
+          employer_subdivision: 'Ortigas Center', employer_barangay: 'Brgy. San Antonio', employer_city: 'Pasig', employer_province: 'Metro Manila (NCR)', employer_zip: '1605',
+          position_dept: 'Chief Financial Officer / Finance', years_employment: '12',
+          signature_date: new Date().toISOString().split('T')[0],
+        },
+      ],
     };
+
     const samples = samplesBySlug[slug] ?? hqpSamples;
-    const pick = samples[Math.floor(Math.random() * samples.length)];
+    const idx = sampleIndex !== undefined ? sampleIndex % samples.length : Math.floor(Math.random() * samples.length);
+    const pick = samples[idx];
     setValues(pick as Record<string, string>);
+    setCurrentStep(0);
     saveDraft(slug, pick as Record<string, string>);
+    setShowSamplePicker(false);
   }
 
   // ── Privacy gate — check acknowledgement before preview ──────────────────
@@ -645,13 +1191,44 @@ export default function FormWizardPage() {
           )}
         </div>
 
-        {/* Progress note — shift+click triggers auto-populate */}
-        <p
-          className="mt-3 text-center text-xs text-gray-400 cursor-default select-none"
-          onClick={(e) => { if (e.shiftKey) autoPopulate(); }}
-        >
-          {totalFilled()} of {form.fields.length} fields filled &mdash; Empty fields will be left blank on the PDF.
-        </p>
+        {/* Progress note + sample picker */}
+        <div className="mt-3 flex flex-col items-center gap-1">
+          <p className="text-center text-xs text-gray-400">
+            {totalFilled()} of {form.fields.length} fields filled &mdash; Empty fields will be left blank on the PDF.
+          </p>
+          <div className="relative">
+            <button
+              className="text-[11px] text-blue-500 hover:text-blue-700 underline underline-offset-2"
+              onClick={() => setShowSamplePicker((v) => !v)}
+            >
+              ✦ Fill with sample data
+            </button>
+            {showSamplePicker && (
+              <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 z-40 w-56 rounded-xl bg-white shadow-xl border border-gray-100 overflow-hidden">
+                <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Choose a sample</p>
+                {[
+                  'Sample 1 — Standard',
+                  'Sample 2 — Alternate',
+                  'Sample 3 — All Fields',
+                ].map((label, i) => (
+                  <button
+                    key={i}
+                    className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+                    onClick={() => autoPopulate(i)}
+                  >
+                    {label}
+                  </button>
+                ))}
+                <button
+                  className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:bg-gray-50 border-t border-gray-100"
+                  onClick={() => setShowSamplePicker(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </main>
 
     </div>

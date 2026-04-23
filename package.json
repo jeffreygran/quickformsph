@@ -11,6 +11,7 @@
     "test:smoke": "npx tsx scripts/test-random-data.ts",
     "test:smoke:http": "npx tsx scripts/test-random-data.ts --http",
     "docs:dictionaries": "npx tsx scripts/generate-field-dictionaries.ts",
+    "docs:validate": "npx tsx scripts/generate-field-dictionaries.ts --strict",
     "test": "npm run test:coverage && npm run test:smoke"
   },
   "dependencies": {
