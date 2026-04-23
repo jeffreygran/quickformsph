@@ -111,10 +111,10 @@ export async function POST(req: NextRequest) {
   const rawAmount = parseFloat((formData.get('amount') as string) ?? '5');
   const expectedAmount = isNaN(rawAmount) || rawAmount < 5 ? 5 : rawAmount;
 
-  // File size guard
+  // File size guard — 5 MB cap (same as client-side limit)
   if (file.size > MAX_UPLOAD_BYTES) {
     auditLog('upload_attempt', ip, `Screenshot too large: ${file.size} bytes`);
-    return NextResponse.json({ valid: false, errors: ['Screenshot file too large (max 10MB)'] }, { status: 400 });
+    return NextResponse.json({ valid: false, errors: ['Screenshot file too large (max 5MB). Please compress or crop the image.'] }, { status: 400 });
   }
 
   // MIME type validation: must be image, not PDF or other binary
@@ -137,30 +137,38 @@ export async function POST(req: NextRequest) {
 
     await writeFile(tmpIn, buffer);
 
-    // ── Preprocess with ImageMagick for better OCR accuracy ────────────────
-    // Handles: photos-of-screens, dark backgrounds, low contrast, small text.
-    // Steps: auto-orient, convert to grayscale, auto-level, sharpen, 2× upscale.
+    // ── Lightweight ImageMagick preprocessing (B-series SKU safe) ──────────
+    // Strategy: cap canvas to ≤1600px wide BEFORE any other ops (thumbnail is
+    // much cheaper than resize — it skips full decode of oversized images).
+    // Then grayscale + auto-level in the same pass. No 2× upscale on large
+    // originals — phone screenshots are already high-res enough for Tesseract.
+    // -limit memory/disk/time caps prevent a runaway convert process from
+    // monopolising the B-series vCPU.
     const tmpProcessed = join(tmpdir(), `qfph-ocr-${randomUUID()}-proc.png`);
     try {
       await execFileAsync('convert', [
+        // Hard resource caps — keep convert within ~100 MB RAM, 10 s wall-clock
+        '-limit', 'memory', '96MB',
+        '-limit', 'map',    '128MB',
+        '-limit', 'time',   '10',
         tmpIn,
-        '-auto-orient',          // fix EXIF rotation (important for phone photos)
-        '-colorspace', 'Gray',   // grayscale improves Tesseract accuracy significantly
-        '-auto-level',           // maximize dynamic range / contrast
-        '-sharpen', '0x1',       // light sharpen to crisp text edges
-        '-resize', '200%',       // upscale 2× so small text reads better
-        '-density', '300',       // hint at 300 DPI
+        '-auto-orient',                   // fix EXIF rotation (phone photos)
+        '-thumbnail', '1600x>',           // shrink only if wider than 1600px; cheap fast path
+        '-colorspace', 'Gray',            // grayscale — biggest single accuracy gain for Tesseract
+        '-auto-level',                    // maximize contrast range
+        '-unsharp', '0x0.5+0.5+0.05',    // mild unsharp mask — cheaper than -sharpen, better result
+        '-strip',                         // strip EXIF/ICC profiles — reduces output size
         tmpProcessed,
-      ], { timeout: 15_000 });
+      ], { timeout: 12_000 });
     } catch {
-      // If ImageMagick fails fall back to original
+      // ImageMagick failed (timeout, unsupported format, etc.) — fall back to original
       await execFileAsync('cp', [tmpIn, tmpProcessed]);
     }
 
     const { stdout } = await execFileAsync(
       'tesseract',
       [tmpProcessed, 'stdout', '-l', 'eng', '--oem', '3', '--psm', '3'],
-      { timeout: 30_000 },
+      { timeout: 25_000 },
     );
     unlink(tmpProcessed).catch(() => {});
     text = stdout;
