@@ -1374,6 +1374,137 @@ const SLF089_SKIP_VALUES: Record<string, string[]> = {
   loan_term: ['', 'Six (6) Months', 'Twelve (12) Months', 'Twenty-four (24) Months', 'Thirty-six (36) Months'],
 };
 
+// ── Pag-IBIG SLF-065 (MPL) — calibrated coords (612×936, page 0 only) ────────
+// pdfplumber row tops: 44, 67, 88, 109, 129, 151, 172, 193, 214, 235, 259, 280.
+// V-cols: 18, 146, 199, 234, 264, 319, 393, 497, 596 (combined cells in some rows).
+// Whole-cell text fills (no per-digit boxes).
+const SLF065_PAGE_H = 936.0;
+const slf065Y = (nextRowTop: number) => SLF065_PAGE_H - nextRowTop + 3;
+
+const SLF_065_Y_HEADER  = slf065Y(67);   // 872  — MID / App No
+const SLF_065_Y_NAMES   = slf065Y(88);   // 851  — Names row
+const SLF_065_Y_PERSON  = slf065Y(109);  // 830  — Mother/Nat'l/Sex/Marital/Citizen/Email
+const SLF_065_Y_PERM1   = slf065Y(129);  // 810  — Permanent address row 1
+const SLF_065_Y_PERM2   = slf065Y(151);  // 788  — Permanent address row 2
+const SLF_065_Y_PRES1   = slf065Y(172);  // 767  — Present address row 1
+const SLF_065_Y_PRES2   = slf065Y(193);  // 746  — Present address row 2
+const SLF_065_Y_EMP1    = slf065Y(214);  // 725  — Employer name
+const SLF_065_Y_EMP2    = slf065Y(235);  // 704  — Employer address row 1
+const SLF_065_Y_EMP3    = slf065Y(259);  // 680  — Employer address row 2
+const SLF_065_Y_EMP4    = slf065Y(280);  // 659  — Employee ID / DOE / Source of fund
+
+const SLF065_FIELD_COORDS: CoordsMap = {
+  // Header — MID and Application No
+  mid_no:          { page: 0, x: 397, y: SLF_065_Y_HEADER, fontSize: 9, maxWidth: 98 },
+  application_no:  { page: 0, x: 499, y: SLF_065_Y_HEADER, fontSize: 9, maxWidth: 95 },
+
+  // Names row (top=67-88) — V-cols 18,146,199,234,264,319,393,497
+  last_name:                { page: 0, x: 22,  y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 122 },
+  first_name:               { page: 0, x: 148, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 50 },
+  ext_name:                 { page: 0, x: 200, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 33 },
+  middle_name:              { page: 0, x: 236, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 26 },
+  no_maiden_middle_name:    { page: 0, x: 266, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 51 },
+  dob:                      { page: 0, x: 397, y: SLF_065_Y_NAMES, fontSize: 9, maxWidth: 98 },
+  place_of_birth:           { page: 0, x: 499, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 95 },
+
+  // Personal info (top=88-109)
+  mothers_maiden_name:      { page: 0, x: 22,  y: SLF_065_Y_PERSON, fontSize: 8, maxWidth: 122 },
+  nationality:              { page: 0, x: 148, y: SLF_065_Y_PERSON, fontSize: 8, maxWidth: 48 },
+  citizenship:              { page: 0, x: 397, y: SLF_065_Y_PERSON, fontSize: 8, maxWidth: 98 },
+  email:                    { page: 0, x: 499, y: SLF_065_Y_PERSON, fontSize: 7.5, maxWidth: 95 },
+
+  // Permanent address row 1 (top=109-129)
+  perm_unit:                { page: 0, x: 22,  y: SLF_065_Y_PERM1, fontSize: 7.5, maxWidth: 368 },
+  perm_cell_phone:          { page: 0, x: 397, y: SLF_065_Y_PERM1, fontSize: 9, maxWidth: 98 },
+  perm_home_tel:            { page: 0, x: 499, y: SLF_065_Y_PERM1, fontSize: 9, maxWidth: 95 },
+
+  // Permanent address row 2 (top=129-151)
+  perm_street:              { page: 0, x: 22,  y: SLF_065_Y_PERM2, fontSize: 8, maxWidth: 56 },
+  perm_subdivision:         { page: 0, x: 80,  y: SLF_065_Y_PERM2, fontSize: 8, maxWidth: 47 },
+  perm_barangay:            { page: 0, x: 130, y: SLF_065_Y_PERM2, fontSize: 8, maxWidth: 45 },
+  perm_city:                { page: 0, x: 178, y: SLF_065_Y_PERM2, fontSize: 8, maxWidth: 56 },
+  perm_province:            { page: 0, x: 238, y: SLF_065_Y_PERM2, fontSize: 8, maxWidth: 108 },
+  perm_zip:                 { page: 0, x: 350, y: SLF_065_Y_PERM2, fontSize: 9, maxWidth: 38 },
+  perm_tin:                 { page: 0, x: 397, y: SLF_065_Y_PERM2, fontSize: 9, maxWidth: 98 },
+  perm_sss_gsis:            { page: 0, x: 499, y: SLF_065_Y_PERM2, fontSize: 9, maxWidth: 95 },
+
+  // Present address row 1 (top=151-172)
+  pres_unit:                { page: 0, x: 22,  y: SLF_065_Y_PRES1, fontSize: 7.5, maxWidth: 368 },
+  pres_business_tel:        { page: 0, x: 397, y: SLF_065_Y_PRES1, fontSize: 9, maxWidth: 98 },
+  pres_nature_of_work:      { page: 0, x: 499, y: SLF_065_Y_PRES1, fontSize: 8, maxWidth: 95 },
+
+  // Present address row 2 (top=172-193)
+  pres_street:              { page: 0, x: 22,  y: SLF_065_Y_PRES2, fontSize: 8, maxWidth: 56 },
+  pres_subdivision:         { page: 0, x: 80,  y: SLF_065_Y_PRES2, fontSize: 8, maxWidth: 47 },
+  pres_barangay:            { page: 0, x: 130, y: SLF_065_Y_PRES2, fontSize: 8, maxWidth: 45 },
+  pres_city:                { page: 0, x: 178, y: SLF_065_Y_PRES2, fontSize: 8, maxWidth: 56 },
+  pres_province:            { page: 0, x: 238, y: SLF_065_Y_PRES2, fontSize: 8, maxWidth: 108 },
+  pres_zip:                 { page: 0, x: 350, y: SLF_065_Y_PRES2, fontSize: 9, maxWidth: 38 },
+  desired_loan_amount:      { page: 0, x: 499, y: SLF_065_Y_PRES2, fontSize: 9, maxWidth: 95 },
+
+  // Employer name (top=193-214)
+  employer_name:            { page: 0, x: 22,  y: SLF_065_Y_EMP1, fontSize: 8, maxWidth: 368 },
+
+  // Employer address row 1 (top=214-235)
+  employer_address_line:    { page: 0, x: 22,  y: SLF_065_Y_EMP2, fontSize: 7.5, maxWidth: 368 },
+
+  // Employer address row 2 (top=235-259)
+  employer_subdivision:     { page: 0, x: 22,  y: SLF_065_Y_EMP3, fontSize: 8, maxWidth: 46 },
+  employer_barangay:        { page: 0, x: 70,  y: SLF_065_Y_EMP3, fontSize: 8, maxWidth: 46 },
+  employer_city:            { page: 0, x: 118, y: SLF_065_Y_EMP3, fontSize: 8, maxWidth: 60 },
+  employer_province:        { page: 0, x: 180, y: SLF_065_Y_EMP3, fontSize: 8, maxWidth: 160 },
+  employer_zip:             { page: 0, x: 344, y: SLF_065_Y_EMP3, fontSize: 9, maxWidth: 46 },
+
+  // Employment info (top=259-280)
+  employee_id_no:           { page: 0, x: 22,  y: SLF_065_Y_EMP4, fontSize: 8, maxWidth: 124 },
+  date_of_employment:       { page: 0, x: 148, y: SLF_065_Y_EMP4, fontSize: 9, maxWidth: 115 },
+  source_of_fund:           { page: 0, x: 265, y: SLF_065_Y_EMP4, fontSize: 8, maxWidth: 124 },
+
+  // Bank/Branch label is at row top=352, fields below it. y_lib ≈ 936 - 365 = 571
+  payroll_bank_name:        { page: 0, x: 470, y: 571, fontSize: 9, maxWidth: 120 },
+
+  // Signature date — bottom signature block, around top=816 → y ≈ 117
+  signature_date:           { page: 0, x: 470, y: 110, fontSize: 9, maxWidth: 110 },
+};
+
+const SLF065_SKIP_VALUES: Record<string, string[]> = {
+  application_no: [''],
+  ext_name: ['', 'N/A'],
+  middle_name: [''],
+  no_maiden_middle_name: [''],
+  perm_subdivision: [''],
+  perm_home_tel: [''],
+  perm_sss_gsis: [''],
+  pres_unit: [''],
+  pres_street: [''],
+  pres_subdivision: [''],
+  pres_barangay: [''],
+  pres_city: [''],
+  pres_province: [''],
+  pres_zip: [''],
+  pres_business_tel: [''],
+  employer_subdivision: [''],
+  employer_zip: [''],
+  employee_id_no: [''],
+  payroll_bank_name: [''],
+  // Sex / marital / loan_purpose / loan_term are dropdowns; checkbox calibration deferred to iteration 2.
+  sex: ['', 'Male', 'Female'],
+  marital_status: ['', 'Single/Unmarried', 'Married', 'Widow/er', 'Legally Separated', 'Annulled'],
+  loan_term: ['', 'One (1) Year', 'Two (2) Years', 'Three (3) Years'],
+  loan_purpose: ['',
+    'Livelihood / additional capital in small business',
+    'Tuition / Educational Expenses',
+    'Payment of utility / credit card bills',
+    'Purchase of appliance & furniture / electronic gadgets',
+    'Minor home improvement / home renovation / upgrades',
+    'Vacation / travel',
+    'Special events',
+    'Car repair',
+    'Health & wellness',
+    'Others',
+  ],
+};
+
 const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   'hqp-pff-356': {
     fieldCoords: FIELD_COORDS,
@@ -1446,6 +1577,11 @@ const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   'pagibig-slf-089': {
     fieldCoords: SLF089_FIELD_COORDS,
     skipValues: SLF089_SKIP_VALUES,
+    copyYOffsets: [0],
+  },
+  'pagibig-slf-065': {
+    fieldCoords: SLF065_FIELD_COORDS,
+    skipValues: SLF065_SKIP_VALUES,
     copyYOffsets: [0],
   },
 };
