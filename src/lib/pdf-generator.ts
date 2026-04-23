@@ -1094,9 +1094,29 @@ const PFF049_PAGE_H = 936.0;
 const pff049Y = (rowTop: number) => PFF049_PAGE_H - rowTop;
 
 const PFF049_FIELD_COORDS: CoordsMap = {
-  // Header (top-right block): MID underline ~top=66, Housing underline ~top=101
-  mid_no:              { page: 0, x: 424, y: pff049Y(66),  maxWidth: 165, fontSize: 10 },
-  housing_account_no:  { page: 0, x: 424, y: pff049Y(101), maxWidth: 165, fontSize: 10 },
+  // ── Header digit boxes — one char per box ───────────────────────────────
+  // MID row: 14 box cells at top=66.48 / bottom=84.12 / h=17.6 (15 vertical rules).
+  //   Pag-IBIG MID format = 4-4-4 (12 digits + 2 dash separators). Cells 4 and 9
+  //   hold pre-printed dashes; digits occupy cells 0-3, 5-8, 10-13 (12 centers).
+  //   Baseline y = 936 - 66.48 - 17.6 + (17.6-6.51)/2 ≈ 857.5 for 9pt Helvetica.
+  mid_no: {
+    page: 0, x: 0, y: 857.5, fontSize: 9,
+    boxCenters: [
+      427.9, 439.95, 452.05, 464.2,           // digits 1-4
+      488.55, 500.75, 512.95, 525.1,          // digits 5-8 (skip dash cell idx 4)
+      549.55, 561.7, 573.75, 585.95,          // digits 9-12 (skip dash cell idx 9)
+    ],
+  },
+  // Housing Account row: 14 box cells at top=95.90 / bottom=113.54 / h=17.64.
+  //   No known separator pattern — use all 14 centers for free-form account numbers.
+  //   Baseline y = 936 - 95.9 - 17.64 + (17.64-6.51)/2 ≈ 828.0.
+  housing_account_no: {
+    page: 0, x: 0, y: 828.0, fontSize: 9,
+    boxCenters: [
+      427.9, 439.95, 452.05, 464.2, 476.4, 488.55, 500.75,
+      512.95, 525.1, 537.35, 549.55, 561.7, 573.85, 586.0,
+    ],
+  },
   loyalty_partner_bank:{ page: 0, x: 424, y: pff049Y(149), maxWidth: 165, fontSize: 9 },
 
   // Current full name row — column headers at top=207, values on underline ~top=220
@@ -1135,10 +1155,10 @@ const PFF049_FIELD_COORDS: CoordsMap = {
   // Line 1 (Unit/Floor/Bldg/Lot/...): underline ~top=515 → full-width single field
   new_address_line:    { page: 0, x:  28, y: pff049Y(515), maxWidth: 395, fontSize: 9 },
   // Barangay / City / Province / Zip row at top=533 → underline top≈546
-  new_barangay:        { page: 0, x:  28, y: pff049Y(546), maxWidth:  70, fontSize: 9 },
-  new_city:            { page: 0, x: 102, y: pff049Y(546), maxWidth:  85, fontSize: 9 },
-  new_province:        { page: 0, x: 192, y: pff049Y(546), maxWidth: 160, fontSize: 9 },
-  new_zip:             { page: 0, x: 355, y: pff049Y(546), maxWidth:  60, fontSize: 9 },
+  new_barangay:        { page: 0, x:  28, y: pff049Y(546), maxWidth:  95, fontSize: 9 },
+  new_city:            { page: 0, x: 127, y: pff049Y(546), maxWidth:  90, fontSize: 9 },
+  new_province:        { page: 0, x: 220, y: pff049Y(546), maxWidth: 165, fontSize: 9 },
+  new_zip:             { page: 0, x: 390, y: pff049Y(546), maxWidth:  35, fontSize: 9 },
 
   // Contact channels (right column, underlines start ~x=492)
   new_cell_phone:      { page: 0, x: 492, y: pff049Y(477), maxWidth: 115, fontSize: 9 },
@@ -1163,10 +1183,8 @@ const PFF049_FIELD_COORDS: CoordsMap = {
 const pff049CheckY = (rowTop: number) => PFF049_PAGE_H - rowTop - 4;
 
 const PFF049_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
-  loyalty_card_holder: {
-    'Yes': { x: 473, y: pff049CheckY(70) },
-    'No':  { x: 534, y: pff049CheckY(70) },
-  },
+  // NOTE: The original form has no Yes/No checkbox for loyalty_card_holder —
+  // a bank name in `loyalty_partner_bank` is the sole indicator. Skip drawing.
   marital_from: {
     'Single':             { x:  30, y: pff049CheckY(354) },
     'Married':            { x:  30, y: pff049CheckY(364) },
@@ -1197,7 +1215,6 @@ const PFF049_SKIP_VALUES: Record<string, string[]> = {
   spouse_ext_name: ['', 'N/A'],
   housing_account_no: [''],
   loyalty_partner_bank: [''],
-  loyalty_card_holder: ['', 'No'],     // Only mark Yes checkbox
   category_from: [''],
   category_to: [''],
   name_from_last: [''],
@@ -1220,6 +1237,7 @@ const PFF049_SKIP_VALUES: Record<string, string[]> = {
   new_zip: [''],
   new_cell_phone: [''],
   new_email: [''],
+  loyalty_card_holder: ['', 'No', 'Yes'],  // no checkbox in original form — skip always
   preferred_mailing: ['', 'N/A'],
   others_from: [''],
   others_to: [''],

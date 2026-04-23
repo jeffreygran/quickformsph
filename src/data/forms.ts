@@ -3140,7 +3140,7 @@ const pagibigPff049: FormSchema = {
     { id: 'new_barangay', label: 'New Barangay', type: 'text', required: false, step: 4 },
     { id: 'new_city', label: 'New City / Municipality', type: 'text', required: false, step: 4 },
     { id: 'new_province', label: 'New Province / State / Country', type: 'text', required: false, step: 4 },
-    { id: 'new_zip', label: 'New Zip Code', type: 'text', required: false, inputMode: 'numeric', maxLength: 10, step: 4 },
+    { id: 'new_zip', label: 'New Zip Code', type: 'text', required: false, inputMode: 'numeric', maxLength: 4, placeholder: '1100', step: 4 },
     { id: 'new_cell_phone', label: 'New Cell Phone', type: 'tel', required: false,
       placeholder: '09171234567', inputMode: 'tel', step: 4 },
     { id: 'new_email', label: 'New Email Address', type: 'email', required: false,
@@ -3154,7 +3154,7 @@ const pagibigPff049: FormSchema = {
     { id: 'others_to', label: 'Other Update — TO', type: 'text', required: false,
       placeholder: 'e.g., Place of Birth — Quezon City', step: 5 },
     { id: 'signature_date', label: 'Date Signed (mm/dd/yyyy)', type: 'text', required: true,
-      placeholder: '04/15/2026', inputMode: 'numeric', step: 5 },
+      placeholder: '04/15/2026', maxLength: 10, step: 5 },
   ],
 };
 
