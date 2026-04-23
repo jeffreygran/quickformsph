@@ -1407,7 +1407,7 @@ function PaymentModal({
                   value={manualRef}
                   onChange={(e) => handleManualRefInput(e.target.value)}
                   placeholder="0000-000-000000"
-                  maxLength={14}
+                  maxLength={15}
                   className="input-field font-mono tracking-widest text-center text-base"
                   required
                   autoComplete="off"
@@ -1418,7 +1418,7 @@ function PaymentModal({
               </div>
               <button
                 type="submit"
-                disabled={manualRefBusy || manualRef.length < 14}
+                disabled={manualRefBusy || manualRef.length < 15}
                 className="w-full rounded-xl bg-blue-700 hover:bg-blue-800 disabled:opacity-50 py-3 text-sm font-bold text-white flex items-center justify-center gap-2 transition-colors"
               >
                 {manualRefBusy ? '⏳ Validating…' : '✅ Validate & Proceed'}

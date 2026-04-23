@@ -1761,6 +1761,98 @@ const HLF858_SKIP_VALUES: Record<string, string[]> = {
   place_assignment: [''],
 };
 
+// ── Pag-IBIG HLF-068 (Housing Loan Application) — coords (612×936, page 0) ───
+// pdfplumber row tops (page 0): 51, 61, 73, 76, 80, 95, 125, 155, 174, 214, 221,
+//   237, 266, 288, 308, 337, 357, 369, 394, 434, 464, 500, 527, 544, 563, 583,
+//   615, 643, 672, 717, 779, 793, 814, 835, 862, 892, 918.
+// MVP fills BORROWER'S DATA section (rows 357-779).
+const HLF068_PAGE_H = 936.0;
+const hlf068Y = (nextRowTop: number) => HLF068_PAGE_H - nextRowTop + 3;
+
+const HLF_068_Y_HEADER = hlf068Y(80);
+const HLF_068_Y_LOAN   = hlf068Y(125);
+const HLF_068_Y_NAMES  = hlf068Y(394);
+const HLF_068_Y_PERM1  = hlf068Y(434);
+const HLF_068_Y_PERM2  = hlf068Y(464);
+const HLF_068_Y_PRES1  = hlf068Y(500);
+const HLF_068_Y_PRES2  = hlf068Y(527);
+const HLF_068_Y_HOME   = hlf068Y(563);
+const HLF_068_Y_EMP1   = hlf068Y(583);
+const HLF_068_Y_EMP2   = hlf068Y(615);
+const HLF_068_Y_EMP3   = hlf068Y(643);
+const HLF_068_Y_POS    = hlf068Y(779);
+
+const HLF068_FIELD_COORDS: CoordsMap = {
+  mid_no:                { page: 0, x: 210, y: HLF_068_Y_HEADER, fontSize: 9, maxWidth: 185 },
+  housing_account_no:    { page: 0, x: 400, y: HLF_068_Y_HEADER, fontSize: 9, maxWidth: 195 },
+  desired_loan_amount:   { page: 0, x: 200, y: HLF_068_Y_LOAN, fontSize: 9, maxWidth: 130 },
+
+  last_name:             { page: 0, x: 30,  y: HLF_068_Y_NAMES, fontSize: 8, maxWidth: 70 },
+  first_name:            { page: 0, x: 102, y: HLF_068_Y_NAMES, fontSize: 8, maxWidth: 75 },
+  ext_name:              { page: 0, x: 180, y: HLF_068_Y_NAMES, fontSize: 8, maxWidth: 95 },
+  middle_name:           { page: 0, x: 278, y: HLF_068_Y_NAMES, fontSize: 8, maxWidth: 65 },
+  citizenship:           { page: 0, x: 346, y: HLF_068_Y_NAMES, fontSize: 8, maxWidth: 60 },
+  dob:                   { page: 0, x: 410, y: HLF_068_Y_NAMES, fontSize: 9, maxWidth: 110 },
+
+  perm_unit:             { page: 0, x: 30,  y: HLF_068_Y_PERM1, fontSize: 7.5, maxWidth: 375 },
+
+  perm_street:           { page: 0, x: 30,  y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 60 },
+  perm_subdivision:      { page: 0, x: 92,  y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 30 },
+  perm_barangay:         { page: 0, x: 124, y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 70 },
+  perm_city:             { page: 0, x: 196, y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 75 },
+  perm_province:         { page: 0, x: 273, y: HLF_068_Y_PERM2, fontSize: 8, maxWidth: 90 },
+  perm_zip:              { page: 0, x: 365, y: HLF_068_Y_PERM2, fontSize: 9, maxWidth: 45 },
+
+  pres_unit:             { page: 0, x: 30,  y: HLF_068_Y_PRES1, fontSize: 7.5, maxWidth: 375 },
+  pres_cellphone:        { page: 0, x: 412, y: HLF_068_Y_PRES1, fontSize: 9, maxWidth: 175 },
+
+  pres_street:           { page: 0, x: 30,  y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 60 },
+  pres_subdivision:      { page: 0, x: 92,  y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 30 },
+  pres_barangay:         { page: 0, x: 124, y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 70 },
+  pres_city:             { page: 0, x: 196, y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 75 },
+  pres_province:         { page: 0, x: 273, y: HLF_068_Y_PRES2, fontSize: 8, maxWidth: 90 },
+  pres_zip:              { page: 0, x: 365, y: HLF_068_Y_PRES2, fontSize: 9, maxWidth: 45 },
+  email_address:         { page: 0, x: 412, y: HLF_068_Y_PRES2, fontSize: 7.5, maxWidth: 175 },
+
+  years_stay_present:    { page: 0, x: 220, y: HLF_068_Y_HOME, fontSize: 9, maxWidth: 75 },
+  sss_gsis:              { page: 0, x: 305, y: HLF_068_Y_HOME, fontSize: 9, maxWidth: 100 },
+
+  employer_name:         { page: 0, x: 30,  y: HLF_068_Y_EMP1, fontSize: 8, maxWidth: 265 },
+  tin:                   { page: 0, x: 296, y: HLF_068_Y_EMP1, fontSize: 9, maxWidth: 110 },
+
+  employer_address_line: { page: 0, x: 30,  y: HLF_068_Y_EMP2, fontSize: 7.5, maxWidth: 265 },
+  occupation:            { page: 0, x: 300, y: HLF_068_Y_EMP2, fontSize: 8, maxWidth: 105 },
+
+  employer_subdivision:  { page: 0, x: 30,  y: HLF_068_Y_EMP3, fontSize: 8, maxWidth: 90 },
+  employer_barangay:     { page: 0, x: 124, y: HLF_068_Y_EMP3, fontSize: 8, maxWidth: 70 },
+  employer_city:         { page: 0, x: 196, y: HLF_068_Y_EMP3, fontSize: 8, maxWidth: 75 },
+  employer_province:     { page: 0, x: 273, y: HLF_068_Y_EMP3, fontSize: 8, maxWidth: 90 },
+  employer_zip:          { page: 0, x: 365, y: HLF_068_Y_EMP3, fontSize: 9, maxWidth: 45 },
+
+  position_dept:         { page: 0, x: 412, y: HLF_068_Y_POS, fontSize: 8, maxWidth: 110 },
+  years_employment:      { page: 0, x: 525, y: HLF_068_Y_POS, fontSize: 9, maxWidth: 65 },
+
+  signature_date:        { page: 2, x: 100, y: 555, fontSize: 9, maxWidth: 130 },
+};
+
+const HLF068_SKIP_VALUES: Record<string, string[]> = {
+  housing_account_no: [''],
+  ext_name: ['', 'N/A'],
+  middle_name: [''],
+  perm_subdivision: [''],
+  pres_unit: [''],
+  pres_street: [''],
+  pres_subdivision: [''],
+  pres_barangay: [''],
+  pres_city: [''],
+  pres_province: [''],
+  pres_zip: [''],
+  years_stay_present: [''],
+  sss_gsis: [''],
+  employer_subdivision: [''],
+  employer_zip: [''],
+};
+
 const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   'hqp-pff-356': {
     fieldCoords: FIELD_COORDS,
@@ -1848,6 +1940,11 @@ const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   'pagibig-hlf-858': {
     fieldCoords: HLF858_FIELD_COORDS,
     skipValues: HLF858_SKIP_VALUES,
+    copyYOffsets: [0],
+  },
+  'pagibig-hlf-068': {
+    fieldCoords: HLF068_FIELD_COORDS,
+    skipValues: HLF068_SKIP_VALUES,
     copyYOffsets: [0],
   },
 };
