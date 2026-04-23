@@ -1020,7 +1020,7 @@ function PrivacyConsentModal({
 }
 
 // ─── PaymentModal ─────────────────────────────────────────────────────────────
-type PaymentStep = 'details' | 'verifying' | 'verified' | 'failed' | 'generating' | 'gen_failed';
+type PaymentStep = 'details' | 'verifying' | 'verified' | 'failed' | 'manual_ref' | 'generating' | 'gen_failed';
 
 const GEN_STEPS = [
   { icon: '📋', label: 'Reading form data…' },
@@ -1106,6 +1106,10 @@ function PaymentModal({
   const [screenshotUrl, setScreenshotUrl] = useState<string>('');
   const [amount] = useState<number>(5);
   const [verifiedMeta, setVerifiedMeta]   = useState<{ refNo: string | null; ocrAmount: number | null }>({ refNo: null, ocrAmount: null });
+  const [failCount, setFailCount]         = useState(0);
+  const [manualRef, setManualRef]         = useState('');
+  const [manualRefError, setManualRefError] = useState('');
+  const [manualRefBusy, setManualRefBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1127,10 +1131,12 @@ function PaymentModal({
         setStep('verified');
       } else {
         setVerifyErrors(data.errors ?? ['Verification failed']);
+        setFailCount(c => c + 1);
         setStep('failed');
       }
     } catch {
       setVerifyErrors(['Could not reach verification server. Please try again.']);
+      setFailCount(c => c + 1);
       setStep('failed');
     }
   }
@@ -1140,6 +1146,45 @@ function PaymentModal({
     setVerifyErrors([]);
     setScreenshotUrl('');
     if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  /** Auto-format input as XXXX-XXX-XXXXXX while typing */
+  function handleManualRefInput(val: string) {
+    // Strip all non-digits
+    const digits = val.replace(/\D/g, '').slice(0, 13);
+    let formatted = digits;
+    if (digits.length > 4)  formatted = digits.slice(0, 4) + '-' + digits.slice(4);
+    if (digits.length > 7)  formatted = digits.slice(0, 4) + '-' + digits.slice(4, 7) + '-' + digits.slice(7);
+    setManualRef(formatted);
+    setManualRefError('');
+  }
+
+  async function handleManualRefSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setManualRefError('');
+    if (!/^\d{4}-\d{3}-\d{6}$/.test(manualRef)) {
+      setManualRefError('Enter the full 13-digit ref in XXXX-XXX-XXXXXX format.');
+      return;
+    }
+    setManualRefBusy(true);
+    try {
+      const res  = await fetch('/api/payment/validate-ref', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refNo: manualRef }),
+      });
+      const data = await res.json() as { valid: boolean; refNo?: string; error?: string };
+      if (data.valid && data.refNo) {
+        setVerifiedMeta({ refNo: data.refNo, ocrAmount: null });
+        setStep('verified');
+      } else {
+        setManualRefError(data.error ?? 'Invalid reference number.');
+      }
+    } catch {
+      setManualRefError('Network error. Please try again.');
+    } finally {
+      setManualRefBusy(false);
+    }
   }
 
   return (
@@ -1329,8 +1374,67 @@ function PaymentModal({
                 Try Again
               </button>
             </div>
+            {failCount >= 2 && (
+              <button
+                onClick={() => { setManualRef(''); setManualRefError(''); setStep('manual_ref'); }}
+                className="w-full rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 py-2.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
+              >
+                ✏️ Enter Reference Number Instead
+              </button>
+            )}
           </div>
         )}
+
+        {/* ── STEP: manual_ref ── */}
+        {step === 'manual_ref' && (
+          <div className="p-5 space-y-4">
+            <div className="flex flex-col items-center gap-2 text-center py-2">
+              <div className="text-3xl">📝</div>
+              <div className="text-sm font-bold text-gray-800">Enter GCash Reference No.</div>
+              <div className="text-xs text-gray-500 leading-relaxed">
+                Find it in your GCash receipt under <strong>Ref No.</strong>
+              </div>
+            </div>
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800 leading-relaxed">
+              Enter the 13-digit reference number from your GCash receipt using dashes:{' '}
+              <strong className="font-mono">XXXX-XXX-XXXXXX</strong>
+            </div>
+            <form onSubmit={handleManualRefSubmit} className="space-y-3">
+              <div>
+                <label className="field-label">GCash Ref No.</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={manualRef}
+                  onChange={(e) => handleManualRefInput(e.target.value)}
+                  placeholder="0000-000-000000"
+                  maxLength={14}
+                  className="input-field font-mono tracking-widest text-center text-base"
+                  required
+                  autoComplete="off"
+                />
+                {manualRefError && (
+                  <p className="mt-1.5 text-xs text-red-600 font-medium">✗ {manualRefError}</p>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={manualRefBusy || manualRef.length < 14}
+                className="w-full rounded-xl bg-blue-700 hover:bg-blue-800 disabled:opacity-50 py-3 text-sm font-bold text-white flex items-center justify-center gap-2 transition-colors"
+              >
+                {manualRefBusy ? '⏳ Validating…' : '✅ Validate & Proceed'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep('failed')}
+                className="w-full rounded-xl border border-gray-200 py-2 text-xs text-gray-400 hover:bg-gray-50"
+              >
+                ← Back
+              </button>
+            </form>
+          </div>
+        )}
+
       </div>
     </div>
   );

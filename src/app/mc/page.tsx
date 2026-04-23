@@ -383,8 +383,111 @@ function StorageConfigTab() {
 
 // ─── Settings Tab ─────────────────────────────────────────────────────────────
 function SettingsTab() {
+  const [curPw, setCurPw]     = useState('');
+  const [newPw, setNewPw]     = useState('');
+  const [confirmPw, setConfirm] = useState('');
+  const [pwMsg, setPwMsg]     = useState<{ ok: boolean; text: string } | null>(null);
+  const [pwBusy, setPwBusy]   = useState(false);
+  const [showCur, setShowCur] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPwMsg(null);
+    if (newPw !== confirmPw) { setPwMsg({ ok: false, text: 'New passwords do not match.' }); return; }
+    if (newPw.length < 8)    { setPwMsg({ ok: false, text: 'Password must be at least 8 characters.' }); return; }
+    setPwBusy(true);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: curPw, newPassword: newPw }),
+      });
+      const data = await res.json().catch(() => ({})) as { error?: string };
+      if (res.ok) {
+        setPwMsg({ ok: true, text: 'Password changed successfully.' });
+        setCurPw(''); setNewPw(''); setConfirm('');
+      } else {
+        setPwMsg({ ok: false, text: data.error ?? 'Failed to change password.' });
+      }
+    } catch {
+      setPwMsg({ ok: false, text: 'Network error. Please try again.' });
+    } finally {
+      setPwBusy(false);
+    }
+  }
+
   return (
     <div className="max-w-lg space-y-4">
+      {/* Change Password */}
+      <div className="rounded-2xl bg-white border border-gray-200 p-6">
+        <h2 className="text-sm font-semibold text-gray-900 mb-1">Change Password</h2>
+        <p className="text-xs text-gray-400 mb-4">Update the admin login password.</p>
+        <form onSubmit={handleChangePassword} className="space-y-3">
+          <div>
+            <label className="field-label">Current Password</label>
+            <div className="relative">
+              <input
+                type={showCur ? 'text' : 'password'}
+                value={curPw}
+                onChange={(e) => setCurPw(e.target.value)}
+                className="input-field pr-10"
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+              />
+              <button type="button" tabIndex={-1} onClick={() => setShowCur(!showCur)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">
+                {showCur ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="field-label">New Password</label>
+            <div className="relative">
+              <input
+                type={showNew ? 'text' : 'password'}
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                className="input-field pr-10"
+                placeholder="Min. 8 characters"
+                required
+                autoComplete="new-password"
+              />
+              <button type="button" tabIndex={-1} onClick={() => setShowNew(!showNew)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">
+                {showNew ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="field-label">Confirm New Password</label>
+            <input
+              type={showNew ? 'text' : 'password'}
+              value={confirmPw}
+              onChange={(e) => setConfirm(e.target.value)}
+              className="input-field"
+              placeholder="Repeat new password"
+              required
+              autoComplete="new-password"
+            />
+          </div>
+          {pwMsg && (
+            <p className={`text-xs font-medium ${pwMsg.ok ? 'text-green-600' : 'text-red-500'}`}>
+              {pwMsg.ok ? '✓ ' : '✗ '}{pwMsg.text}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={pwBusy}
+            className="btn-primary w-full py-2.5 text-sm disabled:opacity-50"
+          >
+            {pwBusy ? 'Saving…' : '🔑 Update Password'}
+          </button>
+        </form>
+      </div>
+
+      {/* Environment Info */}
       <div className="rounded-2xl bg-white border border-gray-200 p-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-4">Environment Info</h2>
         <div className="space-y-2">

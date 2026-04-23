@@ -1243,6 +1243,137 @@ const PFF049_SKIP_VALUES: Record<string, string[]> = {
   others_to: [''],
 };
 
+// ── Pag-IBIG SLF-089 (HELPs) — calibrated coords (612×936, page 0 only) ──────
+// pdfplumber row tops: 61, 84, 105, 130, 152, 175, 198, 218, 241, 265, 286, 314.
+// V-column rules at x ≈ 22, 180, 223, 235, 280, 313, 402, 492, 544, 593.
+// Whole-cell text fills (NO per-digit boxes on this form). Value baseline sits
+// ~3pt above the next H-line: y_lib = 936 - next_row_top + 3.
+const SLF089_PAGE_H = 936.0;
+const slf089Y = (nextRowTop: number) => SLF089_PAGE_H - nextRowTop + 3;
+
+// Y baselines per row
+const SLF_Y_HEADER  = slf089Y(84);   // 855  — MID / App No
+const SLF_Y_NAMES   = slf089Y(105);  // 834  — Last/First/Ext/Middle/NoMaiden/DOB/POB
+const SLF_Y_PERSON  = slf089Y(130);  // 809  — Mother/Sex/Marital/Citizen/Nat'l
+const SLF_Y_PERM1   = slf089Y(152);  // 787  — Permanent address row 1
+const SLF_Y_PERM2   = slf089Y(175);  // 764  — Permanent address row 2
+const SLF_Y_PRES1   = slf089Y(198);  // 741  — Present address row 1
+const SLF_Y_PRES2   = slf089Y(218);  // 721  — Present address row 2
+const SLF_Y_EMP1    = slf089Y(241);  // 698  — Employer / DOE / Loan amount
+const SLF_Y_EMP2    = slf089Y(265);  // 674  — Source of fund / Employer addr 1
+const SLF_Y_EMP3    = slf089Y(286);  // 653  — Employer addr 2 / Loan purpose
+const SLF_Y_LOAN    = slf089Y(314);  // 625  — Beneficiary / Student# / Loan term
+
+const SLF089_FIELD_COORDS: CoordsMap = {
+  // Header — MID and Application No (whole-cell text, not digit-boxed)
+  mid_no:          { page: 0, x: 406, y: SLF_Y_HEADER, fontSize: 9, maxWidth: 84 },
+  application_no:  { page: 0, x: 496, y: SLF_Y_HEADER, fontSize: 9, maxWidth: 95 },
+
+  // Names row (top=84-105)
+  last_name:                { page: 0, x: 24,  y: SLF_Y_NAMES, fontSize: 8, maxWidth: 80 },
+  first_name:               { page: 0, x: 108, y: SLF_Y_NAMES, fontSize: 8, maxWidth: 70 },
+  ext_name:                 { page: 0, x: 182, y: SLF_Y_NAMES, fontSize: 8, maxWidth: 38 },
+  middle_name:              { page: 0, x: 224, y: SLF_Y_NAMES, fontSize: 8, maxWidth: 70 },
+  no_maiden_middle_name:    { page: 0, x: 298, y: SLF_Y_NAMES, fontSize: 8, maxWidth: 100 },
+  dob:                      { page: 0, x: 406, y: SLF_Y_NAMES, fontSize: 9, maxWidth: 84 },
+  place_of_birth:           { page: 0, x: 496, y: SLF_Y_NAMES, fontSize: 8, maxWidth: 95 },
+
+  // Personal info row (top=105-130) — sex/marital have checkboxes
+  mothers_maiden_name:      { page: 0, x: 24,  y: SLF_Y_PERSON, fontSize: 8, maxWidth: 154 },
+  citizenship:              { page: 0, x: 406, y: SLF_Y_PERSON, fontSize: 8, maxWidth: 84 },
+  nationality:              { page: 0, x: 496, y: SLF_Y_PERSON, fontSize: 8, maxWidth: 95 },
+
+  // Permanent address row 1 (top=130-152)
+  perm_unit:                { page: 0, x: 24,  y: SLF_Y_PERM1, fontSize: 7.5, maxWidth: 200 },
+  perm_street:              { page: 0, x: 226, y: SLF_Y_PERM1, fontSize: 8, maxWidth: 175 },
+  perm_cell_phone:          { page: 0, x: 406, y: SLF_Y_PERM1, fontSize: 9, maxWidth: 84 },
+  perm_home_tel:            { page: 0, x: 496, y: SLF_Y_PERM1, fontSize: 9, maxWidth: 95 },
+
+  // Permanent address row 2 (top=152-175)
+  perm_subdivision:         { page: 0, x: 24,  y: SLF_Y_PERM2, fontSize: 8, maxWidth: 90 },
+  perm_barangay:            { page: 0, x: 116, y: SLF_Y_PERM2, fontSize: 8, maxWidth: 60 },
+  perm_city:                { page: 0, x: 178, y: SLF_Y_PERM2, fontSize: 8, maxWidth: 60 },
+  perm_province:            { page: 0, x: 240, y: SLF_Y_PERM2, fontSize: 8, maxWidth: 75 },
+  perm_zip:                 { page: 0, x: 320, y: SLF_Y_PERM2, fontSize: 9, maxWidth: 35 },
+  perm_email:               { page: 0, x: 358, y: SLF_Y_PERM2, fontSize: 7.5, maxWidth: 130 },
+  perm_tin:                 { page: 0, x: 496, y: SLF_Y_PERM2, fontSize: 9, maxWidth: 95 },
+
+  // Present address row 1 (top=175-198)
+  pres_unit:                { page: 0, x: 24,  y: SLF_Y_PRES1, fontSize: 7.5, maxWidth: 200 },
+  pres_street:              { page: 0, x: 226, y: SLF_Y_PRES1, fontSize: 8, maxWidth: 86 },
+  pres_employee_id:         { page: 0, x: 314, y: SLF_Y_PRES1, fontSize: 8, maxWidth: 88 },
+  pres_nature_of_work:      { page: 0, x: 406, y: SLF_Y_PRES1, fontSize: 8, maxWidth: 185 },
+
+  // Present address row 2 (top=198-218)
+  pres_subdivision:         { page: 0, x: 24,  y: SLF_Y_PRES2, fontSize: 8, maxWidth: 90 },
+  pres_barangay:            { page: 0, x: 116, y: SLF_Y_PRES2, fontSize: 8, maxWidth: 60 },
+  pres_city:                { page: 0, x: 178, y: SLF_Y_PRES2, fontSize: 8, maxWidth: 60 },
+  pres_province:            { page: 0, x: 240, y: SLF_Y_PRES2, fontSize: 8, maxWidth: 75 },
+  pres_zip:                 { page: 0, x: 320, y: SLF_Y_PRES2, fontSize: 9, maxWidth: 80 },
+  pres_sss_gsis:            { page: 0, x: 406, y: SLF_Y_PRES2, fontSize: 9, maxWidth: 84 },
+  pres_business_tel:        { page: 0, x: 496, y: SLF_Y_PRES2, fontSize: 9, maxWidth: 95 },
+
+  // Employer / Loan amount (top=218-241)
+  employer_name:            { page: 0, x: 24,  y: SLF_Y_EMP1, fontSize: 8, maxWidth: 200 },
+  date_of_employment:       { page: 0, x: 226, y: SLF_Y_EMP1, fontSize: 9, maxWidth: 86 },
+  desired_loan_amount:      { page: 0, x: 314, y: SLF_Y_EMP1, fontSize: 9, maxWidth: 88 },
+
+  // Source of fund / Employer address row 1 (top=241-265)
+  source_of_fund:           { page: 0, x: 314, y: SLF_Y_EMP2, fontSize: 8, maxWidth: 88 },
+  employer_address_line:    { page: 0, x: 24,  y: SLF_Y_EMP2, fontSize: 7.5, maxWidth: 285 },
+
+  // Employer address row 2 / Loan purpose (top=265-286)
+  employer_subdivision:     { page: 0, x: 24,  y: SLF_Y_EMP3, fontSize: 8, maxWidth: 90 },
+  employer_barangay:        { page: 0, x: 116, y: SLF_Y_EMP3, fontSize: 8, maxWidth: 60 },
+  employer_city:            { page: 0, x: 178, y: SLF_Y_EMP3, fontSize: 8, maxWidth: 60 },
+  employer_province:        { page: 0, x: 240, y: SLF_Y_EMP3, fontSize: 8, maxWidth: 75 },
+  employer_zip:             { page: 0, x: 320, y: SLF_Y_EMP3, fontSize: 9, maxWidth: 80 },
+
+  // Beneficiary / Student# / Loan term (top=286-314)
+  beneficiary_last:         { page: 0, x: 24,  y: SLF_Y_LOAN, fontSize: 8, maxWidth: 80 },
+  beneficiary_first:        { page: 0, x: 108, y: SLF_Y_LOAN, fontSize: 8, maxWidth: 70 },
+  beneficiary_ext:          { page: 0, x: 182, y: SLF_Y_LOAN, fontSize: 8, maxWidth: 38 },
+  beneficiary_middle:       { page: 0, x: 224, y: SLF_Y_LOAN, fontSize: 8, maxWidth: 90 },
+  student_id_no:            { page: 0, x: 314, y: SLF_Y_LOAN, fontSize: 8, maxWidth: 88 },
+
+  // Signature date — bottom of page near signature block (approx y=120 in lib coords)
+  signature_date:           { page: 0, x: 470, y: 110, fontSize: 9, maxWidth: 110 },
+};
+
+// Checkbox coords for sex / marital / loan_purpose / loan_term will be added
+// in iteration 2 after visual calibration. MVP iteration 1 = text fields only.
+
+const SLF089_SKIP_VALUES: Record<string, string[]> = {
+  application_no: [''],
+  ext_name: ['', 'N/A'],
+  middle_name: [''],
+  no_maiden_middle_name: [''],
+  perm_subdivision: [''],
+  perm_home_tel: [''],
+  pres_unit: [''],
+  pres_street: [''],
+  pres_employee_id: [''],
+  pres_subdivision: [''],
+  pres_barangay: [''],
+  pres_city: [''],
+  pres_province: [''],
+  pres_zip: [''],
+  pres_sss_gsis: [''],
+  pres_business_tel: [''],
+  employer_subdivision: [''],
+  employer_zip: [''],
+  beneficiary_ext: ['', 'N/A'],
+  beneficiary_middle: [''],
+  student_id_no: [''],
+  // Sex / marital / loan_purpose / loan_term are dropdowns that will become
+  // checkboxes in iteration 2 — skip text rendering for now.
+  sex: ['', 'Male', 'Female'],
+  marital_status: ['', 'Single/Unmarried', 'Married', 'Widower', 'Legally Separated', 'Annulled'],
+  loan_amount_type: ['', 'Maximum Loan Amount', 'Others (specify in Desired Amount)'],
+  loan_purpose: ['', 'Educational Expenses', 'Medical Expenses', 'Healthcare Plan from accredited HMO'],
+  loan_term: ['', 'Six (6) Months', 'Twelve (12) Months', 'Twenty-four (24) Months', 'Thirty-six (36) Months'],
+};
+
 const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   'hqp-pff-356': {
     fieldCoords: FIELD_COORDS,
@@ -1311,6 +1442,11 @@ const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
     skipValues: PFF049_SKIP_VALUES,
     copyYOffsets: [0],
     checkboxCoords: PFF049_CHECKBOX_COORDS,
+  },
+  'pagibig-slf-089': {
+    fieldCoords: SLF089_FIELD_COORDS,
+    skipValues: SLF089_SKIP_VALUES,
+    copyYOffsets: [0],
   },
 };
 
