@@ -8,6 +8,119 @@ rendering with pdf-lib, multi-page rendering, boxed-field alignment, and QA meth
 
 ---
 
+## MASTER STANDARD — Complete Form Implementation Specification
+
+> This is the governing standard for every form in QuickFormsPH. Every new form and every
+> form update must satisfy ALL requirements below. Partial implementations must be tracked
+> in the Per-Form Iteration Backlog (§0.4).
+
+### MS-1 · Field Extraction (Layout Analysis)
+
+Perform a complete extraction of the source PDF before writing any code:
+
+- **Text inputs** — all underline/box fields, single-line and multi-line
+- **Checkboxes** — every individual tickbox with its label and group membership
+- **Radio groups** — identify mutually-exclusive sets (e.g. Sex: M/F, Civil Status)
+- **Tables & repeating sections** — extract row schema, column labels, max rows
+- **Signature/thumbmark areas** — mark as `system` (never auto-filled)
+- **Instructions & static text** — preserve as UI hints, not rendered to PDF
+- **Agency-use-only / office-use-only fields** — mark `skipValues`, never rendered
+- **Hidden/conditional fields** — identify dependencies (e.g. "If YES, fill item 5")
+
+**Classification for every element:**
+
+| Class | Description |
+|-------|-------------|
+| `user-fillable` | Must appear in the schema `fields[]` array |
+| `system/static` | Pre-printed text — never in schema, never rendered |
+| `agency-only` | In `skipValues` — extracted but suppressed |
+| `conditional` | In schema with `dependsOn` dependency noted in field dict |
+
+### MS-2 · Field Dictionary & JSON Schema
+
+Every form must have a complete field dictionary entry in §0.3 containing:
+
+| Property | Required |
+|----------|----------|
+| `id` | Unique camelCase/snake_case identifier |
+| `label` | Human-readable label matching the form |
+| `type` | `text`, `dropdown`, `radio`, `checkbox`, `email`, `tel`, `date` |
+| `inputMode` | `numeric`, `tel`, `email`, or omit |
+| `required` | `true` / `false` |
+| `maxLength` | Set for all bounded fields |
+| `placeholder` | Realistic example value |
+| `autoUppercase` | `true` for all name/address fields |
+| `validation` | Regex or format constraint (e.g. `mm/dd/yyyy`, `###-#####-#`) |
+| `group` | Step label this field belongs to |
+| `renderType` | `boxCenters`, `underline`, `checkbox`, `skip` |
+| `pdfCoords` | x, y (or boxCenters[]), page, fontSize, maxWidth |
+| `iteration` | `1` (MVP) or `2+` (deferred) |
+
+### MS-3 · HTML Form Requirements
+
+The wizard form must:
+- Visually represent each section/step matching original form grouping
+- Use responsive HTML/CSS that works on mobile and desktop
+- Label every input with the exact form label text
+- Show `required` indicators on all mandatory fields
+- Implement input masks for formatted fields (dates, ID numbers, phone)
+- Support `autoUppercase` for name/address fields
+- Group radio/checkbox options exactly as on the source form
+- Show field-level validation errors inline (not alert dialogs)
+- Meet WCAG 2.1 AA accessibility (labels, aria, tab order)
+
+### MS-4 · PDF Coordinate Calibration
+
+For every `user-fillable` field, a coordinate entry MUST exist in `FORM_FIELD_COORDS`:
+
+```
+fieldId → { page, x, y, fontSize, maxWidth }        // Strategy A: plain text
+fieldId → { page, x:0, y, fontSize, boxCenters:[] }  // Strategy B: digit boxes
+fieldId → checkboxCoords entry                        // Strategy C: checkbox/radio
+```
+
+**Mandatory calibration checks per field:**
+
+1. Open source PDF in pdfplumber; extract `page.words` for the field zone
+2. For digit-box fields: extract `page.rects` or `page.objects['image']` for cx values
+3. Verify `y_lib = page_height - pdfplumber_bottom + 3` (baseline offset)
+4. Set `maxWidth` to actual column width — never guess
+5. Choose `fontSize` to fill but not overflow the cell height
+6. After generation: run char-level pdfplumber extraction to confirm each value appears
+
+### MS-5 · Automated QA Requirements
+
+Every form release must pass ALL of the following gates before marking status ✅:
+
+| Gate | Method | Pass Criterion |
+|------|--------|----------------|
+| **G1 — Field coverage** | `check-coords-coverage.ts` | Every `field.id` has coord entry or `skipValues` |
+| **G2 — Functional completeness** | pdfplumber `page.chars` extraction | All submitted values appear in output PDF |
+| **G3 — Digit-box alignment** | char cx vs. expected boxCenter | `diff < 1.5 pt` for every digit |
+| **G4 — Out-of-bounds** | char x0/x1/top/bottom vs. page dims | 0 chars outside page margins (5pt) |
+| **G5 — Visual parity** | `pdftoppm -r 110` + manual inspection | No text overflowing cells, no missing fields visible |
+| **G6 — Iteration completeness** | §0.4 backlog review | All Iteration-1 fields implemented; backlog items documented |
+
+**A form is NOT considered QA-passed until all G1–G6 gates pass.**
+
+### MS-6 · Iteration Tracking
+
+Every field that exists on the physical PDF but is NOT yet implemented must be logged in
+**§0.4 Per-Form Iteration Backlog** with:
+- Field name / description
+- Why deferred (complexity, data dependency, low priority)
+- Target iteration number
+
+This replaces vague "deferred to iteration 2" notes in form descriptions.
+
+### MS-7 · Version Control & Change Log
+
+- Every coord change, schema change, or QA result must be logged in §0.5 Change Log
+- Date, form, change summary, author (agent persona name)
+- When a previously-deferred field is implemented, remove it from §0.4 and add to §0.5
+
+---
+
 ## 0. Form Registry (Single Source of Truth)
 
 This registry is the authoritative dictionary for all supported forms. Update it whenever
@@ -26,6 +139,10 @@ a form is added, versioned, or its field structure changes.
 | Coordinate system | pdfplumber (top-left) → pdf-lib (bottom-left): `y = page_h - pdfplumber_bottom` |
 | Default font | Helvetica, 9pt |
 | Checkmark font | ZapfDingbats, `'\u2714'`, size 9 |
+| Checkbox y-formula | ALWAYS box-bottom based: `y = page_h - rect.bottom + (h - fontSize)/2`. NEVER `y = page_h - rect.top` (renders ~12pt below target). |
+| Wingdings glyph offsets | `\uf0a8` (normal) → -7; `\uf071` (small q) → -6; `\u2751` rect → -7. Verified across CSF, HLF-068/858/868, SLF-065/089. |
+
+**Audit heuristic warning (2026-04-24):** Dropdown fields do NOT always render as ticks. Many schema `type: 'dropdown'` fields (month/day/year/province/name-extension) render as **text** via `FIELD_COORDS` (digit boxes or underlines), NOT via `checkboxCoords`. A "dropdown has value but no tick rendered" finding is only a real gap when (a) the field is absent from both `FIELD_COORDS` and `checkboxCoords` OR (b) the source PDF has a printed checkbox at that location. Always verify both maps before declaring a coord missing.
 
 ---
 
@@ -504,6 +621,100 @@ These apply universally unless a form's dictionary entry says otherwise.
 
 ---
 
+### 0.4 Per-Form Iteration Backlog
+
+Fields that exist on the physical PDF but are **not yet implemented** in the schema or PDF generator.
+Per MS-6, these must be tracked here rather than buried in form descriptions.
+
+**Legend:** 🔴 High (visible/impactful) | 🟡 Medium | 🟢 Low / Office-use-only
+
+---
+
+#### HLF-068 — Pag-IBIG Housing Loan Application (`pagibig-hlf-068`)
+
+**Iteration 2 (2026-04-24) — IMPLEMENTED (11 checkbox groups):**
+`existing_housing_application` (Yes/No) · `loan_purpose` (8 options) · `loan_term` (8 yrs) ·
+`mode_of_payment` (8 options) · `property_type` (6 options) · `property_mortgaged` (Yes/No) ·
+`offsite_collateral` (Yes/No) · `sex` (M/F) · `marital_status` (5 options) ·
+`home_ownership` (5 options) · `employment_type` (Employed / Self-Employed).
+See `HLF068_CHECKBOX_COORDS` in [pdf-generator.ts](projects/quickformsph-dev/src/lib/pdf-generator.ts).
+QA: 11/11 ✓ ticks verified in rendered PDF via ZapfDingbats glyph extraction (cx offsets 0).
+
+**Still Deferred (Iteration 3+):**
+
+| # | Field / Section | Priority | Reason Deferred | Target Iter |
+|---|----------------|----------|-----------------|-------------|
+| 1 | **DESIRED RE-PRICING PERIOD** (radio: 1/3/5/10/15/20/25/30 years) | 🟡 | Separate row from loan term; coord calibration pending | 3 |
+| 2 | **COLLATERAL / PROPERTY LOCATION** (free-text) | 🔴 | Underline coord calibration pending | 3 |
+| 3 | **PROPERTY DETAILS** (TCT/OCT/CCT No., Tax Dec No., Lot/Unit No., Block/Bldg No., No. of Storeys, Land Area, Floor Area, Age of House, Total Floor Area) | 🟡 | 9 underline fields — coord calibration needed | 3 |
+| 4 | **NAME OF DEVELOPER / REGISTERED TITLE HOLDER** | 🟡 | Underline field | 3 |
+| 5 | **NO. OF DEPENDENTS** | 🟡 | Numeric field | 3 |
+| 6 | **MAILING ADDRESS preference** (radio: Present / Permanent / Employer) | 🟡 | Radio group, page 0 top≈655.9 | 3 |
+| 7 | **INDUSTRY** (checkbox grid — 20 options, pages 0+1) | 🟢 | Large checkbox grid | 3 |
+| 8 | **PREFERRED TIME TO BE CONTACTED** (text) | 🟢 | Low priority | 3 |
+| 9 | **EMPLOYER CONTACT DETAILS** (Country code + Tel No., Business Direct Line, Business Trunk Line, Employer Email) | 🟡 | Contact fields not in current schema | 3 |
+| 10 | **SPOUSE'S PERSONAL DATA** (all fields — page 0 bottom) | 🔴 | Full co-borrower section | 3 |
+| 11 | **CO-BORROWER DATA** (pages 1–2) | 🔴 | Full co-borrower section | 3 |
+| 12 | **REFERRAL SOURCE** (checkbox grid — TV/Radio/Agency/etc., page 1 bottom) | 🟢 | Low priority | 3 |
+
+---
+
+#### SLF-089 — Pag-IBIG HELPs Application (`pagibig-slf-089`)
+
+| # | Field / Section | Priority | Reason Deferred | Target Iter |
+|---|----------------|----------|-----------------|-------------|
+| ~~1~~ | ~~Civil status checkboxes~~ | — | ✅ Done Iter 2 (2026-04-24) | 2 |
+| ~~2~~ | ~~Sex / Marital / Loan-Amount-Type / Loan-Purpose / Loan-Term checkboxes~~ | — | ✅ Done Iter 2 (2026-04-24) | 2 |
+| 3 | Full property/loan details section | 🟡 | Multi-field complex section | 3 |
+
+---
+
+#### SLF-065 — Multi-Purpose Loan Application (`pagibig-slf-065`)
+
+| # | Field / Section | Priority | Reason Deferred | Target Iter |
+|---|----------------|----------|-----------------|-------------|
+| ~~1~~ | ~~Loan purpose checkboxes (10 opts)~~ | — | ✅ Done Iter 2 | 2 |
+| ~~2~~ | ~~Sex / Marital / Loan Term (3 opts)~~ | — | ✅ Done Iter 2 | 2 |
+| 3 | Industry grid (`\uf0a8` Wingdings, ~25 opts) | 🟡 | Deferred to Iter 3 | 3 |
+| 4 | Employment type checkboxes (page 2) | 🟡 | Deferred to Iter 3 | 3 |
+
+---
+
+#### HLF-868 / HLF-858 — HEAL Application (`pagibig-hlf-868`, `pagibig-hlf-858`)
+
+| # | Field / Section | Priority | Reason Deferred | Target Iter |
+|---|----------------|----------|-----------------|-------------|
+| ~~1~~ | ~~Sex / Marital Status~~ | — | ✅ Done Iter 2 (both forms) | 2 |
+| ~~2~~ | ~~HLF-868: Relationship to Principal~~ | — | ✅ Done Iter 2 | 2 |
+| ~~3~~ | ~~HLF-858: Loan Purpose / Loan Term / Mode of Payment / Request Re-inspection~~ | — | ✅ Done Iter 2 | 2 |
+| ~~4~~ | ~~Home Ownership / Employment Type / Mailing Preference~~ | — | ✅ Done Iter 2 (both forms) | 2 |
+| 5 | Industry grid (`\uf0a8`) — both forms | 🟡 | Deferred to Iter 3 | 3 |
+| 6 | Property/collateral details section | 🟡 | Complex section | 3 |
+
+---
+
+#### PhilHealth PMRF (`philhealth-pmrf`)
+
+| # | Field / Section | Priority | Reason Deferred | Target Iter |
+|---|----------------|----------|-----------------|-------------|
+| 1 | Member type checkboxes (page 2 group) | 🔴 | Partial — needs full audit | 2 |
+
+---
+
+#### PFF-049 — Member's Change of Information (`pagibig-pff-049`)
+
+| # | Field / Section | Priority | Reason Deferred | Target Iter |
+|---|----------------|----------|-----------------|-------------|
+| 1 | Change request checkboxes | 🔴 | Need audit vs. schema | 2 |
+
+---
+
+> **Note:** Forms not listed above (CF-1, CF-2, CSF, HQP-PFF-356, PMRF-FN) have been
+> reviewed; known gaps were addressed in the April 23 2026 QA run. Any new gaps discovered
+> during future QA must be added here.
+
+---
+
 ### 0.5 Change Log
 
 | Date | Form | Change | Updated By |
@@ -512,6 +723,11 @@ These apply universally unless a form's dictionary entry says otherwise.
 | 2026-04-24 | HLF-068 | Fixed `mid_no` / `housing_account_no`: replaced `x/maxWidth` with `boxCenters[]`; 12-digit exact box alignment verified (§25) | Gov Forms Specialist + QA (Mai) |
 | 2026-04-24 | (All) | Fixed pre-existing TypeScript build error in `page.tsx` (`pdf.getPage` → `npdf.getPage`) | Gov Forms Specialist |
 | 2026-04-24 | HLF-068 | Fixed address column misalignment: `perm_street`/`pres_street` moved to x=363 (Street Name col); address row 2 corrected to x=30/101/157/227/360; `occupation` moved to x=370 past checkboxes (§26) | Gov Forms Specialist + QA (Mai) |
+| 2026-04-24 | All forms | Added MASTER STANDARD (MS-1 through MS-7) as governing spec for all form implementations. Added §0.4 Per-Form Iteration Backlog with 20 HLF-068 deferred fields documented (PURPOSE OF LOAN, Loan Term, Mode of Payment, Marital Status, Sex, etc.) and backlog entries for 5 other forms. | Gov Forms Specialist + PM (Irwin) |
+| 2026-04-24 | HLF-068 | **Iteration 2 — Checkbox expansion.** Added 11 checkbox/radio groups to the PDF generator via new `HLF068_CHECKBOX_COORDS` map (derived from pdfplumber `❑` U+2751 and `\uf0a8` Wingdings glyph coords): `existing_housing_application`, `loan_purpose` (8 opts), `loan_term` (8 yrs), `mode_of_payment` (8 opts), `property_type` (6 opts), `property_mortgaged`, `offsite_collateral`, `sex`, `marital_status` (5 opts), `home_ownership` (5 opts), `employment_type`. New `hlf068CheckY()` helper (y_lib = 936 - glyph_top - 7) matches CSF proven formula. Wizard steps grew from 4 → 6 (Loan Particulars, Property Details, Identification, Permanent Addr, Present Addr, Employer). QA: 11/11 ✓ ticks verified at target x with cx-diff = 0.00. Removed these items from §0.4 backlog; remaining 12 items re-targeted to Iteration 3 (re-pricing, property details text fields, spouse/co-borrower, industry grid, employer contacts, referral source). | Gov Forms Specialist + QA (Mai) + Backend (Art) |
+| 2026-04-24 | SLF-089, SLF-065, HLF-868, HLF-858 | **Iteration 2 — Batch checkbox rollout across 4 Pag-IBIG forms.** Added new coord maps (`SLF089_CHECKBOX_COORDS`, `SLF065_CHECKBOX_COORDS`, `HLF868_CHECKBOX_COORDS`, `HLF858_CHECKBOX_COORDS`) + per-form `checkY` helpers. **SLF-089** (h=936): 5 groups — sex, marital_status, loan_amount_type, loan_purpose (3 opts), loan_term (4 opts). **SLF-065** (h=936): 4 groups — sex, marital_status, loan_term (3 opts), loan_purpose (10 opts). **HLF-868** (h=792, `\uf071` glyph, -6 offset): 6 groups — sex, marital_status, relationship_to_principal (5), home_ownership (5), employment_type (3), mailing_preference (3). **HLF-858** (h=792, `\uf071`): 9 groups — loan_purpose (11 opts), loan_term (8 yrs), mode_of_payment (9 opts), request_for_reinspection (Y/N), sex, marital_status (5), home_ownership (5), employment_type (3), mailing_preference (3). All 4 forms wired into `FORM_PDF_CONFIGS.checkboxCoords`; `forms.ts` schemas extended with new dropdown fields; skipValues updated with placeholder entries. QA (full-input POST to `/api/generate`): **SLF-089 5/5 PASS**, **SLF-065 4/4 PASS**, **HLF-868 6/6 PASS**, **HLF-858 9/9 PASS** — all expected ZapfDingbats `✓` glyphs rendered. PMRF + PFF-049 existing checkbox maps audited and confirmed healthy (no changes needed). | Gov Forms Specialist + QA (Mai) + Backend (Art) |
+| 2026-04-24 | SLF-065, HLF-868, HLF-858 | **Iteration 3 — Industry grid + Source of referral.** Added `industry_category` (25 options, 4-col × 7-8-row `\uf0a8` Wingdings grid) to HLF-868 (cx 28.80/168.86/313.13/415.39 at tops 522.7→578.9) and HLF-858 (cx 26.88/175.58/307/413.23 at tops 691.4→736.3). Added `source_of_referral` (11 options: Pag-IBIG Fund Website, Social media, Radio, Television, Streaming Service Ad, Newspaper/Online Newspaper, Billboard, Word of Mouth, Referral, Employer/Fund Coordinator, Others) to SLF-065 at bottom of page 0 (tops 798.9/805.7, cx 24/110/176/294/382/489). Shared `HLF_INDUSTRY_OPTIONS` constant in `forms.ts`. Schemas extended with new dropdown fields, SKIP_VALUES updated. QA: **SLF-065 5/5 PASS**, **HLF-868 7/7 PASS**, **HLF-858 10/10 PASS**. | Gov Forms Specialist + QA (Mai) + Backend (Art) |
+| 2026-04-24 | (All 12) | **Comprehensive audit pass.** Ran real runtime audit: rendered all 12 forms in-process via `generatePDF()` with full-input payloads, extracted overlay with pdfplumber, cross-checked against source PDF printed checkboxes/underlines. Added `scripts/dump-all-audit.ts` for reproducibility. Result: **5 Pag-IBIG Iter-2 forms (SLF-089, SLF-065, HLF-868, HLF-858, HLF-068) confirmed clean.** Only real defect found: CF-2 `hcp2_copay` and `hcp3_copay` used inconsistent y-formula vs `hcp1_copay` — ticks landed ~11pt below printed boxes. Fixed: updated formula to use box-bottom `y = 936 - (top+12.3) + (h-fontSize)/2` so hcp2 → y=781/766 and hcp3 → y=719/705. Post-fix QA: 3 page-1 ticks now at tops 84/146/208 (source boxes at 82.9/145.6/207.1 — within 1pt). All other "missing checkbox" audit findings were FALSE POSITIVES from audit heuristic: dropdowns for date month/day/province/ext-name fields render as text via `FIELD_COORDS` (digit-box and underline rendering), not as ticks. | Gov Forms Specialist + QA (Mai) |
 
 ---
 
@@ -1457,6 +1673,41 @@ but the `.getPage` call was not updated, blocking the production build).
 2. **Always rasterize (`pdftoppm -r 110`) and visually inspect after adding any new form.**
 3. **When writing coords for a new form, scan `page.rects` for small squares (w≈h≈10–14 pt)
    in the header row FIRST. If found → `boxCenters[]` required before writing any `x/maxWidth`.**
+
+---
+
+## 25b. Runtime Audit Harness — All 12 Forms (Apr 24 2026)
+
+Reproducible full-stack audit that renders every form in-process (bypassing the 10/hr
+rate-limiter) and cross-checks the overlay against the source PDF's printed shapes.
+
+**Script:** [scripts/dump-all-audit.ts](projects/quickformsph-dev/scripts/dump-all-audit.ts)
+
+Usage:
+```
+npx tsx scripts/dump-all-audit.ts          # renders → /tmp/audit_pdfs/{slug}.pdf + .values.json
+python3 /tmp/analyze_audit.py              # diffs rendered overlay vs source PDF shapes
+```
+
+**What it checks per form:**
+- HTTP 200 + non-empty PDF
+- Every ZapfDingbats `'4'` (our ✓) lands within 8pt of a printed source checkbox rect/glyph
+- Every Helvetica text run sits on or near a printed source underline
+- Dropdown-field coverage (text or tick must be present for every populated DD)
+
+**False-positive classes (do NOT treat as bugs):**
+- Dropdown fields that render as text into digit boxes via `FIELD_COORDS` (month/day/province/name-ext)
+- Pre-printed source-PDF text (agency headers, watermarks, "NOT FOR SALE") that pdfplumber
+  extracts as rendered — these are base-PDF text, not our overlay.
+
+**Real-defect indicators to act on:**
+- Tick `>8pt` from nearest source checkbox = coord bug
+- Schema dropdown populated but field absent from BOTH `FIELD_COORDS` and `checkboxCoords`
+- Dropdown absent from `SKIP_VALUES` but also not wired → double-rendering risk
+
+**Baseline result (2026-04-24):** 11/12 forms PASS. Only `philhealth-claim-form-2`
+hcp2/hcp3_copay coords had a box-top vs box-bottom formula mismatch (ticks ~11pt low).
+Fixed — see Change Log §0.5 entry "Comprehensive audit pass".
 
 ---
 

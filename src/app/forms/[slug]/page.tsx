@@ -793,6 +793,12 @@ export default function FormWizardPage() {
         {
           mid_no: '888899990000', housing_account_no: '',
           desired_loan_amount: '6000000',
+          existing_housing_application: 'No',
+          loan_purpose: 'Purchase of a residential house and lot/townhouse',
+          loan_term: '20', mode_of_payment: 'Salary deduction',
+          property_type: 'Single Detached', property_mortgaged: 'No', offsite_collateral: 'No',
+          sex: 'Male', marital_status: 'Married',
+          home_ownership: 'Owned', employment_type: 'Employed',
           last_name: 'NAVARRO', first_name: 'DANIEL JOSE', ext_name: 'N/A', middle_name: 'RICO',
           citizenship: 'Filipino', dob: '06/20/1979',
           perm_unit: '', perm_street: '100 Sampaguita Ave', perm_subdivision: 'Poblacion Heights', perm_barangay: 'Brgy. Poblacion', perm_city: 'Davao City', perm_province: 'Davao del Sur', perm_zip: '8000',
@@ -807,6 +813,12 @@ export default function FormWizardPage() {
         {
           mid_no: '222233334445', housing_account_no: 'HL-2022-004567',
           desired_loan_amount: '3500000',
+          existing_housing_application: 'Yes',
+          loan_purpose: 'Refinancing of an existing housing loan',
+          loan_term: '15', mode_of_payment: 'Over-the-Counter',
+          property_type: 'Condominium', property_mortgaged: 'Yes', offsite_collateral: 'No',
+          sex: 'Male', marital_status: 'Married',
+          home_ownership: 'Mortgaged', employment_type: 'Employed',
           last_name: 'REYES', first_name: 'PEDRO JOSE', ext_name: 'Sr.', middle_name: 'SANTOS',
           citizenship: 'Filipino', dob: '05/10/1976',
           perm_unit: 'Blk 3 Lot 8', perm_street: 'Acacia Ave', perm_subdivision: 'Ayala Alabang Village', perm_barangay: 'Brgy. Ayala Alabang', perm_city: 'Muntinlupa', perm_province: 'Metro Manila (NCR)', perm_zip: '1780',
@@ -1103,21 +1115,21 @@ export default function FormWizardPage() {
             return (
               <React.Fragment key={i}>
                 {i > 0 && (
-                  <div className="flex-1 h-0.5 mx-1 bg-gray-200 rounded mt-[14px] min-w-[4px]" />
+                  <div className="flex-shrink-0 w-2 h-0.5 bg-gray-200 rounded mt-[14px]" />
                 )}
                 <button
                   onClick={() => setCurrentStep(i as StepIndex)}
-                  className="flex flex-shrink-0 flex-col items-center gap-1"
+                  className="flex flex-1 min-w-0 flex-col items-center gap-1"
                 >
                   <div
-                    className={`step-dot ${
+                    className={`flex-shrink-0 step-dot ${
                       done ? 'step-dot-done' : active ? 'step-dot-active' : 'step-dot-idle'
                     }`}
                   >
                     {done ? '✓' : i + 1}
                   </div>
                   <span
-                    className={`text-[10px] font-medium text-center leading-tight min-h-[2.5em] max-w-[52px] ${
+                    className={`text-[10px] font-medium text-center leading-tight min-h-[2.5em] w-full break-words ${
                       active ? 'text-blue-700' : done ? 'text-green-600' : 'text-gray-400'
                     }`}
                   >
@@ -1128,11 +1140,11 @@ export default function FormWizardPage() {
             );
           })}
           {/* Connector to Review */}
-          <div className="flex-1 h-0.5 mx-1 bg-gray-200 rounded mt-[14px] min-w-[4px]" />
+          <div className="flex-shrink-0 w-2 h-0.5 bg-gray-200 rounded mt-[14px]" />
           {/* Review pseudo-step */}
-          <div className="flex flex-shrink-0 flex-col items-center gap-1">
-            <div className="step-dot step-dot-idle">✎</div>
-            <span className="text-[10px] font-medium text-gray-400 text-center leading-tight min-h-[2.5em] max-w-[52px]">Review</span>
+          <div className="flex flex-1 min-w-0 flex-col items-center gap-1">
+            <div className="flex-shrink-0 step-dot step-dot-idle">✎</div>
+            <span className="text-[10px] font-medium text-gray-400 text-center leading-tight min-h-[2.5em] w-full">Review</span>
           </div>
         </div>
       </div>
@@ -1420,19 +1432,20 @@ function ReviewScreen({
 
       {/* Progress — all form steps done, Review active */}
       <div className="mx-auto max-w-lg px-4 pt-4 pb-2">
-        <div className="flex items-center">
+        <div className="flex items-start">
           {form.steps.map((step, i) => (
-            <div key={i} className="flex flex-1 items-center">
-              <button onClick={() => onEdit(i)} className="flex flex-col items-center gap-1">
-                <div className="step-dot step-dot-done">{i + 1}</div>
-                <span className="text-[10px] font-medium text-green-600">{step.label}</span>
+            <React.Fragment key={i}>
+              {i > 0 && <div className="flex-shrink-0 w-2 h-0.5 bg-green-200 rounded mt-[14px]" />}
+              <button onClick={() => onEdit(i)} className="flex flex-1 min-w-0 flex-col items-center gap-1">
+                <div className="flex-shrink-0 step-dot step-dot-done">{i + 1}</div>
+                <span className="text-[10px] font-medium text-green-600 text-center leading-tight min-h-[2.5em] w-full break-words">{step.label}</span>
               </button>
-              <div className="flex-1 h-0.5 mx-1 bg-green-200 rounded" />
-            </div>
+            </React.Fragment>
           ))}
-          <div className="flex flex-col items-center gap-1">
-            <div className="step-dot step-dot-active">✎</div>
-            <span className="text-[10px] font-medium text-blue-700">Review</span>
+          <div className="flex-shrink-0 w-2 h-0.5 bg-green-200 rounded mt-[14px]" />
+          <div className="flex flex-1 min-w-0 flex-col items-center gap-1">
+            <div className="flex-shrink-0 step-dot step-dot-active">✎</div>
+            <span className="text-[10px] font-medium text-blue-700 text-center leading-tight min-h-[2.5em] w-full">Review</span>
           </div>
         </div>
       </div>
@@ -1746,8 +1759,8 @@ function GeneratingScreen() {
 }
 
 function PaymentModal({
-  gcashNumber,
-  gcashName,
+  gcashNumber: gcashNumberProp,
+  gcashName: gcashNameProp,
   onConfirm,
   onClose,
 }: {
@@ -1765,12 +1778,65 @@ function PaymentModal({
   const [manualRef, setManualRef]         = useState('');
   const [manualRefError, setManualRefError] = useState('');
   const [manualRefBusy, setManualRefBusy] = useState(false);
+  const [gcashCopied, setGcashCopied]     = useState(false);
+  const [qrFullscreen, setQrFullscreen]   = useState(false);
+  // Live settings fetched from API (fall back to props)
+  const [liveNumber, setLiveNumber] = useState(gcashNumberProp);
+  const [liveName, setLiveName]     = useState(gcashNameProp);
+  const [liveQrUrl, setLiveQrUrl]   = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/gcash-settings')
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { gcash_number?: string; gcash_name?: string; qr_url?: string | null } | null) => {
+        if (!d) return;
+        if (d.gcash_number) setLiveNumber(d.gcash_number);
+        if (d.gcash_name)   setLiveName(d.gcash_name);
+        setLiveQrUrl(d.qr_url ?? null);
+      })
+      .catch(() => { /* use prop defaults */ });
+  }, []);
+
+  const gcashNumber = liveNumber;
+  const gcashName   = liveName;
+
+  function handleOpenGcash(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    // iOS Safari requires clipboard write during direct user gesture
+    const text = gcashNumber.replace(/\D/g, '');
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+    } catch { fallbackCopy(text); }
+    setGcashCopied(true);
+  }
+
+  function fallbackCopy(text: string) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch { /* silently skip */ }
+  }
+
+  function handleUnderstood() {
+    // Open GCash app now that user has read the instructions
+    window.location.href = 'gcash://';
+    setGcashCopied(false);
+  }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Show thumbnail
     setScreenshotUrl(URL.createObjectURL(file));
     setStep('verifying');
     setVerifyErrors([]);
@@ -1803,9 +1869,7 @@ function PaymentModal({
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
-  /** Auto-format input as XXXX-XXX-XXXXXX while typing */
   function handleManualRefInput(val: string) {
-    // Strip all non-digits
     const digits = val.replace(/\D/g, '').slice(0, 13);
     let formatted = digits;
     if (digits.length > 4)  formatted = digits.slice(0, 4) + '-' + digits.slice(4);
@@ -1843,6 +1907,28 @@ function PaymentModal({
   }
 
   return (
+    <>
+      {/* QR fullscreen overlay */}
+      {qrFullscreen && liveQrUrl && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-6"
+          onClick={() => setQrFullscreen(false)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white text-3xl leading-none w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
+            onClick={() => setQrFullscreen(false)}
+          >×</button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={liveQrUrl}
+            alt="GCash QR Code"
+            className="max-w-xs w-full rounded-2xl shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+          <p className="absolute bottom-6 text-white/70 text-xs">Tap anywhere to close</p>
+        </div>
+      )}
+
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
         {/* Header */}
@@ -1852,7 +1938,6 @@ function PaymentModal({
               <span className="text-2xl">💚</span>
               <div>
                 <div className="text-white font-bold text-sm">Support QuickFormsPH</div>
-                <div className="text-green-100 text-[11px]">One-time ₱{amount.toFixed(2)} via GCash</div>
               </div>
             </div>
             {step !== 'generating' && (
@@ -1889,17 +1974,62 @@ function PaymentModal({
                   <span className="text-base font-black text-green-700">{amount.toFixed(2)}</span>
                 </div>
               </div>
+              {/* QR option */}
+              {liveQrUrl && (
+                <button
+                  onClick={() => setQrFullscreen(true)}
+                  className="mt-1 flex items-center gap-1.5 text-[11px] text-blue-600 font-semibold hover:underline"
+                >
+                  📷 Or pay via QR Code — tap to view full screen
+                </button>
+              )}
             </div>
 
             {/* Actions */}
             <div className="space-y-2">
-              {/* Open GCash deep-link */}
-              <a
-                href="gcash://"
-                className="flex items-center justify-center gap-2 w-full rounded-xl bg-[#00a651] py-3 text-sm font-bold text-white hover:bg-[#008c44] transition-colors"
-              >
-                📱 Open GCash
-              </a>
+              {/* Flip card: Open GCash → copied info */}
+              <div style={{ perspective: '600px' }}>
+                <div
+                  style={{
+                    transition: 'transform 0.5s',
+                    transformStyle: 'preserve-3d',
+                    transform: gcashCopied ? 'rotateX(180deg)' : 'rotateX(0deg)',
+                    position: 'relative',
+                    minHeight: '48px',
+                  }}
+                >
+                  {/* Front: Open GCash button */}
+                  <div style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+                    <button
+                      onClick={handleOpenGcash}
+                      className="flex items-center justify-center gap-2 w-full rounded-xl bg-[#00a651] py-3 text-sm font-bold text-white hover:bg-[#008c44] transition-colors"
+                    >
+                      📱 Open GCash
+                    </button>
+                  </div>
+                  {/* Back: info + Understood button that opens app */}
+                  <div
+                    style={{
+                      backfaceVisibility: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden',
+                      transform: 'rotateX(180deg)',
+                      position: 'absolute',
+                      inset: 0,
+                    }}
+                  >
+                    <div className="rounded-xl bg-green-50 border border-green-200 px-3 py-2.5 text-xs text-green-800 leading-relaxed">
+                      <p className="font-semibold mb-0.5">📋 Number copied!</p>
+                      <p>The number <span className="font-mono font-bold">{gcashNumber}</span> has been copied. Tap <strong>Understood</strong> to open GCash, go to <strong>Send Money</strong>, and paste the number.</p>
+                      <button
+                        onClick={handleUnderstood}
+                        className="mt-2 w-full rounded-lg bg-green-600 text-white text-xs font-bold py-1.5 hover:bg-green-700 transition-colors"
+                      >
+                        ✅ Understood — Open GCash
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Attach screenshot */}
               <label className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 py-3 text-sm font-semibold text-blue-700 cursor-pointer transition-colors">
@@ -2049,6 +2179,15 @@ function PaymentModal({
                 Find it in your GCash receipt under <strong>Ref No.</strong>
               </div>
             </div>
+            {/* Trust divider */}
+            <div className="flex items-center gap-3 py-1">
+              <div className="flex-1 h-px bg-gray-200" />
+              <p className="text-[11px] text-gray-400 italic text-center leading-relaxed">
+                We trust you&apos;ve completed your payment — QuickFormsPH is built on good faith. We&apos;re committed to giving you honest, reliable service every time. 🙏
+              </p>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
             <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800 leading-relaxed">
               Enter the 13-digit reference number from your GCash receipt using dashes:{' '}
               <strong className="font-mono">XXXX-XXX-XXXXXX</strong>
@@ -2091,6 +2230,7 @@ function PaymentModal({
 
       </div>
     </div>
+    </>
   );
 }
 

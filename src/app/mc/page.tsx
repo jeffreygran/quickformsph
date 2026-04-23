@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FORMS } from '@/data/forms';
+
+const IS_DEV = process.env.NEXT_PUBLIC_APP_ENV === 'dev';
 
 type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions' | 'refs' | 'pdfs' | 'security';
 
@@ -65,6 +67,9 @@ export default function AdminPage() {
             />
           </Link>
           <span className="ml-1 text-[10px] font-semibold text-gray-400 border border-gray-200 rounded px-1.5 py-0.5">Admin</span>
+          {IS_DEV && (
+            <span className="inline-flex items-center rounded-full bg-yellow-400 px-2 py-0.5 text-[10px] font-bold text-yellow-900 ring-1 ring-yellow-500/40">DEV</span>
+          )}
         </div>
 
         <nav className="flex-1 py-3 overflow-y-auto">
@@ -390,6 +395,68 @@ function SettingsTab() {
   const [pwBusy, setPwBusy]   = useState(false);
   const [showCur, setShowCur] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  // GCash settings
+  const [gcashNumber, setGcashNumber] = useState('');
+  const [gcashName, setGcashName]     = useState('');
+  const [qrUrl, setQrUrl]             = useState<string | null>(null);
+  const [saving, setSaving]           = useState(false);
+  const [saved, setSaved]             = useState(false);
+  const [uploadBusy, setUploadBusy]   = useState(false);
+  const [uploadMsg, setUploadMsg]     = useState('');
+  const [loadError, setLoadError]     = useState('');
+  const qrInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/gcash-settings')
+      .then(r => r.json())
+      .then((d: { gcash_number: string; gcash_name: string; qr_url: string | null }) => {
+        setGcashNumber(d.gcash_number ?? '');
+        setGcashName(d.gcash_name ?? '');
+        setQrUrl(d.qr_url ?? null);
+      })
+      .catch(() => setLoadError('Failed to load GCash settings'));
+  }, []);
+
+  async function handleSaveGcash() {
+    setSaving(true); setSaved(false);
+    try {
+      const res = await fetch('/api/admin/gcash-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gcash_number: gcashNumber, gcash_name: gcashName }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch { setLoadError('Failed to save'); }
+    finally { setSaving(false); }
+  }
+
+  async function handleQRUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadBusy(true); setUploadMsg('');
+    const fd = new FormData();
+    fd.append('qr', file);
+    try {
+      const res = await fetch('/api/admin/gcash-qr', { method: 'POST', body: fd });
+      const data = await res.json() as { ok?: boolean; qr_url?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? 'Upload failed');
+      setQrUrl((data.qr_url ?? '') + '?t=' + Date.now());
+      setUploadMsg('QR uploaded successfully!');
+    } catch (err) { setUploadMsg(String(err)); }
+    finally { setUploadBusy(false); if (qrInputRef.current) qrInputRef.current.value = ''; }
+  }
+
+  async function handleRemoveQR() {
+    setUploadBusy(true); setUploadMsg('');
+    try {
+      await fetch('/api/admin/gcash-qr', { method: 'DELETE' });
+      setQrUrl(null);
+      setUploadMsg('QR removed.');
+    } catch { setUploadMsg('Failed to remove QR.'); }
+    finally { setUploadBusy(false); }
+  }
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -485,6 +552,58 @@ function SettingsTab() {
             {pwBusy ? 'Saving…' : '🔑 Update Password'}
           </button>
         </form>
+      </div>
+
+      {/* GCash Payment Settings */}
+      <div className="rounded-2xl bg-white border border-gray-200 p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-gray-900">GCash Payment Settings</h2>
+        {loadError && <p className="text-xs text-red-600">{loadError}</p>}
+        <div className="space-y-3">
+          <div>
+            <label className="field-label">Mobile Number</label>
+            <input type="text" value={gcashNumber} onChange={e => setGcashNumber(e.target.value)}
+              placeholder="e.g. 0917-551-4822" className="input-field text-sm" />
+          </div>
+          <div>
+            <label className="field-label">Account Name</label>
+            <input type="text" value={gcashName} onChange={e => setGcashName(e.target.value)}
+              placeholder="e.g. JE****Y JO*N G." className="input-field text-sm" />
+          </div>
+          <button onClick={handleSaveGcash} disabled={saving}
+            className="btn-primary py-2 px-5 text-xs disabled:opacity-50">
+            {saving ? 'Saving…' : saved ? '✓ Saved!' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+
+      {/* GCash QR Code */}
+      <div className="rounded-2xl bg-white border border-gray-200 p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-gray-900">GCash QR Code</h2>
+        <p className="text-xs text-gray-500">Upload a QR code image so users can scan and pay directly.</p>
+        {qrUrl ? (
+          <div className="space-y-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qrUrl} alt="GCash QR" className="w-40 h-40 object-contain border border-gray-200 rounded-xl bg-gray-50" />
+            <div className="flex gap-2">
+              <label className="btn-secondary py-2 px-4 text-xs cursor-pointer">
+                Replace QR
+                <input ref={qrInputRef} type="file" accept="image/*" className="hidden" onChange={handleQRUpload} disabled={uploadBusy} />
+              </label>
+              <button onClick={handleRemoveQR} disabled={uploadBusy}
+                className="text-xs text-red-600 border border-red-200 rounded-xl px-4 py-2 hover:bg-red-50 disabled:opacity-50">Remove</button>
+            </div>
+          </div>
+        ) : (
+          <label className="flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 py-8 cursor-pointer transition-colors">
+            <span className="text-2xl">📷</span>
+            <span className="text-xs font-medium text-gray-500">{uploadBusy ? 'Uploading…' : 'Click to upload QR image'}</span>
+            <span className="text-[10px] text-gray-400">PNG, JPG, WEBP — max 2 MB</span>
+            <input ref={qrInputRef} type="file" accept="image/*" className="hidden" onChange={handleQRUpload} disabled={uploadBusy} />
+          </label>
+        )}
+        {uploadMsg && (
+          <p className={`text-xs ${uploadMsg.includes('success') || uploadMsg.includes('removed') ? 'text-green-600' : 'text-red-600'}`}>{uploadMsg}</p>
+        )}
       </div>
 
       {/* Environment Info */}

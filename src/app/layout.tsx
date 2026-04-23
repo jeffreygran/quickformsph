@@ -8,12 +8,13 @@ export const metadata: Metadata = {
     'Select a Philippine government form, fill it up on your phone, and download a print-ready PDF.',
 };
 
+const IS_DEV = process.env.NEXT_PUBLIC_APP_ENV === 'dev';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="min-h-screen bg-gray-50 text-gray-900 antialiased flex flex-col">
-        <div className="flex-1">{children}</div>
-        <footer className="border-t border-gray-200 py-4 px-6 text-center text-xs text-gray-400">
+        <div className="flex-1">{children}</div>        <footer className="border-t border-gray-200 py-4 px-6 text-center text-xs text-gray-400">
           <div className="mb-1.5 text-[11px] text-gray-400">
             QuickFormsPH is a private tool and is <strong className="text-gray-500">not affiliated with any Philippine government agency</strong>.
           </div>

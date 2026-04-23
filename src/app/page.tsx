@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { FORMS, FormSchema } from '@/data/forms';
 import SuggestionModal from '@/components/SuggestionModal';
 
+const IS_DEV = process.env.NEXT_PUBLIC_APP_ENV === 'dev';
 const AGENCY_FILTERS = ['All', ...Array.from(new Set(FORMS.map((f) => f.agency)))];
 
 interface SavedCode { code: string; expires_at: number; }
@@ -132,7 +133,7 @@ export default function HomePage() {
           {/* Logo */}
           <button
             onClick={handleLogoClick}
-            className="flex items-center cursor-default select-none"
+            className="flex items-center gap-2 cursor-default select-none"
             aria-label="QuickFormsPH"
           >
             <Image
@@ -143,6 +144,11 @@ export default function HomePage() {
               className="h-10 w-auto object-contain"
               priority
             />
+            {IS_DEV && (
+              <span className="inline-flex items-center rounded-full bg-yellow-400 px-2 py-0.5 text-[10px] font-bold text-yellow-900 ring-1 ring-yellow-500/40">
+                DEV
+              </span>
+            )}
           </button>
 
           {/* Right nav */}

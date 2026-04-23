@@ -880,15 +880,17 @@ const CF2_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number;
     'No co-pay on top of PhilHealth Benefit':   { page: 1, x: 336, y: 843 },
     'With co-pay on top of PhilHealth Benefit': { page: 1, x: 336, y: 829 },
   },
-  // Block 2: top=145.6 → y=792.9≈793; top=160.0 → y=778
+  // Block 2: No top=145.6 bot=157.9 → y=936-157.9+(12.3-7)/2=780.8
+  //          With top=160.0 bot=172.3 → y=936-172.3+(12.3-7)/2=766.4
   hcp2_copay: {
-    'No co-pay on top of PhilHealth Benefit':   { page: 1, x: 336, y: 793 },
-    'With co-pay on top of PhilHealth Benefit': { page: 1, x: 336, y: 778 },
+    'No co-pay on top of PhilHealth Benefit':   { page: 1, x: 336, y: 781 },
+    'With co-pay on top of PhilHealth Benefit': { page: 1, x: 336, y: 766 },
   },
-  // Block 3: top=207.1 → y=730.5≈731; top=221.5 → y=717
+  // Block 3: No top=207.1 bot=219.4 → y=936-219.4+(12.3-7)/2=719.3
+  //          With top=221.5 bot=233.8 → y=936-233.8+(12.3-7)/2=704.9
   hcp3_copay: {
-    'No co-pay on top of PhilHealth Benefit':   { page: 1, x: 336, y: 731 },
-    'With co-pay on top of PhilHealth Benefit': { page: 1, x: 336, y: 717 },
+    'No co-pay on top of PhilHealth Benefit':   { page: 1, x: 336, y: 719 },
+    'With co-pay on top of PhilHealth Benefit': { page: 1, x: 336, y: 705 },
   },
 
   // ── Certification: "benefit is enough to cover" (page 2 top≈308) ──
@@ -1367,13 +1369,51 @@ const SLF089_SKIP_VALUES: Record<string, string[]> = {
   beneficiary_ext: ['', 'N/A'],
   beneficiary_middle: [''],
   student_id_no: [''],
-  // Sex / marital / loan_purpose / loan_term are dropdowns that will become
-  // checkboxes in iteration 2 — skip text rendering for now.
-  sex: ['', 'Male', 'Female'],
-  marital_status: ['', 'Single/Unmarried', 'Married', 'Widower', 'Legally Separated', 'Annulled'],
-  loan_amount_type: ['', 'Maximum Loan Amount', 'Others (specify in Desired Amount)'],
-  loan_purpose: ['', 'Educational Expenses', 'Medical Expenses', 'Healthcare Plan from accredited HMO'],
-  loan_term: ['', 'Six (6) Months', 'Twelve (12) Months', 'Twenty-four (24) Months', 'Thirty-six (36) Months'],
+  // Iteration 2: sex/marital/loan_purpose/loan_term/loan_amount_type are now checkboxes.
+  sex: ['', 'N/A'],
+  marital_status: ['', 'N/A'],
+  loan_amount_type: ['', 'N/A'],
+  loan_purpose: ['', 'N/A'],
+  loan_term: ['', 'N/A'],
+};
+
+// ── SLF-089 checkbox coords (Iteration 2) ────────────────────────────────
+// \uf0a8 glyph positions (page 0, h=936). Same formula as HLF-068:
+//   y_lib = 936 - glyph_top - 7 ; x = cx - 4
+const slf089CheckY = (top: number) => SLF089_PAGE_H - top - 7;
+const SLF089_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
+  // SEX (top=113.2 Male / 120.2 Female, cx=185.21)
+  sex: {
+    'Male':   { page: 0, x: 181, y: slf089CheckY(113.2) },
+    'Female': { page: 0, x: 181, y: slf089CheckY(120.2) },
+  },
+  // MARITAL STATUS — row1 top=113.2 (Single=239.72 / Widower=306.80 / Annulled=368.86)
+  //                  row2 top=120.2 (Married=239.72 / Legally Separated=307.16)
+  marital_status: {
+    'Single/Unmarried':  { page: 0, x: 236, y: slf089CheckY(113.2) },
+    'Widower':           { page: 0, x: 303, y: slf089CheckY(113.2) },
+    'Annulled':          { page: 0, x: 365, y: slf089CheckY(113.2) },
+    'Married':           { page: 0, x: 236, y: slf089CheckY(120.2) },
+    'Legally Separated': { page: 0, x: 303, y: slf089CheckY(120.2) },
+  },
+  // LOAN AMOUNT TYPE — cx=496.69, top=226.7 Maximum / 233.7 Others
+  loan_amount_type: {
+    'Maximum Loan Amount':                 { page: 0, x: 493, y: slf089CheckY(226.7) },
+    'Others (specify in Desired Amount)':  { page: 0, x: 493, y: slf089CheckY(233.7) },
+  },
+  // LOAN PURPOSE — top=273.0 (Educational=407, Healthcare=496), top=279.9 (Medical=407)
+  loan_purpose: {
+    'Educational Expenses':               { page: 0, x: 403, y: slf089CheckY(273.0) },
+    'Healthcare Plan from accredited HMO':{ page: 0, x: 493, y: slf089CheckY(273.0) },
+    'Medical Expenses':                   { page: 0, x: 403, y: slf089CheckY(279.9) },
+  },
+  // LOAN TERM — top=294.2 (Six=407, Twenty-four=496), top=301.2 (Twelve=407, Thirty-six=496)
+  loan_term: {
+    'Six (6) Months':         { page: 0, x: 403, y: slf089CheckY(294.2) },
+    'Twenty-four (24) Months':{ page: 0, x: 493, y: slf089CheckY(294.2) },
+    'Twelve (12) Months':     { page: 0, x: 403, y: slf089CheckY(301.2) },
+    'Thirty-six (36) Months': { page: 0, x: 493, y: slf089CheckY(301.2) },
+  },
 };
 
 // ── Pag-IBIG SLF-065 (MPL) — calibrated coords (612×936, page 0 only) ────────
@@ -1489,22 +1529,71 @@ const SLF065_SKIP_VALUES: Record<string, string[]> = {
   employer_zip: [''],
   employee_id_no: [''],
   payroll_bank_name: [''],
-  // Sex / marital / loan_purpose / loan_term are dropdowns; checkbox calibration deferred to iteration 2.
-  sex: ['', 'Male', 'Female'],
-  marital_status: ['', 'Single/Unmarried', 'Married', 'Widow/er', 'Legally Separated', 'Annulled'],
-  loan_term: ['', 'One (1) Year', 'Two (2) Years', 'Three (3) Years'],
-  loan_purpose: ['',
-    'Livelihood / additional capital in small business',
-    'Tuition / Educational Expenses',
-    'Payment of utility / credit card bills',
-    'Purchase of appliance & furniture / electronic gadgets',
-    'Minor home improvement / home renovation / upgrades',
-    'Vacation / travel',
-    'Special events',
-    'Car repair',
-    'Health & wellness',
-    'Others',
-  ],
+  // Iteration 2: sex / marital / loan_purpose / loan_term are now checkboxes.
+  sex: ['', 'N/A'],
+  marital_status: ['', 'N/A'],
+  loan_term: ['', 'N/A'],
+  loan_purpose: ['', 'N/A'],
+  // Iteration 3
+  source_of_referral: ['', 'N/A'],
+};
+
+// ── SLF-065 checkbox coords (Iteration 2) ────────────────────────────────
+// \uf0a8 glyph (page 0, h=936). Formula: y_lib = 936 - top - 7; x = cx - 4.
+const slf065CheckY = (top: number) => SLF065_PAGE_H - top - 7;
+const SLF065_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
+  // SEX — top=96.4 Male / 103.4 Female, cx=203.36
+  sex: {
+    'Male':   { page: 0, x: 199, y: slf065CheckY(96.4) },
+    'Female': { page: 0, x: 199, y: slf065CheckY(103.4) },
+  },
+  // MARITAL STATUS — row1 top=96.4 (Single=238.67 / Widow/er=309.59 / Annulled=366.25)
+  //                  row2 top=103.2 (Married=238.67 / Legally Separated=309.59)
+  marital_status: {
+    'Single/Unmarried':  { page: 0, x: 235, y: slf065CheckY(96.4) },
+    'Widow/er':          { page: 0, x: 306, y: slf065CheckY(96.4) },
+    'Annulled':          { page: 0, x: 362, y: slf065CheckY(96.4) },
+    'Married':           { page: 0, x: 235, y: slf065CheckY(103.2) },
+    'Legally Separated': { page: 0, x: 306, y: slf065CheckY(103.2) },
+  },
+  // LOAN TERM — top=180.1 (One=397.90 / Three=449.74 / Maximum=501.13)
+  //             top=187.0 (Two=397.90 / Others=501.13)
+  loan_term: {
+    'One (1) Year':        { page: 0, x: 394, y: slf065CheckY(180.1) },
+    'Three (3) Years':     { page: 0, x: 446, y: slf065CheckY(180.1) },
+    'Maximum Loan Amount': { page: 0, x: 497, y: slf065CheckY(180.1) },
+    'Two (2) Years':       { page: 0, x: 394, y: slf065CheckY(187.0) },
+    'Others':              { page: 0, x: 497, y: slf065CheckY(187.0) },
+  },
+  // LOAN PURPOSE — left column cx=398.12 / right column cx=528.35
+  loan_purpose: {
+    'Livelihood / additional capital in small business': { page: 0, x: 394, y: slf065CheckY(211.7) },
+    'Vacation / travel':                                 { page: 0, x: 524, y: slf065CheckY(212.9) },
+    'Special events':                                    { page: 0, x: 524, y: slf065CheckY(220.3) },
+    'Tuition / Educational Expenses':                    { page: 0, x: 394, y: slf065CheckY(226.7) },
+    'Car repair':                                        { page: 0, x: 524, y: slf065CheckY(227.8) },
+    'Payment of utility / credit card bills':            { page: 0, x: 394, y: slf065CheckY(234.1) },
+    'Health & wellness':                                 { page: 0, x: 524, y: slf065CheckY(235.3) },
+    'Purchase of appliance & furniture / electronic gadgets': { page: 0, x: 394, y: slf065CheckY(241.6) },
+    'Minor home improvement / home renovation / upgrades':    { page: 0, x: 394, y: slf065CheckY(264.1) },
+    'Others':                                            { page: 0, x: 524, y: slf065CheckY(257.8) },
+  },
+  // SOURCE OF REFERRAL / "How did you hear about us?" (bottom of page 0)
+  // Row tops 798.9 / 805.7 ; cols cx≈24 / 110 / 176 / 294 / 382 / 489
+  // Page 0, h=936, \uf0a8 Wingdings (-7 offset)
+  source_of_referral: {
+    'Pag-IBIG Fund Website':        { page: 0, x:  20, y: slf065CheckY(798.9) },
+    'Social media':                 { page: 0, x:  20, y: slf065CheckY(805.7) },
+    'Radio':                        { page: 0, x: 106, y: slf065CheckY(798.9) },
+    'Television':                   { page: 0, x: 106, y: slf065CheckY(805.7) },
+    'Streaming Service Ad':         { page: 0, x: 172, y: slf065CheckY(798.9) },
+    'Newspaper/Online Newspaper':   { page: 0, x: 172, y: slf065CheckY(805.7) },
+    'Billboard':                    { page: 0, x: 290, y: slf065CheckY(798.9) },
+    'Word of Mouth':                { page: 0, x: 290, y: slf065CheckY(805.7) },
+    'Referral':                     { page: 0, x: 378, y: slf065CheckY(798.9) },
+    'Employer/Fund Coordinator':    { page: 0, x: 378, y: slf065CheckY(805.7) },
+    'Others':                       { page: 0, x: 485, y: slf065CheckY(798.9) },
+  },
 };
 
 // ── Pag-IBIG HLF-868 (HEAL Co-Borrower) — coords (612×792, page 0 only) ──────
@@ -1632,6 +1721,97 @@ const HLF868_SKIP_VALUES: Record<string, string[]> = {
   employer_email: [''],
   preferred_time_contact: [''],
   place_assignment: [''],
+  // Iteration 2 checkbox fields
+  sex: ['', 'N/A'],
+  marital_status: ['', 'N/A'],
+  relationship_to_principal: ['', 'N/A'],
+  home_ownership: ['', 'N/A'],
+  employment_type: ['', 'N/A'],
+  mailing_preference: ['', 'N/A'],
+  // Iteration 3
+  industry_category: ['', 'N/A'],
+};
+
+// ── HLF-868 checkbox coords (Iteration 2) ────────────────────────────────
+// \uf071 Wingdings 'q' glyph (smaller box). Page 0, h=792.
+// Formula: y_lib = 792 - top - 6 (smaller glyph than \uf0a8 — use -6 offset).
+const hlf868CheckY = (top: number) => HLF868_PAGE_H - top - 6;
+const HLF868_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
+  // SEX — top=189.7 Male / 198.6 Female, cx=225.51
+  sex: {
+    'Male':   { page: 0, x: 221, y: hlf868CheckY(189.7) },
+    'Female': { page: 0, x: 221, y: hlf868CheckY(198.6) },
+  },
+  // MARITAL STATUS — row1 top=189.8 (Single=398.02, Legally Separated=454.78)
+  //                  row2 top=196.7 (Married=398.02, Annulled=455.50)
+  //                  row3 top=203.6 (Widow/er=398.02)
+  marital_status: {
+    'Single/Unmarried':   { page: 0, x: 394, y: hlf868CheckY(189.8) },
+    'Legally Separated':  { page: 0, x: 451, y: hlf868CheckY(189.8) },
+    'Married':            { page: 0, x: 394, y: hlf868CheckY(196.7) },
+    'Annulled/Nullified': { page: 0, x: 451, y: hlf868CheckY(196.7) },
+    'Widow/er':           { page: 0, x: 394, y: hlf868CheckY(203.6) },
+  },
+  // RELATIONSHIP TO PRINCIPAL — row1 top=195.5 (Spouse=270.92, Parent=323.96)
+  //                              row2 top=202.5 (Son/Daughter=270.92, Other=323.36)
+  //                              row3 top=209.3 (Brother/Sister=270.92)
+  relationship_to_principal: {
+    'Spouse':           { page: 0, x: 267, y: hlf868CheckY(195.5) },
+    'Parent':           { page: 0, x: 320, y: hlf868CheckY(195.5) },
+    'Son/Daughter':     { page: 0, x: 267, y: hlf868CheckY(202.5) },
+    'Other':            { page: 0, x: 320, y: hlf868CheckY(202.5) },
+    'Brother/Sister':   { page: 0, x: 267, y: hlf868CheckY(209.3) },
+  },
+  // HOME OWNERSHIP — row1 top=345.4 (Owned=33.70, Company=110.88, Living=219.87)
+  //                  row2 top=354.4 (Mortgaged=33.22, Rented=110.40)
+  home_ownership: {
+    'Owned':                         { page: 0, x:  30, y: hlf868CheckY(345.4) },
+    'Company-Provided':              { page: 0, x: 107, y: hlf868CheckY(345.4) },
+    'Living with relatives/parents': { page: 0, x: 216, y: hlf868CheckY(345.4) },
+    'Mortgaged':                     { page: 0, x:  30, y: hlf868CheckY(354.4) },
+    'Rented':                        { page: 0, x: 107, y: hlf868CheckY(354.4) },
+  },
+  // EMPLOYMENT TYPE — col cx=33.70 at tops 374.6 / 382.6 / 390.6
+  employment_type: {
+    'Locally Employed':           { page: 0, x: 30, y: hlf868CheckY(374.6) },
+    'Self-Employed':              { page: 0, x: 30, y: hlf868CheckY(382.6) },
+    'Overseas Filipino Worker':   { page: 0, x: 30, y: hlf868CheckY(390.6) },
+  },
+  // MAILING PREFERENCE — cx=454.76 at tops 460.6 / 468.1 / 475.6
+  mailing_preference: {
+    'Permanent Home Address':    { page: 0, x: 451, y: hlf868CheckY(460.6) },
+    'Present Home Address':      { page: 0, x: 451, y: hlf868CheckY(468.1) },
+    'Employer/Business Address': { page: 0, x: 451, y: hlf868CheckY(475.6) },
+  },
+  // INDUSTRY / NATURE OF BUSINESS — 4-col × 8-row grid (\uf0a8 Wingdings)
+  // Columns cx: 28.80 / 168.86 / 313.13 / 415.39 ; page 0, h=792 (-7 offset)
+  industry_category: {
+    'Accounting':                                   { page: 0, x:  25, y: hlf868CheckY(522.7) },
+    'Activities of Private Households as Employers':{ page: 0, x:  25, y: hlf868CheckY(530.7) },
+    'Agriculture, Hunting, Forestry & Fishing':     { page: 0, x:  25, y: hlf868CheckY(562.9) },
+    'Basic Materials':                              { page: 0, x:  25, y: hlf868CheckY(570.9) },
+    'Construction':                                 { page: 0, x:  25, y: hlf868CheckY(578.9) },
+    'Business Process Outsourcing (BPO)':           { page: 0, x: 165, y: hlf868CheckY(522.7) },
+    'Education & Training':                         { page: 0, x: 165, y: hlf868CheckY(530.7) },
+    'Electricity, Gas and Water Supply':            { page: 0, x: 165, y: hlf868CheckY(538.7) },
+    'Extra-Territorial Organization & Bodies':      { page: 0, x: 165, y: hlf868CheckY(546.8) },
+    'Financial Services/Intermediation':            { page: 0, x: 165, y: hlf868CheckY(554.8) },
+    'HR/Recruitment':                               { page: 0, x: 165, y: hlf868CheckY(562.9) },
+    'Life Sciences':                                { page: 0, x: 165, y: hlf868CheckY(570.9) },
+    'Health and Social Work':                       { page: 0, x: 309, y: hlf868CheckY(522.7) },
+    'Health and Medical Services':                  { page: 0, x: 309, y: hlf868CheckY(530.7) },
+    'Management':                                   { page: 0, x: 309, y: hlf868CheckY(546.8) },
+    'Manufacturing':                                { page: 0, x: 309, y: hlf868CheckY(554.8) },
+    'Media':                                        { page: 0, x: 309, y: hlf868CheckY(562.9) },
+    'Mining and Quarrying':                         { page: 0, x: 309, y: hlf868CheckY(570.9) },
+    'Technology':                                   { page: 0, x: 309, y: hlf868CheckY(578.9) },
+    'Other Community, Social & Personal Service Activities': { page: 0, x: 412, y: hlf868CheckY(522.7) },
+    'Public Administration & Defense':              { page: 0, x: 412, y: hlf868CheckY(538.7) },
+    'Social Security':                              { page: 0, x: 412, y: hlf868CheckY(546.8) },
+    'Transport, Storage and Communications':        { page: 0, x: 412, y: hlf868CheckY(554.8) },
+    'Travel and Leisure':                           { page: 0, x: 412, y: hlf868CheckY(562.9) },
+    'Wholesale & Retail Trade':                     { page: 0, x: 412, y: hlf868CheckY(570.9) },
+  },
 };
 
 // ── Pag-IBIG HLF-858 (HEAL Principal) — coords (612×792, page 0 only) ────────
@@ -1761,6 +1941,128 @@ const HLF858_SKIP_VALUES: Record<string, string[]> = {
   employer_email: [''],
   preferred_time_contact: [''],
   place_assignment: [''],
+  // Iteration 2 checkbox fields
+  sex: ['', 'N/A'],
+  marital_status: ['', 'N/A'],
+  loan_purpose: ['', 'N/A'],
+  loan_term: ['', 'N/A'],
+  mode_of_payment: ['', 'N/A'],
+  request_for_reinspection: ['', 'N/A'],
+  home_ownership: ['', 'N/A'],
+  employment_type: ['', 'N/A'],
+  mailing_preference: ['', 'N/A'],
+  // Iteration 3
+  industry_category: ['', 'N/A'],
+};
+
+// ── HLF-858 checkbox coords (Iteration 2) ────────────────────────────────
+// \uf071 Wingdings 'q' glyph. Page 0, h=792. Formula: y_lib = 792 - top - 6.
+const hlf858CheckY = (top: number) => HLF858_PAGE_H - top - 6;
+const HLF858_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
+  // LOAN PURPOSE — left column cx=33.85
+  loan_purpose: {
+    'Home Improvement':                       { page: 0, x: 30, y: hlf858CheckY(146.2) },
+    'Livelihood/additional capital for business': { page: 0, x: 30, y: hlf858CheckY(154.8) },
+    'Educational expenses':                   { page: 0, x: 30, y: hlf858CheckY(163.4) },
+    'Health and wellness':                    { page: 0, x: 30, y: hlf858CheckY(172.0) },
+    'Travel and leisure':                     { page: 0, x: 30, y: hlf858CheckY(180.6) },
+    'Special Events':                         { page: 0, x: 30, y: hlf858CheckY(189.2) },
+    'Car Repair':                             { page: 0, x: 30, y: hlf858CheckY(197.9) },
+    'Purchase of appliance/electronic gadgets': { page: 0, x: 30, y: hlf858CheckY(206.5) },
+    'Purchase of memorial lot or columbary':  { page: 0, x: 30, y: hlf858CheckY(223.8) },
+    'Payment of utilities/credit card bills': { page: 0, x: 30, y: hlf858CheckY(241.0) },
+    'Others':                                 { page: 0, x: 30, y: hlf858CheckY(249.6) },
+  },
+  // LOAN TERM (years) — cx 334.14 / 374.24 / 414.32 at tops 186.4 / 195.0 / 203.6
+  loan_term: {
+    '1':  { page: 0, x: 330, y: hlf858CheckY(186.4) },
+    '10': { page: 0, x: 370, y: hlf858CheckY(186.4) },
+    '25': { page: 0, x: 410, y: hlf858CheckY(186.4) },
+    '3':  { page: 0, x: 330, y: hlf858CheckY(195.0) },
+    '15': { page: 0, x: 370, y: hlf858CheckY(195.0) },
+    '30': { page: 0, x: 410, y: hlf858CheckY(195.0) },
+    '5':  { page: 0, x: 330, y: hlf858CheckY(203.6) },
+    '20': { page: 0, x: 370, y: hlf858CheckY(203.6) },
+  },
+  // MODE OF PAYMENT — right column
+  mode_of_payment: {
+    'Salary deduction':              { page: 0, x: 470, y: hlf858CheckY(179.5) },
+    'Over-the-Counter':              { page: 0, x: 470, y: hlf858CheckY(188.0) },
+    'Post-Dated Checks':             { page: 0, x: 480, y: hlf858CheckY(196.7) },
+    'Cash/Check':                    { page: 0, x: 480, y: hlf858CheckY(205.3) },
+    'Collecting Agent':              { page: 0, x: 470, y: hlf858CheckY(214.0) },
+    'Bank':                          { page: 0, x: 480, y: hlf858CheckY(222.6) },
+    'Credit to Disbursement Card':   { page: 0, x: 190, y: hlf858CheckY(229.4) },
+    'Collection Partner':            { page: 0, x: 480, y: hlf858CheckY(231.2) },
+    'Check Disbursement':            { page: 0, x: 190, y: hlf858CheckY(246.6) },
+  },
+  // REQUEST FOR RE-INSPECTION — top=199.0 YES=194.67 / NO=229.02
+  request_for_reinspection: {
+    'Yes': { page: 0, x: 191, y: hlf858CheckY(199.0) },
+    'No':  { page: 0, x: 225, y: hlf858CheckY(199.0) },
+  },
+  // SEX — top=329.3 Male / 339.1 Female, cx=155.88
+  sex: {
+    'Male':   { page: 0, x: 152, y: hlf858CheckY(329.3) },
+    'Female': { page: 0, x: 152, y: hlf858CheckY(339.1) },
+  },
+  // MARITAL STATUS — row1 top=326.9 (Single=290.79 / Annulled=367.25 / Widow/er=442.37)
+  //                  row2 top=335.8 (Married=290.55 / Legally Separated=366.65)
+  marital_status: {
+    'Single/Unmarried':   { page: 0, x: 287, y: hlf858CheckY(326.9) },
+    'Annulled':           { page: 0, x: 363, y: hlf858CheckY(326.9) },
+    'Widow/er':           { page: 0, x: 438, y: hlf858CheckY(326.9) },
+    'Married':            { page: 0, x: 287, y: hlf858CheckY(335.8) },
+    'Legally Separated':  { page: 0, x: 363, y: hlf858CheckY(335.8) },
+  },
+  // HOME OWNERSHIP — row1 top=480.2 (Owned=31.78 / Company=109.20 / Living=218.43)
+  //                  row2 top=489.2 (Mortgaged=31.30 / Rented=108.72)
+  home_ownership: {
+    'Owned':                         { page: 0, x:  28, y: hlf858CheckY(480.2) },
+    'Company-Provided':              { page: 0, x: 105, y: hlf858CheckY(480.2) },
+    'Living with relatives/parents': { page: 0, x: 215, y: hlf858CheckY(480.2) },
+    'Mortgaged':                     { page: 0, x:  28, y: hlf858CheckY(489.2) },
+    'Rented':                        { page: 0, x: 105, y: hlf858CheckY(489.2) },
+  },
+  // EMPLOYMENT TYPE — cx=32.26 at tops 514.2 / 523.1 / 532.0
+  employment_type: {
+    'Locally Employed':           { page: 0, x: 28, y: hlf858CheckY(514.2) },
+    'Self-Employed':              { page: 0, x: 28, y: hlf858CheckY(523.1) },
+    'Overseas Filipino Worker':   { page: 0, x: 28, y: hlf858CheckY(532.0) },
+  },
+  // MAILING PREFERENCE — cx=443.45 at tops 500.6 / 512.9 / 525.3
+  mailing_preference: {
+    'Permanent Home Address':    { page: 0, x: 440, y: hlf858CheckY(500.6) },
+    'Present Home Address':      { page: 0, x: 440, y: hlf858CheckY(512.9) },
+    'Employer/Business Address': { page: 0, x: 440, y: hlf858CheckY(525.3) },
+  },
+  // INDUSTRY / NATURE OF BUSINESS — 4-col × 7-row grid (\uf0a8 Wingdings)
+  // Columns cx: 26.88 / 175.58 / 307 / 413.23 ; page 0, h=792 (-7 offset)
+  industry_category: {
+    'Accounting':                                   { page: 0, x:  23, y: hlf858CheckY(691.4) },
+    'Activities of Private Households as Employers':{ page: 0, x:  23, y: hlf858CheckY(698.9) },
+    'Agriculture, Hunting, Forestry & Fishing':     { page: 0, x:  23, y: hlf858CheckY(721.3) },
+    'Basic Materials':                              { page: 0, x:  23, y: hlf858CheckY(728.7) },
+    'Construction':                                 { page: 0, x:  23, y: hlf858CheckY(736.3) },
+    'Business Process Outsourcing (BPO)':           { page: 0, x: 172, y: hlf858CheckY(691.4) },
+    'Education & Training':                         { page: 0, x: 172, y: hlf858CheckY(698.9) },
+    'Electricity, Gas and Water Supply':            { page: 0, x: 172, y: hlf858CheckY(706.3) },
+    'Extra-Territorial Organization & Bodies':      { page: 0, x: 172, y: hlf858CheckY(713.9) },
+    'Financial Services/Intermediation':            { page: 0, x: 172, y: hlf858CheckY(721.3) },
+    'HR/Recruitment':                               { page: 0, x: 172, y: hlf858CheckY(728.7) },
+    'Life Sciences':                                { page: 0, x: 172, y: hlf858CheckY(736.3) },
+    'Health and Social Work':                       { page: 0, x: 303, y: hlf858CheckY(691.4) },
+    'Management':                                   { page: 0, x: 303, y: hlf858CheckY(706.3) },
+    'Manufacturing':                                { page: 0, x: 303, y: hlf858CheckY(713.9) },
+    'Media':                                        { page: 0, x: 303, y: hlf858CheckY(721.3) },
+    'Mining and Quarrying':                         { page: 0, x: 303, y: hlf858CheckY(728.7) },
+    'Technology':                                   { page: 0, x: 303, y: hlf858CheckY(736.3) },
+    'Other Community, Social & Personal Service Activities': { page: 0, x: 410, y: hlf858CheckY(691.4) },
+    'Public Administration & Defense':              { page: 0, x: 410, y: hlf858CheckY(698.9) },
+    'Transport, Storage and Communications':        { page: 0, x: 410, y: hlf858CheckY(713.9) },
+    'Travel and Leisure':                           { page: 0, x: 410, y: hlf858CheckY(721.3) },
+    'Wholesale & Retail Trade':                     { page: 0, x: 410, y: hlf858CheckY(728.7) },
+  },
 };
 
 // ── Pag-IBIG HLF-068 (Housing Loan Application) — coords (612×936, page 0) ───
@@ -1876,6 +2178,110 @@ const HLF068_SKIP_VALUES: Record<string, string[]> = {
   sss_gsis: [''],
   employer_subdivision: [''],
   employer_zip: [''],
+  existing_housing_application: ['', 'N/A'],
+  loan_purpose: ['', 'N/A'],
+  loan_term: ['', 'N/A'],
+  mode_of_payment: ['', 'N/A'],
+  sex: ['', 'N/A'],
+  marital_status: ['', 'N/A'],
+  home_ownership: ['', 'N/A'],
+  employment_type: ['', 'N/A'],
+  property_type: ['', 'N/A'],
+  property_mortgaged: ['', 'N/A'],
+  offsite_collateral: ['', 'N/A'],
+};
+
+// ── HLF-068 checkbox coords (Iteration 2) ────────────────────────────────
+// Glyph metrics (pdfplumber): ❑ size 8 h≈8.1; \uf0a8 size 9 h≈9. Page h=936.
+// Center the size-9 ✓ inside the printed ❑ / \uf0a8 glyph:
+//   y_lib = 929 - glyph_top   (≈ pageH - (glyphTop + glyphH) + 1)
+//   x     = glyph_cx - 4      (visual centering of ✓ baseline)
+const hlf068CheckY = (glyphTop: number) => HLF068_PAGE_H - glyphTop - 7;
+
+const HLF068_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
+  // "WITH EXISTING HOUSING APPLICATION" row (page 0, top≈105.3)
+  existing_housing_application: {
+    'Yes': { page: 0, x: 334, y: hlf068CheckY(105.3) },
+    'No':  { page: 0, x: 377, y: hlf068CheckY(105.3) },
+  },
+  // PURPOSE OF LOAN — \uf0a8 glyphs at cx=37.01, various tops (page 0)
+  loan_purpose: {
+    'Purchase of fully developed residential lot':        { page: 0, x: 33, y: hlf068CheckY(110.7) },
+    'Purchase of a residential house and lot/townhouse':  { page: 0, x: 33, y: hlf068CheckY(121.0) },
+    'Construction or completion of a residential unit':   { page: 0, x: 33, y: hlf068CheckY(141.7) },
+    'Home improvement':                                   { page: 0, x: 33, y: hlf068CheckY(152.1) },
+    'Refinancing of an existing housing loan':            { page: 0, x: 33, y: hlf068CheckY(162.4) },
+    'Purchase of a parking slot':                         { page: 0, x: 33, y: hlf068CheckY(172.7) },
+    'Purchase of residential lot plus cost of transfer':  { page: 0, x: 33, y: hlf068CheckY(183.1) },
+    'Purchase of residential unit plus cost of transfer': { page: 0, x: 33, y: hlf068CheckY(193.5) },
+  },
+  // DESIRED LOAN TERM (years) — ❑ row at top=165.7 (page 0)
+  loan_term: {
+    '1':  { page: 0, x: 334, y: hlf068CheckY(165.7) },
+    '3':  { page: 0, x: 365, y: hlf068CheckY(165.7) },
+    '5':  { page: 0, x: 396, y: hlf068CheckY(165.7) },
+    '10': { page: 0, x: 428, y: hlf068CheckY(165.7) },
+    '15': { page: 0, x: 464, y: hlf068CheckY(165.7) },
+    '20': { page: 0, x: 500, y: hlf068CheckY(165.7) },
+    '25': { page: 0, x: 536, y: hlf068CheckY(165.7) },
+    '30': { page: 0, x: 570, y: hlf068CheckY(165.7) },
+  },
+  // MODE OF PAYMENT — ❑ column pairs on tops 185.3 / 194.4 / 203.6 / 212.9 (page 0)
+  mode_of_payment: {
+    'Salary deduction':  { page: 0, x: 334, y: hlf068CheckY(185.3) },
+    'Collecting Agent':  { page: 0, x: 474, y: hlf068CheckY(185.3) },
+    'Over-the-Counter':  { page: 0, x: 334, y: hlf068CheckY(194.4) },
+    'Bank':              { page: 0, x: 483, y: hlf068CheckY(194.4) },
+    'Post-Dated Checks': { page: 0, x: 343, y: hlf068CheckY(203.6) },
+    'Developer':         { page: 0, x: 483, y: hlf068CheckY(203.6) },
+    'Cash/Check':        { page: 0, x: 343, y: hlf068CheckY(212.9) },
+    'Remittance Center': { page: 0, x: 483, y: hlf068CheckY(212.9) },
+  },
+  // TYPE OF PROPERTY — \uf0a8 grid at tops 248.0 / 256.3 (page 0)
+  property_type: {
+    'Rowhouse':        { page: 0, x: 389, y: hlf068CheckY(248.0) },
+    'Single Detached': { page: 0, x: 463, y: hlf068CheckY(248.0) },
+    'Townhouse':       { page: 0, x: 538, y: hlf068CheckY(248.0) },
+    'Single Attached': { page: 0, x: 389, y: hlf068CheckY(256.3) },
+    'Condominium':     { page: 0, x: 463, y: hlf068CheckY(256.3) },
+    'Duplex':          { page: 0, x: 538, y: hlf068CheckY(256.3) },
+  },
+  // IS PROPERTY PRESENTLY MORTGAGED? — ❑ at top=329.1 (page 0)
+  property_mortgaged: {
+    'Yes': { page: 0, x: 33, y: hlf068CheckY(329.1) },
+    'No':  { page: 0, x: 96, y: hlf068CheckY(329.1) },
+  },
+  // IS PROPERTY AN OFFSITE COLLATERAL? — ❑ at top=339.7 (page 0)
+  offsite_collateral: {
+    'Yes': { page: 0, x: 194, y: hlf068CheckY(339.7) },
+    'No':  { page: 0, x: 224, y: hlf068CheckY(339.7) },
+  },
+  // SEX — ❑ at top=385.8 (page 0)
+  sex: {
+    'Male':   { page: 0, x: 537, y: hlf068CheckY(385.8) },
+    'Female': { page: 0, x: 557, y: hlf068CheckY(385.8) },
+  },
+  // MARITAL STATUS — ❑ 5 options across tops 407.7 / 416.5 / 425.4 (page 0)
+  marital_status: {
+    'Single':            { page: 0, x: 413, y: hlf068CheckY(407.7) },
+    'Annulled':          { page: 0, x: 482, y: hlf068CheckY(407.7) },
+    'Married':           { page: 0, x: 413, y: hlf068CheckY(416.5) },
+    'Widow/er':          { page: 0, x: 483, y: hlf068CheckY(416.5) },
+    'Legally Separated': { page: 0, x: 413, y: hlf068CheckY(425.4) },
+  },
+  // HOME OWNERSHIP — ❑ at tops 537.7 / 546.3 (page 0)
+  home_ownership: {
+    'Owned':                         { page: 0, x:  30, y: hlf068CheckY(537.7) },
+    'Company-Provided':              { page: 0, x:  80, y: hlf068CheckY(537.7) },
+    'Living with relatives/parents': { page: 0, x: 131, y: hlf068CheckY(537.7) },
+    'Mortgaged':                     { page: 0, x:  30, y: hlf068CheckY(546.3) },
+    'Rented':                        { page: 0, x:  80, y: hlf068CheckY(546.3) },
+  },
+  // EMPLOYMENT TYPE — ❑ stacked at top=593.4 / 602.7 (page 0)
+  employment_type: {
+    'Employed':      { page: 0, x: 300, y: hlf068CheckY(593.4) },
+    'Self-Employed': { page: 0, x: 300, y: hlf068CheckY(602.7) },
+  },
 };
 
 export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
@@ -1951,26 +2357,31 @@ export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
     fieldCoords: SLF089_FIELD_COORDS,
     skipValues: SLF089_SKIP_VALUES,
     copyYOffsets: [0],
+    checkboxCoords: SLF089_CHECKBOX_COORDS,
   },
   'pagibig-slf-065': {
     fieldCoords: SLF065_FIELD_COORDS,
     skipValues: SLF065_SKIP_VALUES,
     copyYOffsets: [0],
+    checkboxCoords: SLF065_CHECKBOX_COORDS,
   },
   'pagibig-hlf-868': {
     fieldCoords: HLF868_FIELD_COORDS,
     skipValues: HLF868_SKIP_VALUES,
     copyYOffsets: [0],
+    checkboxCoords: HLF868_CHECKBOX_COORDS,
   },
   'pagibig-hlf-858': {
     fieldCoords: HLF858_FIELD_COORDS,
     skipValues: HLF858_SKIP_VALUES,
     copyYOffsets: [0],
+    checkboxCoords: HLF858_CHECKBOX_COORDS,
   },
   'pagibig-hlf-068': {
     fieldCoords: HLF068_FIELD_COORDS,
     skipValues: HLF068_SKIP_VALUES,
     copyYOffsets: [0],
+    checkboxCoords: HLF068_CHECKBOX_COORDS,
   },
 };
 

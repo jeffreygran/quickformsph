@@ -81,7 +81,7 @@ export default function SuggestionModal({ onClose }: { onClose: () => void }) {
                 required
               />
               <p className="mt-1.5 text-[11px] text-gray-400 leading-relaxed">
-                💬 Positive feedback is greatly appreciated — with your permission, kind words may be featured as a review on the site. Maraming salamat! 🙏
+                The site is still a work in progress, so some mistakes or incomplete parts may happen. Maraming salamat! 🙏
               </p>
             </div>
             {error && <p className="text-xs text-red-500">{error}</p>}
