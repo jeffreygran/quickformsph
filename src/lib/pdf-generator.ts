@@ -1783,8 +1783,24 @@ const HLF_068_Y_EMP3   = hlf068Y(643);
 const HLF_068_Y_POS    = hlf068Y(779);
 
 const HLF068_FIELD_COORDS: CoordsMap = {
-  mid_no:                { page: 0, x: 210, y: HLF_068_Y_HEADER, fontSize: 9, maxWidth: 185 },
-  housing_account_no:    { page: 0, x: 400, y: HLF_068_Y_HEADER, fontSize: 9, maxWidth: 195 },
+  // mid_no / housing_account_no: 4-4-4 format with pre-printed dashes at cell indices 4 and 9.
+  // Only provide 12 boxCenters (digit cells only, skipping the 2 dash cells).
+  mid_no: {
+    page: 0, x: 0, y: 865.8, fontSize: 9,
+    boxCenters: [
+      216.83, 228.89, 240.95, 253.07,   // digits 1-4
+      277.19, 289.31, 301.43, 313.56,   // digits 5-8  (skip dash cell at source idx 4)
+      337.75, 349.81, 361.93, 374.05,   // digits 9-12 (skip dash cell at source idx 9)
+    ],
+  },
+  housing_account_no: {
+    page: 0, x: 0, y: 865.4, fontSize: 9,
+    boxCenters: [
+      405.61, 418.93, 432.25, 445.54,   // digits 1-4
+      472.24, 485.56, 498.88, 512.26,   // digits 5-8  (skip dash cell at source idx 4)
+      538.96, 552.28, 565.67, 579.06,   // digits 9-12 (skip dash cell at source idx 9)
+    ],
+  },
   desired_loan_amount:   { page: 0, x: 475, y: HLF_068_Y_LOAN, fontSize: 9, maxWidth: 100 },
 
   last_name:             { page: 0, x: 30,  y: HLF_068_Y_NAMES, fontSize: 8, maxWidth: 70 },
