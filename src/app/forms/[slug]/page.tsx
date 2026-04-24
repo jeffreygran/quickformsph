@@ -1157,12 +1157,6 @@ export default function FormWizardPage() {
           onPreview={handlePreviewInPDF}
           previewing={previewing}
         />
-        {showPrivacyModal && (
-          <PrivacyConsentModal
-            onAck={() => setShowPrivacyModal(false)}
-            onClose={() => router.push('/')}
-          />
-        )}
       </>
     );
   }
@@ -1465,6 +1459,14 @@ export default function FormWizardPage() {
         </div>
       )}
 
+      {/* Privacy consent — shown once on page entry */}
+      {showPrivacyModal && (
+        <PrivacyConsentModal
+          onAck={() => setShowPrivacyModal(false)}
+          onClose={() => router.push('/')}
+        />
+      )}
+
     </div>
   );
 }
@@ -1729,7 +1731,7 @@ function ReviewScreen({
         <div className="mb-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 flex items-start gap-2">
           <span className="text-sm shrink-0 mt-0.5">⚠️</span>
           <p className="text-[11px] text-amber-800 leading-relaxed">
-            <span className="font-bold">Review carefully before proceeding.</span> Make sure all details are correct — once you generate and pay for your PDF, changes are not possible without re-submitting.
+            <span className="font-bold">Review carefully before proceeding.</span> Make sure all details are correct.
           </p>
         </div>
         <button
