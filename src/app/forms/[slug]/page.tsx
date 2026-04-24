@@ -54,6 +54,16 @@ export default function FormWizardPage() {
   const [draftModalOpen, setDraftModalOpen] = useState(false);
   const [pendingDraft, setPendingDraft]     = useState<FormValues | null>(null);
 
+  // Blank PDF viewer
+  const [showBlankViewer, setShowBlankViewer] = useState(false);
+  const [blankPdfPage, setBlankPdfPage]       = useState(1);
+  const [blankPdfTotal, setBlankPdfTotal]     = useState(0);
+  const [blankPdfZoom, setBlankPdfZoom]       = useState(1.0);
+  const [blankPdfCanvas, setBlankPdfCanvas]   = useState('');
+  const [blankPdfLoading, setBlankPdfLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const blankPdfDocRef = useRef<any>(null);
+
   // Populate today's date for the date field
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -857,6 +867,49 @@ export default function FormWizardPage() {
     setShowSamplePicker(false);
   }
 
+  // ── Blank PDF viewer helpers ──────────────────────────────────────────────
+  const renderBlankPage = useCallback(async (doc: any, pageNum: number, zoom: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    setBlankPdfLoading(true);
+    try {
+      const page = await doc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: zoom * 2.0 }); // ×2 for retina clarity
+      const canvas = document.createElement('canvas');
+      canvas.width  = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d')!;
+      await page.render({ canvasContext: ctx as never, viewport }).promise;
+      setBlankPdfCanvas(canvas.toDataURL('image/jpeg', 0.92));
+    } finally {
+      setBlankPdfLoading(false);
+    }
+  }, []);
+
+  async function handleOpenBlankViewer() {
+    if (blankPdfDocRef.current) {
+      setBlankPdfPage(1);
+      setShowBlankViewer(true);
+      await renderBlankPage(blankPdfDocRef.current, 1, blankPdfZoom);
+      return;
+    }
+    setBlankPdfCanvas('');
+    setBlankPdfLoading(true);
+    setShowBlankViewer(true);
+    try {
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+      const doc = await pdfjsLib.getDocument(`/forms/${encodeURIComponent(form!.pdfPath)}`).promise;
+      blankPdfDocRef.current = doc;
+      setBlankPdfTotal(doc.numPages);
+      setBlankPdfPage(1);
+      await renderBlankPage(doc, 1, blankPdfZoom);
+    } catch (err) {
+      console.error('Blank PDF load error:', err);
+      setShowBlankViewer(false);
+    } finally {
+      setBlankPdfLoading(false);
+    }
+  }
+
   // ── Privacy gate — check acknowledgement before preview ──────────────────
   function handlePreviewRequest() {
     try {
@@ -1095,15 +1148,13 @@ export default function FormWizardPage() {
             <div className="text-xs font-mono text-gray-400 truncate">{form.code}</div>
             <div className="text-xs font-medium text-gray-700 truncate">{form.name}</div>
           </div>
-          <a
-            href={`/forms/${encodeURIComponent(form.pdfPath)}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={handleOpenBlankViewer}
             className="rounded-lg border border-gray-200 bg-white py-2 px-3 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap"
             title="View blank PDF form"
           >
-            📄 Blank
-          </a>
+            📄 View
+          </button>
           <button
             onClick={() => setMode('review')}
             className="btn-primary py-2 px-4 text-xs"
@@ -1251,6 +1302,109 @@ export default function FormWizardPage() {
           </div>
         </div>
       </main>
+
+      {/* ── Blank PDF Viewer Modal ── */}
+      {showBlankViewer && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-gray-950">
+          {/* Header toolbar */}
+          <div className="flex items-center gap-2 bg-gray-800 px-3 py-2 shrink-0 border-b border-gray-700">
+            <span className="flex-1 min-w-0 text-xs font-semibold text-white truncate">{form.name}</span>
+
+            {/* Page navigation */}
+            {blankPdfTotal > 1 && (
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  disabled={blankPdfPage <= 1 || blankPdfLoading}
+                  onClick={async () => {
+                    const p = blankPdfPage - 1;
+                    setBlankPdfPage(p);
+                    await renderBlankPage(blankPdfDocRef.current, p, blankPdfZoom);
+                  }}
+                  className="rounded bg-gray-700 hover:bg-gray-600 w-7 h-7 text-sm text-white disabled:opacity-30 flex items-center justify-center transition-colors"
+                >‹</button>
+                <span className="text-xs text-gray-300 min-w-[4.5rem] text-center tabular-nums">
+                  {blankPdfPage} / {blankPdfTotal}
+                </span>
+                <button
+                  disabled={blankPdfPage >= blankPdfTotal || blankPdfLoading}
+                  onClick={async () => {
+                    const p = blankPdfPage + 1;
+                    setBlankPdfPage(p);
+                    await renderBlankPage(blankPdfDocRef.current, p, blankPdfZoom);
+                  }}
+                  className="rounded bg-gray-700 hover:bg-gray-600 w-7 h-7 text-sm text-white disabled:opacity-30 flex items-center justify-center transition-colors"
+                >›</button>
+              </div>
+            )}
+
+            {/* Zoom controls */}
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                disabled={blankPdfZoom <= 0.5 || blankPdfLoading}
+                onClick={async () => {
+                  const z = Math.max(0.5, +(blankPdfZoom - 0.25).toFixed(2));
+                  setBlankPdfZoom(z);
+                  await renderBlankPage(blankPdfDocRef.current, blankPdfPage, z);
+                }}
+                className="rounded bg-gray-700 hover:bg-gray-600 w-7 h-7 text-base font-bold text-white disabled:opacity-30 flex items-center justify-center transition-colors"
+              >−</button>
+              <button
+                onClick={async () => {
+                  setBlankPdfZoom(1.0);
+                  await renderBlankPage(blankPdfDocRef.current, blankPdfPage, 1.0);
+                }}
+                disabled={blankPdfLoading}
+                className="rounded bg-gray-700 hover:bg-gray-600 px-2 h-7 text-xs text-gray-200 disabled:opacity-30 tabular-nums transition-colors"
+              >
+                {Math.round(blankPdfZoom * 100)}%
+              </button>
+              <button
+                disabled={blankPdfZoom >= 3.0 || blankPdfLoading}
+                onClick={async () => {
+                  const z = Math.min(3.0, +(blankPdfZoom + 0.25).toFixed(2));
+                  setBlankPdfZoom(z);
+                  await renderBlankPage(blankPdfDocRef.current, blankPdfPage, z);
+                }}
+                className="rounded bg-gray-700 hover:bg-gray-600 w-7 h-7 text-base font-bold text-white disabled:opacity-30 flex items-center justify-center transition-colors"
+              >+</button>
+            </div>
+
+            <button
+              onClick={() => setShowBlankViewer(false)}
+              className="rounded bg-gray-700 hover:bg-red-700 px-3 h-7 text-xs text-white shrink-0 transition-colors"
+            >✕ Close</button>
+          </div>
+
+          {/* PDF canvas area */}
+          <div className="flex-1 overflow-auto bg-gray-950 flex justify-center p-4">
+            {blankPdfLoading && !blankPdfCanvas ? (
+              <div className="flex flex-col items-center justify-center gap-3 text-gray-400">
+                <div className="w-8 h-8 border-2 border-gray-600 border-t-blue-400 rounded-full animate-spin" />
+                <span className="text-sm">Loading PDF…</span>
+              </div>
+            ) : blankPdfCanvas ? (
+              <div className="relative inline-block">
+                {blankPdfLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded z-10">
+                    <div className="w-7 h-7 border-2 border-gray-400 border-t-white rounded-full animate-spin" />
+                  </div>
+                )}
+                <img
+                  src={blankPdfCanvas}
+                  alt={`Page ${blankPdfPage}`}
+                  className="block shadow-2xl rounded max-w-full"
+                  style={{ imageRendering: 'crisp-edges' }}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          {/* Bottom hint */}
+          <div className="bg-gray-800 text-center py-2 text-[10px] text-gray-500 shrink-0">
+            Use ‹ › to navigate pages · − % + to zoom · pinch-to-zoom works on touch devices
+          </div>
+        </div>
+      )}
 
     </div>
   );
