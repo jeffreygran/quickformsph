@@ -50,6 +50,7 @@ export default function FormWizardPage() {
   const [previewImageUrl, setPreviewImageUrl] = useState('');
 
   // Privacy & payment modal state
+  const [showPrivacyModal, setShowPrivacyModal] = useState(true); // always show on form entry
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [downloadCode, setDownloadCode]         = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -1156,6 +1157,12 @@ export default function FormWizardPage() {
           onPreview={handlePreviewInPDF}
           previewing={previewing}
         />
+        {showPrivacyModal && (
+          <PrivacyConsentModal
+            onAck={() => setShowPrivacyModal(false)}
+            onClose={() => router.push('/')}
+          />
+        )}
       </>
     );
   }
