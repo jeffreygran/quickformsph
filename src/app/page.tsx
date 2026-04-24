@@ -157,20 +157,12 @@ export default function HomePage() {
 
           {/* Right nav */}
           <nav className="flex items-center gap-2">
-            {/* ── Donate button ── */}
-            <button
-              onClick={() => setShowDonation(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-2.5 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors"
-            >
-              💚 <span className="hidden sm:inline">Donate</span>
-            </button>
-
             {/* ── Forms link ── */}
             <Link
               href="/forms"
               className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
             >
-              📋 <span className="hidden sm:inline">Forms</span>
+              📋 <span className="hidden sm:inline">Downloadable Forms</span>
             </Link>
 
             {/* ── Download Code Button ── */}

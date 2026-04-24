@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FORMS } from '@/data/forms';
+import DonateButton from '@/components/DonateButton';
 
 export const metadata: Metadata = {
   title: 'Available Forms — QuickFormsPH',
@@ -36,9 +37,12 @@ export default function FormsPage() {
               priority
             />
           </Link>
-          <Link href="/" className="text-xs font-medium text-blue-700 hover:text-blue-900 transition-colors">
-            ← Back to Home
-          </Link>
+          <div className="flex items-center gap-3">
+            <DonateButton />
+            <Link href="/" className="text-xs font-medium text-blue-700 hover:text-blue-900 transition-colors">
+              ← Back to Home
+            </Link>
+          </div>
         </div>
       </header>
 

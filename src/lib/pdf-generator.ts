@@ -1861,21 +1861,24 @@ const HLF_858_Y_EMP3    = hlf858Y(642);  // Employer addr row 2
 const HLF_858_Y_POS     = hlf858Y(677);  // Position / time / place / years
 
 const HLF858_FIELD_COORDS: CoordsMap = {
-  // Header digit boxes — MID (12 cells) and Housing (14 cells) at top=94.9-107.1.
-  //   baseline y = 792 - 107.1 + (12.2-6.51)/2 ≈ 687.75
+  // Header digit boxes — MID (14 cells) and Housing (14 cells) at top=94.5-107.1.
+  //   baseline y = 792 - 107.1 + (12.6-6.3)/2 ≈ 687.75
+  // MID / HOUSING: 4-4-4 format with pre-printed dash cells (gray) at source indices 4 and 9.
+  // Only provide 12 boxCenters (digit cells only, skipping the 2 dash cells).
   mid_no: {
     page: 0, x: 0, y: 687.75, fontSize: 9,
     boxCenters: [
-      287.15, 298.25, 309.35, 320.45,          // digits 1-4
-      331.56, 342.67, 353.77, 364.87,          // digits 5-8
-      375.97, 387.55, 399.07, 409.63,          // digits 9-12
+      253.43, 264.83, 276.05, 287.15,          // digits 1-4
+      309.35, 320.45, 331.55, 342.67,          // digits 5-8  (skip dash cell cx=298.25)
+      364.87, 375.97, 387.55, 399.07,          // digits 9-12 (skip dash cell cx=353.77)
     ],
   },
   housing_account_no: {
     page: 0, x: 0, y: 687.75, fontSize: 9,
     boxCenters: [
-      432.85, 443.77, 454.69, 465.61, 476.73, 487.85, 498.97,
-      510.09, 521.21, 532.33, 543.45, 554.57, 565.69, 576.81,
+      432.85, 444.25, 455.47, 466.58,          // digits 1-4
+      488.80, 499.90, 511.00, 522.10,          // digits 5-8  (skip gray dash cell cx=477.70)
+      544.30, 555.40, 566.98, 578.50,          // digits 9-12 (skip gray dash cell cx=533.20)
     ],
   },
 

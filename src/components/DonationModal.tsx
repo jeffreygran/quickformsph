@@ -122,10 +122,6 @@ export default function DonationModal({ onClose }: { onClose: () => void }) {
                 <span className="text-xs text-gray-500">Account Name</span>
                 <span className="text-sm font-semibold text-gray-900">{gcashName}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Amount</span>
-                <span className="text-sm font-semibold text-green-700">Any amount 💛</span>
-              </div>
               {qrUrl && (
                 <button
                   onClick={() => setQrFullscreen(true)}
@@ -140,11 +136,11 @@ export default function DonationModal({ onClose }: { onClose: () => void }) {
             <div style={{ perspective: '600px' }}>
               <div
                 style={{
-                  transition: 'transform 0.5s',
+                  transition: 'transform 0.5s, min-height 0.4s',
                   transformStyle: 'preserve-3d',
                   transform: gcashCopied ? 'rotateX(180deg)' : 'rotateX(0deg)',
                   position: 'relative',
-                  minHeight: '48px',
+                  minHeight: gcashCopied ? '170px' : '48px',
                 }}
               >
                 {/* Front */}

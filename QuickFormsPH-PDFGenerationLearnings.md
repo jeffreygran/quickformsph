@@ -2051,3 +2051,115 @@ can differ per row. The correct procedure is:
 
 Confirm the mapping visually BEFORE pushing calibration; a `pdftoppm` snapshot at 100+dpi
 is the cheapest final check.
+
+---
+
+## 2026-04-24 (round 4) — HLF-858 MID/HOUSING boxCenters Off By 3 Cells (FIXED)
+
+### Problem
+Mai screenshot showed MID digits "5555-6666-7777" appearing shifted right — first
+3 cells empty, last digit spilling past the right edge of the MID box.
+
+### Root cause
+`HLF858_FIELD_COORDS.mid_no.boxCenters` started at cx=287.15, which is actually the
+**4th** cell of a 14-cell MID row. The MID box has 14 cells whose cx values are:
+`253.43, 264.83, 276.05, 287.15, 298.25, 309.35, 320.45, 331.55, 342.67, 353.77,
+364.87, 375.97, 387.55, 399.07`. The prior coord array started at index 3 (zero-based)
+and ended at `409.63` which is past the last cell (x1=404.35), so the 12th digit
+spilled outside the box.
+
+Similarly `housing_account_no.boxCenters` started at `432.85` — between cells 1 (427.39)
+and 2 (438.79) — all 14 values were roughly +5pt off.
+
+### Fix
+Re-derived both arrays from live rect extraction (rects with 85<top<115 and
+5<width<20 sorted by top then x0):
+- **MID**: first 12 of the 14 cells `[253.43, 264.83, 276.05, 287.15, 298.25, 309.35,
+  320.45, 331.55, 342.67, 353.77, 364.87, 375.97]` (Pag-IBIG MID is always 12 digits).
+- **HOUSING**: all 14 cells `[427.39, 438.79, 450.19, 461.23, 472.42, 483.46, 494.62,
+  505.66, 516.82, 527.86, 539.02, 550.06, 561.22, 573.22]`.
+
+### Verification
+pdftoppm 150dpi header crop: all 12 MID digits land inside cells 1-12; cells 13-14
+are correctly empty; HOUSING is blank (persona value empty).
+
+### Lesson
+**Never trust hand-transcribed boxCenters arrays — always re-derive from rect
+extraction.** The query that works reliably:
+```python
+rects = [r for r in page.rects
+         if EXPECTED_TOP-3 < r['top'] < EXPECTED_TOP+3
+         and 5 < r['width'] < 20 and 5 < r['height'] < 20]
+rects.sort(key=lambda r: r['x0'])
+cx = [(r['x0']+r['x1'])/2 for r in rects]
+```
+Then sanity-check: count matches the printed cell count, and first/last cx align with
+the first/last visible boxes on a pdftoppm render.
+
+---
+
+## 2026-04-24 (round 5) — HLF-858 MID/HOUSING Skip Dash Cells + Populate HOUSING
+
+### Problem
+After round 4, MID was filled left-to-right across 12 consecutive cells — but the MID
+box is actually 14 cells in **4-4-4 format** with pre-printed gray dash cells at source
+indices 4 and 9. Digits were landing inside the gray dash cells instead of skipping
+them. Additionally `housing_account_no` was empty in both personas.
+
+### Fix
+Same pattern as `HLF068_FIELD_COORDS` (already correct): provide only 12 `boxCenters`
+and skip the dash-cell cx values entirely:
+- **MID** skip cx `298.25` (dash 1) and `353.77` (dash 2)
+- **HOUSING** skip cx `472.42` (dash 1) and `527.86` (dash 2)
+Populated `housing_account_no` in both persona payloads.
+
+### Verification
+150dpi crop shows `5555▓6666▓7777` and `9876▓5432▓1098` with digits in the correct
+numeric cells and gray cells visibly untouched.
+
+### Lesson
+**4-4-4 digit boxes have pre-printed dash separators that must be skipped — they are
+NOT usable text cells.** When a 14-cell row contains a 12-digit number, always omit
+the 2 dash-cell cx values from the boxCenters array. Cross-check by counting gray
+rects (fill color != white) in the rect extraction: those positions should be in the
+skip list.
+
+---
+
+## 2026-04-24 (round 6) — HLF-858 HOUSING x0-vs-cx Mix-up + Analytical Verification
+
+### Problem
+User flagged HOUSING digits still not aligned. MID looked fine but HOUSING digits
+were shifted ~5pt left of their cell centers.
+
+### Root cause
+When I transcribed the HOUSING `boxCenters` array I accidentally pasted **x0 values**
+(`427.39, 438.79, 450.19, 461.23, 483.46, …`) instead of **cx values**
+(`432.85, 444.25, 455.47, 466.58, 488.80, …`). The rect extraction printout had both
+columns side-by-side and I pulled the wrong column. MID happened to use correct cx
+values, so only HOUSING was broken.
+
+### Fix
+Replaced with true cx values (midpoint of x0/x1):
+`[432.85, 444.25, 455.47, 466.58, 488.80, 499.90, 511.00, 522.10, 544.30, 555.40,
+566.98, 578.50]`.
+
+### Verification (analytical + visual)
+Per-digit check: extracted `cx=(x0+x1)/2` of each rendered digit char, compared to
+expected cell cx — all 24 digits (MID 12 + HOUSING 12) match within 1pt. Visual
+150dpi crop confirms.
+
+### Lesson (workflow rule, not just a coord)
+**Moving forward: after every fix, run an analytical char-vs-expected-cx diff BEFORE
+declaring done.** Don't rely on visual eyeballing alone — a ~5pt shift reads as
+"close enough" in a thumbnail but is clearly wrong at full resolution. Generator-
+side sanity check:
+```python
+digits = sorted([c for c in page.chars if IN_ROW(c) and c['text'].isdigit()],
+                key=lambda c: c['x0'])
+for c, expected_cx in zip(digits, EXPECTED):
+    actual_cx = (c['x0']+c['x1'])/2
+    assert abs(actual_cx - expected_cx) < 1.0, f"misaligned: {c['text']} {actual_cx:.1f} != {expected_cx:.1f}"
+```
+Also: **never paste multi-column rect output without re-labeling which column is x0
+vs cx.** Compute `cx = (x0+x1)/2` in code, don't eyeball it.
