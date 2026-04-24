@@ -10,6 +10,7 @@ import DonationModal from '@/components/DonationModal';
 
 const IS_DEV = process.env.NEXT_PUBLIC_APP_ENV === 'dev';
 const AGENCY_FILTERS = ['All', ...Array.from(new Set(FORMS.map((f) => f.agency)))];
+const PAGE_SIZE = 6;
 
 interface SavedCode { code: string; expires_at: number; }
 
@@ -41,6 +42,11 @@ export default function HomePage() {
 
   // Donation modal state
   const [showDonation, setShowDonation] = useState(false);
+
+  // Infinite scroll
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [loadingMore, setLoadingMore]   = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Load saved code from localStorage on mount
   useEffect(() => {
@@ -77,6 +83,10 @@ export default function HomePage() {
     if (now - lastClickRef.current < 400) router.push('/mc/login');
     lastClickRef.current = now;
   }, [router]);
+
+  // Reset visible count whenever filters change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [search, agency]);
 
   const filtered = FORMS.filter((f) => {
     const matchSearch =
@@ -124,6 +134,29 @@ export default function HomePage() {
     if (code.length !== 5) { setCodeError('Enter a valid 5-character code.'); return; }
     setShowConfirm(true);
   }
+
+  const visibleForms = filtered.slice(0, visibleCount);
+  const hasMore       = visibleCount < filtered.length;
+
+  // IntersectionObserver — load next page when sentinel enters viewport
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          setLoadingMore(true);
+          setTimeout(() => {
+            setVisibleCount((c) => c + PAGE_SIZE);
+            setLoadingMore(false);
+          }, 500);
+        }
+      },
+      { rootMargin: '200px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore]);
 
   const timeLeft   = savedCode ? savedCode.expires_at - Date.now() : 0;
   const hasValid   = !!savedCode && timeLeft > 0;
@@ -322,14 +355,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Agency Filters ── */}
-      <div className="mx-auto max-w-5xl overflow-x-auto px-4 py-3">
-        <div className="flex gap-2">
+      {/* ── Agency Filters + Count ── */}
+      <div className="mx-auto max-w-5xl px-4 py-3">
+        <div className="flex items-center gap-2 overflow-x-auto">
           {AGENCY_FILTERS.map((a) => (
             <button
               key={a}
               onClick={() => setAgency(a)}
-              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors flex-shrink-0 ${
                 agency === a
                   ? 'bg-blue-700 text-white'
                   : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -338,6 +371,9 @@ export default function HomePage() {
               {a}
             </button>
           ))}
+          <span className="ml-auto flex-shrink-0 whitespace-nowrap rounded-full bg-gray-100 border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500">
+            {filtered.length} form{filtered.length !== 1 ? 's' : ''}
+          </span>
         </div>
       </div>
 
@@ -350,11 +386,32 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((form) => (
+            {visibleForms.map((form) => (
               <FormCard key={form.slug} form={form} />
+            ))}
+            {/* Skeleton cards while loading more */}
+            {loadingMore && Array.from({ length: Math.min(PAGE_SIZE, filtered.length - visibleCount) }).map((_, i) => (
+              <div key={`skel-${i}`} className="rounded-2xl bg-white border border-gray-100 p-5 animate-pulse">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-200" />
+                  <div className="w-16 h-5 rounded-full bg-gray-200" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 w-16 rounded bg-gray-200" />
+                  <div className="h-4 w-3/4 rounded bg-gray-200" />
+                  <div className="h-3 w-full rounded bg-gray-200" />
+                  <div className="h-3 w-2/3 rounded bg-gray-200" />
+                </div>
+                <div className="mt-4 flex justify-between">
+                  <div className="h-3 w-12 rounded bg-gray-200" />
+                  <div className="h-3 w-16 rounded bg-gray-200" />
+                </div>
+              </div>
             ))}
           </div>
         )}
+        {/* Sentinel for IntersectionObserver */}
+        <div ref={sentinelRef} className="h-1" />
 
         {/* ── Coming Soon ── */}
         <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center">
