@@ -1172,7 +1172,7 @@ export default function FormWizardPage() {
         />
         {showSuccessModal && (
           <SuccessCodeModal
-            code={'\u2014'}
+            onDownloadAgain={handleLocalDownload}
             onClose={() => { setShowSuccessModal(false); router.push('/'); }}
           />
         )}
@@ -2581,68 +2581,34 @@ function VerifyingScreen({ screenshotUrl }: { screenshotUrl: string }) {
 
 // ─── SuccessCodeModal ─────────────────────────────────────────────────────────
 function SuccessCodeModal({
-  code,
+  onDownloadAgain,
   onClose,
 }: {
-  code: string;
+  onDownloadAgain: () => void;
   onClose: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
-  const expiry    = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-  const expiryStr = expiry.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
-
-  function handleCopy() {
-    navigator.clipboard.writeText(code).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }).catch(() => {});
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-br from-blue-800 via-blue-700 to-indigo-700 px-5 py-5 text-center">
           <div className="text-4xl mb-1">🎉</div>
-          <div className="text-white font-bold text-base">Thank you for the support!</div>
-          <div className="text-blue-200 text-xs mt-0.5">Your PDF is downloading now</div>
+          <div className="text-white font-bold text-base">Your PDF is ready!</div>
+          <div className="text-blue-200 text-xs mt-0.5">Your download has started</div>
         </div>
         {/* Body */}
-        <div className="p-5 space-y-4">
-          <div>
-            <p className="text-xs text-gray-500 text-center mb-2">
-              Save this code to re-download your PDF anytime within 2 days:
-            </p>
-            {/* Code display */}
-            <div className="flex items-center gap-2 bg-gray-900 rounded-xl p-3">
-              <div className="flex-1 text-center">
-                <span className="text-2xl font-black tracking-[0.3em] text-white font-mono">
-                  {code || '—'}
-                </span>
-              </div>
-              <button
-                onClick={handleCopy}
-                className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
-              >
-                {copied ? '✓ Copied!' : 'Copy'}
-              </button>
-            </div>
-            <p className="text-[10px] text-center text-red-500 mt-2 font-medium">
-              ⏰ Expires: {expiryStr} — Note it down!
-            </p>
-          </div>
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-800 leading-relaxed">
-            To re-download using this code, go to{' '}
-            <span className="font-semibold">quickformsph.com</span> and enter your code in the
-            &quot;Download by Code&quot; section on the home page.
-          </div>
-        </div>
-        <div className="px-5 pb-5">
+        <div className="p-5 space-y-3">
+          <button
+            onClick={onDownloadAgain}
+            className="w-full rounded-xl border border-blue-200 bg-blue-50 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
+          >
+            ⬇️ Download again
+          </button>
           <button
             onClick={onClose}
             className="w-full rounded-xl bg-blue-700 py-3 text-sm font-semibold text-white hover:bg-blue-800 transition-colors"
           >
-            Done — Back to Home
+            Done
           </button>
         </div>
       </div>
