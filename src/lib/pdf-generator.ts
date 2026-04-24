@@ -221,9 +221,9 @@ const PMRF_FIELD_COORDS: CoordsMap = {
   // Cell box pdfplumb top=767.7 bottom=803.6.
   // Label text occupies top=770.5–784.7 (two lines ending at pdfplumb bottom≈784.7).
   // Fill area: pdfplumb top≈793.5 (blank below label) → pdf_lib y = 841.5 - 793.5 - 8 ≈ 40
-  profession:          { page: 0, x:  22, y: 40, maxWidth: 168 },
-  monthly_income:      { page: 0, x: 197, y: 40, maxWidth:  82 },
-  proof_of_income:     { page: 0, x: 287, y: 40, maxWidth:  87 },
+  profession:          { page: 0, x:  22, y: 40, maxWidth: 168, fontSize: 8 },
+  monthly_income:      { page: 0, x: 197, y: 40, maxWidth:  82, fontSize: 8 },
+  proof_of_income:     { page: 0, x: 287, y: 40, maxWidth:  87, fontSize: 6 },
 
   // ── Section III: Declaration of Dependents ────────────────────────────────
   // Column x values: last_name=20, first_name=123, name_ext=236, middle_name=267,
@@ -1000,8 +1000,9 @@ const PMRF_FN_FIELD_COORDS: CoordsMap = {
 //   Female: x0=150.1, top=342.2, x1=164.9, bottom=357.0 → same y
 const PMRF_FN_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
   sex: {
-    'Male':   { x: 83.5, y: 490 },
-    'Female': { x: 151, y: 490 },
+    // Calibrated 2026-04: +2.7 x / -2.2 y to center on printed box.
+    'Male':   { x: 86.2, y: 487.8 },
+    'Female': { x: 153.7, y: 487.8 },
   },
 };
 
@@ -1184,31 +1185,32 @@ const PFF049_FIELD_COORDS: CoordsMap = {
 //                    Single TO cx=306, LegSep TO cx=396, Divorced TO cx=509
 //   Row 2 (top≈364): Married FROM cx=32, Annulled FROM cx=119, Widowed FROM cx=232,
 //                    Married TO cx=306, Annulled TO cx=396, Widowed TO cx=509
-const pff049CheckY = (rowTop: number) => PFF049_PAGE_H - rowTop - 4;
+// Calibrated 2026-04: helper -4 → -8 (shift tick down ~4pt) and each x -2pt.
+const pff049CheckY = (rowTop: number) => PFF049_PAGE_H - rowTop - 8;
 
 const PFF049_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
   // NOTE: The original form has no Yes/No checkbox for loyalty_card_holder —
   // a bank name in `loyalty_partner_bank` is the sole indicator. Skip drawing.
   marital_from: {
-    'Single':             { x:  30, y: pff049CheckY(354) },
-    'Married':            { x:  30, y: pff049CheckY(364) },
-    'Legally Separated':  { x: 117, y: pff049CheckY(354) },
-    'Annulled/Nullified': { x: 117, y: pff049CheckY(364) },
-    'Divorced':           { x: 230, y: pff049CheckY(354) },
-    'Widowed':            { x: 230, y: pff049CheckY(364) },
+    'Single':             { x:  28, y: pff049CheckY(354) },
+    'Married':            { x:  28, y: pff049CheckY(364) },
+    'Legally Separated':  { x: 115, y: pff049CheckY(354) },
+    'Annulled/Nullified': { x: 115, y: pff049CheckY(364) },
+    'Divorced':           { x: 228, y: pff049CheckY(354) },
+    'Widowed':            { x: 228, y: pff049CheckY(364) },
   },
   marital_to: {
-    'Single':             { x: 304, y: pff049CheckY(354) },
-    'Married':            { x: 304, y: pff049CheckY(364) },
-    'Legally Separated':  { x: 394, y: pff049CheckY(354) },
-    'Annulled/Nullified': { x: 394, y: pff049CheckY(364) },
-    'Divorced':           { x: 507, y: pff049CheckY(354) },
-    'Widowed':            { x: 507, y: pff049CheckY(364) },
+    'Single':             { x: 302, y: pff049CheckY(354) },
+    'Married':            { x: 302, y: pff049CheckY(364) },
+    'Legally Separated':  { x: 392, y: pff049CheckY(354) },
+    'Annulled/Nullified': { x: 392, y: pff049CheckY(364) },
+    'Divorced':           { x: 505, y: pff049CheckY(354) },
+    'Widowed':            { x: 505, y: pff049CheckY(364) },
   },
   preferred_mailing: {
-    'Present Home Address':      { x:  31, y: pff049CheckY(578) },
-    'Permanent Home Address':    { x: 174, y: pff049CheckY(578) },
-    'Employer/Business Address': { x: 304, y: pff049CheckY(578) },
+    'Present Home Address':      { x:  29, y: pff049CheckY(578) },
+    'Permanent Home Address':    { x: 172, y: pff049CheckY(578) },
+    'Employer/Business Address': { x: 302, y: pff049CheckY(578) },
   },
 };
 
@@ -1342,6 +1344,25 @@ const SLF089_FIELD_COORDS: CoordsMap = {
 
   // Signature date — bottom of page near signature block (approx y=120 in lib coords)
   signature_date:           { page: 0, x: 470, y: 110, fontSize: 9, maxWidth: 110 },
+
+  // ── Previous Employment Details table (3 rows × 4 cols) ─────────────────
+  // Cell rects (pdfplumber tops/bottoms):
+  //   Row 1: top=334.7 bot=342.9 → y_lib = 936 - 342.9 + 2 = 595
+  //   Row 2: top=343.4 bot=351.4 → y_lib = 586
+  //   Row 3: top=351.9 bot=359.9 → y_lib = 578
+  // Columns (x0..x1): NAME 22.7-223 | ADDRESS 223.5-492 | FROM 492.5-544.3 | TO 544.8-592.7
+  prev_emp1_name:    { page: 0, x:  25, y: 595, fontSize: 7, maxWidth: 195 },
+  prev_emp1_address: { page: 0, x: 226, y: 595, fontSize: 7, maxWidth: 263 },
+  prev_emp1_from:    { page: 0, x: 495, y: 595, fontSize: 7, maxWidth:  47 },
+  prev_emp1_to:      { page: 0, x: 548, y: 595, fontSize: 7, maxWidth:  43 },
+  prev_emp2_name:    { page: 0, x:  25, y: 586, fontSize: 7, maxWidth: 195 },
+  prev_emp2_address: { page: 0, x: 226, y: 586, fontSize: 7, maxWidth: 263 },
+  prev_emp2_from:    { page: 0, x: 495, y: 586, fontSize: 7, maxWidth:  47 },
+  prev_emp2_to:      { page: 0, x: 548, y: 586, fontSize: 7, maxWidth:  43 },
+  prev_emp3_name:    { page: 0, x:  25, y: 578, fontSize: 7, maxWidth: 195 },
+  prev_emp3_address: { page: 0, x: 226, y: 578, fontSize: 7, maxWidth: 263 },
+  prev_emp3_from:    { page: 0, x: 495, y: 578, fontSize: 7, maxWidth:  47 },
+  prev_emp3_to:      { page: 0, x: 548, y: 578, fontSize: 7, maxWidth:  43 },
 };
 
 // Checkbox coords for sex / marital / loan_purpose / loan_term will be added
@@ -1581,18 +1602,19 @@ const SLF065_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
   // SOURCE OF REFERRAL / "How did you hear about us?" (bottom of page 0)
   // Row tops 798.9 / 805.7 ; cols cx≈24 / 110 / 176 / 294 / 382 / 489
   // Page 0, h=936, \uf0a8 Wingdings (-7 offset)
+  // Calibrated 2026-04: +3 x to center ticks on printed source-of-referral boxes.
   source_of_referral: {
-    'Pag-IBIG Fund Website':        { page: 0, x:  20, y: slf065CheckY(798.9) },
-    'Social media':                 { page: 0, x:  20, y: slf065CheckY(805.7) },
-    'Radio':                        { page: 0, x: 106, y: slf065CheckY(798.9) },
-    'Television':                   { page: 0, x: 106, y: slf065CheckY(805.7) },
-    'Streaming Service Ad':         { page: 0, x: 172, y: slf065CheckY(798.9) },
-    'Newspaper/Online Newspaper':   { page: 0, x: 172, y: slf065CheckY(805.7) },
-    'Billboard':                    { page: 0, x: 290, y: slf065CheckY(798.9) },
-    'Word of Mouth':                { page: 0, x: 290, y: slf065CheckY(805.7) },
-    'Referral':                     { page: 0, x: 378, y: slf065CheckY(798.9) },
-    'Employer/Fund Coordinator':    { page: 0, x: 378, y: slf065CheckY(805.7) },
-    'Others':                       { page: 0, x: 485, y: slf065CheckY(798.9) },
+    'Pag-IBIG Fund Website':        { page: 0, x:  23, y: slf065CheckY(798.9) },
+    'Social media':                 { page: 0, x:  23, y: slf065CheckY(805.7) },
+    'Radio':                        { page: 0, x: 109, y: slf065CheckY(798.9) },
+    'Television':                   { page: 0, x: 109, y: slf065CheckY(805.7) },
+    'Streaming Service Ad':         { page: 0, x: 175, y: slf065CheckY(798.9) },
+    'Newspaper/Online Newspaper':   { page: 0, x: 175, y: slf065CheckY(805.7) },
+    'Billboard':                    { page: 0, x: 293, y: slf065CheckY(798.9) },
+    'Word of Mouth':                { page: 0, x: 293, y: slf065CheckY(805.7) },
+    'Referral':                     { page: 0, x: 381, y: slf065CheckY(798.9) },
+    'Employer/Fund Coordinator':    { page: 0, x: 381, y: slf065CheckY(805.7) },
+    'Others':                       { page: 0, x: 488, y: slf065CheckY(798.9) },
   },
 };
 
@@ -1785,32 +1807,33 @@ const HLF868_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
   },
   // INDUSTRY / NATURE OF BUSINESS — 4-col × 8-row grid (\uf0a8 Wingdings)
   // Columns cx: 28.80 / 168.86 / 313.13 / 415.39 ; page 0, h=792 (-7 offset)
+  // Calibrated 2026-04: each column x +3 to align tick with box center.
   industry_category: {
-    'Accounting':                                   { page: 0, x:  25, y: hlf868CheckY(522.7) },
-    'Activities of Private Households as Employers':{ page: 0, x:  25, y: hlf868CheckY(530.7) },
-    'Agriculture, Hunting, Forestry & Fishing':     { page: 0, x:  25, y: hlf868CheckY(562.9) },
-    'Basic Materials':                              { page: 0, x:  25, y: hlf868CheckY(570.9) },
-    'Construction':                                 { page: 0, x:  25, y: hlf868CheckY(578.9) },
-    'Business Process Outsourcing (BPO)':           { page: 0, x: 165, y: hlf868CheckY(522.7) },
-    'Education & Training':                         { page: 0, x: 165, y: hlf868CheckY(530.7) },
-    'Electricity, Gas and Water Supply':            { page: 0, x: 165, y: hlf868CheckY(538.7) },
-    'Extra-Territorial Organization & Bodies':      { page: 0, x: 165, y: hlf868CheckY(546.8) },
-    'Financial Services/Intermediation':            { page: 0, x: 165, y: hlf868CheckY(554.8) },
-    'HR/Recruitment':                               { page: 0, x: 165, y: hlf868CheckY(562.9) },
-    'Life Sciences':                                { page: 0, x: 165, y: hlf868CheckY(570.9) },
-    'Health and Social Work':                       { page: 0, x: 309, y: hlf868CheckY(522.7) },
-    'Health and Medical Services':                  { page: 0, x: 309, y: hlf868CheckY(530.7) },
-    'Management':                                   { page: 0, x: 309, y: hlf868CheckY(546.8) },
-    'Manufacturing':                                { page: 0, x: 309, y: hlf868CheckY(554.8) },
-    'Media':                                        { page: 0, x: 309, y: hlf868CheckY(562.9) },
-    'Mining and Quarrying':                         { page: 0, x: 309, y: hlf868CheckY(570.9) },
-    'Technology':                                   { page: 0, x: 309, y: hlf868CheckY(578.9) },
-    'Other Community, Social & Personal Service Activities': { page: 0, x: 412, y: hlf868CheckY(522.7) },
-    'Public Administration & Defense':              { page: 0, x: 412, y: hlf868CheckY(538.7) },
-    'Social Security':                              { page: 0, x: 412, y: hlf868CheckY(546.8) },
-    'Transport, Storage and Communications':        { page: 0, x: 412, y: hlf868CheckY(554.8) },
-    'Travel and Leisure':                           { page: 0, x: 412, y: hlf868CheckY(562.9) },
-    'Wholesale & Retail Trade':                     { page: 0, x: 412, y: hlf868CheckY(570.9) },
+    'Accounting':                                   { page: 0, x:  28, y: hlf868CheckY(522.7) },
+    'Activities of Private Households as Employers':{ page: 0, x:  28, y: hlf868CheckY(530.7) },
+    'Agriculture, Hunting, Forestry & Fishing':     { page: 0, x:  28, y: hlf868CheckY(562.9) },
+    'Basic Materials':                              { page: 0, x:  28, y: hlf868CheckY(570.9) },
+    'Construction':                                 { page: 0, x:  28, y: hlf868CheckY(578.9) },
+    'Business Process Outsourcing (BPO)':           { page: 0, x: 168, y: hlf868CheckY(522.7) },
+    'Education & Training':                         { page: 0, x: 168, y: hlf868CheckY(530.7) },
+    'Electricity, Gas and Water Supply':            { page: 0, x: 168, y: hlf868CheckY(538.7) },
+    'Extra-Territorial Organization & Bodies':      { page: 0, x: 168, y: hlf868CheckY(546.8) },
+    'Financial Services/Intermediation':            { page: 0, x: 168, y: hlf868CheckY(554.8) },
+    'HR/Recruitment':                               { page: 0, x: 168, y: hlf868CheckY(562.9) },
+    'Life Sciences':                                { page: 0, x: 168, y: hlf868CheckY(570.9) },
+    'Health and Social Work':                       { page: 0, x: 312, y: hlf868CheckY(522.7) },
+    'Health and Medical Services':                  { page: 0, x: 312, y: hlf868CheckY(530.7) },
+    'Management':                                   { page: 0, x: 312, y: hlf868CheckY(546.8) },
+    'Manufacturing':                                { page: 0, x: 312, y: hlf868CheckY(554.8) },
+    'Media':                                        { page: 0, x: 312, y: hlf868CheckY(562.9) },
+    'Mining and Quarrying':                         { page: 0, x: 312, y: hlf868CheckY(570.9) },
+    'Technology':                                   { page: 0, x: 312, y: hlf868CheckY(578.9) },
+    'Other Community, Social & Personal Service Activities': { page: 0, x: 415, y: hlf868CheckY(522.7) },
+    'Public Administration & Defense':              { page: 0, x: 415, y: hlf868CheckY(538.7) },
+    'Social Security':                              { page: 0, x: 415, y: hlf868CheckY(546.8) },
+    'Transport, Storage and Communications':        { page: 0, x: 415, y: hlf868CheckY(554.8) },
+    'Travel and Leisure':                           { page: 0, x: 415, y: hlf868CheckY(562.9) },
+    'Wholesale & Retail Trade':                     { page: 0, x: 415, y: hlf868CheckY(570.9) },
   },
 };
 
@@ -1838,9 +1861,23 @@ const HLF_858_Y_EMP3    = hlf858Y(642);  // Employer addr row 2
 const HLF_858_Y_POS     = hlf858Y(677);  // Position / time / place / years
 
 const HLF858_FIELD_COORDS: CoordsMap = {
-  // Header (top=107-136)
-  mid_no:                { page: 0, x: 240, y: HLF_858_Y_HEADER, fontSize: 9, maxWidth: 175 },
-  housing_account_no:    { page: 0, x: 420, y: HLF_858_Y_HEADER, fontSize: 9, maxWidth: 168 },
+  // Header digit boxes — MID (12 cells) and Housing (14 cells) at top=94.9-107.1.
+  //   baseline y = 792 - 107.1 + (12.2-6.51)/2 ≈ 687.75
+  mid_no: {
+    page: 0, x: 0, y: 687.75, fontSize: 9,
+    boxCenters: [
+      287.15, 298.25, 309.35, 320.45,          // digits 1-4
+      331.56, 342.67, 353.77, 364.87,          // digits 5-8
+      375.97, 387.55, 399.07, 409.63,          // digits 9-12
+    ],
+  },
+  housing_account_no: {
+    page: 0, x: 0, y: 687.75, fontSize: 9,
+    boxCenters: [
+      432.85, 443.77, 454.69, 465.61, 476.73, 487.85, 498.97,
+      510.09, 521.21, 532.33, 543.45, 554.57, 565.69, 576.81,
+    ],
+  },
 
   // Loan particulars — only filling Desired Loan Amount text field (rest are checkboxes)
   desired_loan_amount:   { page: 0, x: 190, y: HLF_858_Y_LOAN, fontSize: 9, maxWidth: 130 },
@@ -1859,43 +1896,55 @@ const HLF858_FIELD_COORDS: CoordsMap = {
 
   // Permanent Address row 1 (top=362-380)
   perm_unit:             { page: 0, x: 30,  y: HLF_858_Y_PERM1, fontSize: 7.5, maxWidth: 395 },
-  perm_country_tel:      { page: 0, x: 449, y: HLF_858_Y_PERM1, fontSize: 9, maxWidth: 138 },
+  // Contact Details column — 3 stacked rows below their labels:
+  //   HOME TEL     label top=378.8 → cell 387.8–400.6 → y=395 (country x=446, phone x=482)
+  //   BUSINESS TEL label top=406.4 → cell 413.4–426.1 → y=369
+  //   CELLPHONE    label top=431.7 → cell 438.2–451.0 → y=344 (phone slot only)
+  //   E-MAIL       label top=459.9 → cell 467.7–480.4 → y=315 (wide single cell)
+  perm_country_tel:      { page: 0, x: 446, y: 395, fontSize: 8, maxWidth: 29 },
+  perm_home_tel:         { page: 0, x: 482, y: 395, fontSize: 9, maxWidth: 85 },
+  perm_business_tel:     { page: 0, x: 482, y: 369, fontSize: 9, maxWidth: 85 },
 
-  // Permanent Address row 2 (top=383-403) — left address subdiv→zip + right home tel
-  perm_street:           { page: 0, x: 30,  y: HLF_858_Y_PERM2, fontSize: 8, maxWidth: 60 },
-  perm_subdivision:      { page: 0, x: 92,  y: HLF_858_Y_PERM2, fontSize: 8, maxWidth: 30 },
-  perm_barangay:         { page: 0, x: 124, y: HLF_858_Y_PERM2, fontSize: 8, maxWidth: 70 },
+  // Permanent Address row 2 (top=383-403) — left address subdiv→zip
+  perm_street:           { page: 0, x: 30,  y: HLF_858_Y_PERM2, fontSize: 7, maxWidth: 60 },
+  perm_subdivision:      { page: 0, x: 92,  y: HLF_858_Y_PERM2, fontSize: 5.5, maxWidth: 53 },
+  perm_barangay:         { page: 0, x: 146, y: HLF_858_Y_PERM2, fontSize: 7, maxWidth: 48 },
   perm_city:             { page: 0, x: 196, y: HLF_858_Y_PERM2, fontSize: 8, maxWidth: 75 },
   perm_province:         { page: 0, x: 273, y: HLF_858_Y_PERM2, fontSize: 8, maxWidth: 120 },
   perm_zip:              { page: 0, x: 395, y: HLF_858_Y_PERM2, fontSize: 9, maxWidth: 50 },
-  perm_home_tel:         { page: 0, x: 449, y: HLF_858_Y_PERM2, fontSize: 9, maxWidth: 138 },
-  perm_business_tel:     { page: 0, x: 449, y: HLF_858_Y_PERM2 - 18, fontSize: 9, maxWidth: 138 },
 
   // Present Address row 1 (top=415-436)
   pres_unit:             { page: 0, x: 30,  y: HLF_858_Y_PRES1, fontSize: 7.5, maxWidth: 395 },
-  pres_cellphone:        { page: 0, x: 449, y: HLF_858_Y_PRES1, fontSize: 9, maxWidth: 138 },
+  // CELLPHONE NO (REQUIRED) cell: top=438.2–451.0 (phone slot) → y=344
+  pres_cellphone:        { page: 0, x: 482, y: 344, fontSize: 9, maxWidth: 85 },
 
   // Present Address row 2 (top=438-466)
-  pres_street:           { page: 0, x: 30,  y: HLF_858_Y_PRES2, fontSize: 8, maxWidth: 60 },
-  pres_subdivision:      { page: 0, x: 92,  y: HLF_858_Y_PRES2, fontSize: 8, maxWidth: 30 },
-  pres_barangay:         { page: 0, x: 124, y: HLF_858_Y_PRES2, fontSize: 8, maxWidth: 70 },
+  pres_street:           { page: 0, x: 30,  y: HLF_858_Y_PRES2, fontSize: 7, maxWidth: 60 },
+  pres_subdivision:      { page: 0, x: 92,  y: HLF_858_Y_PRES2, fontSize: 5.5, maxWidth: 53 },
+  pres_barangay:         { page: 0, x: 146, y: HLF_858_Y_PRES2, fontSize: 7, maxWidth: 48 },
   pres_city:             { page: 0, x: 196, y: HLF_858_Y_PRES2, fontSize: 8, maxWidth: 75 },
   pres_province:         { page: 0, x: 273, y: HLF_858_Y_PRES2, fontSize: 8, maxWidth: 120 },
   pres_zip:              { page: 0, x: 395, y: HLF_858_Y_PRES2, fontSize: 9, maxWidth: 50 },
-  email_address:         { page: 0, x: 449, y: HLF_858_Y_PRES2, fontSize: 7.5, maxWidth: 138 },
+  // E-MAIL ADDRESS (REQUIRED) cell: top=467.7–480.4 → y=315
+  email_address:         { page: 0, x: 445, y: 315, fontSize: 7.5, maxWidth: 138 },
 
   // Home ownership / years stay (top=466-503)
   years_stay_present:    { page: 0, x: 320, y: HLF_858_Y_HOME, fontSize: 9, maxWidth: 100 },
 
-  // Occupation / TIN / SSS (top=503-540)
-  occupation:            { page: 0, x: 30,  y: HLF_858_Y_OCC, fontSize: 8, maxWidth: 124 },
+  // Occupation / TIN / SSS (top=503-540). Occupation text overlays the radio
+  // column space; position at bottom-left of cell with small font to avoid
+  // overlapping the employment-type radio labels (Locally/Self/OFW at top=514–532).
+  occupation:            { page: 0, x: 30,  y: 248, fontSize: 6.5, maxWidth: 122 },
   tin:                   { page: 0, x: 156, y: HLF_858_Y_OCC, fontSize: 9, maxWidth: 145 },
   sss_gsis:              { page: 0, x: 305, y: HLF_858_Y_OCC, fontSize: 9, maxWidth: 138 },
-  employer_business_tel: { page: 0, x: 449, y: HLF_858_Y_OCC, fontSize: 9, maxWidth: 138 },
+  // Employer Contact Details (right side, separate section)
+  //   Direct Line phone cell: top=575.3-589.6 → baseline y = 792-589.6+2.85 ≈ 205
+  employer_business_tel: { page: 0, x: 475, y: 205, fontSize: 9, maxWidth: 88 },
 
   // Employer name (top=545-569)
   employer_name:         { page: 0, x: 30,  y: HLF_858_Y_EMP1, fontSize: 8, maxWidth: 395 },
-  employer_email:        { page: 0, x: 449, y: HLF_858_Y_EMP1, fontSize: 7.5, maxWidth: 138 },
+  //   Employer Email cell: top=625.2-637.1 → baseline top 630 → y=159
+  employer_email:        { page: 0, x: 442, y: 159, fontSize: 7.5, maxWidth: 120 },
 
   // Employer address row 1 (top=581-605)
   employer_address_line: { page: 0, x: 30,  y: HLF_858_Y_EMP2, fontSize: 7.5, maxWidth: 395 },
@@ -1913,8 +1962,36 @@ const HLF858_FIELD_COORDS: CoordsMap = {
   place_assignment:      { page: 0, x: 280, y: HLF_858_Y_POS, fontSize: 8, maxWidth: 130 },
   years_employment:      { page: 0, x: 415, y: HLF_858_Y_POS, fontSize: 9, maxWidth: 175 },
 
-  // Signature date — page 1 (similar to 868)
-  signature_date:        { page: 1, x: 100, y: 285, fontSize: 9, maxWidth: 130 },
+  // Signature date — page 2, on DATE underline below BORROWER signature (top~714 → y=75)
+  signature_date:        { page: 1, x: 90, y: 75, fontSize: 9, maxWidth: 100 },
+
+  // ── PAGE 2: Spouse's Personal Data (optional, populated when marital=Married)
+  //   page size 612×792; labels at tops 60.7/91.7/127.5/159.9/194.3
+  //   baselines ≈ label_top + 16 → y_pdf = 792 − (label_top + 16)
+  //   Row 1 names (label top=60.7 → value top≈77 → y=715)
+  spouse_last_name:      { page: 1, x: 30,  y: 715, fontSize: 8, maxWidth: 135 },
+  spouse_first_name:     { page: 1, x: 170, y: 715, fontSize: 8, maxWidth: 135 },
+  spouse_ext_name:       { page: 1, x: 312, y: 715, fontSize: 8, maxWidth: 150 },
+  spouse_middle_name:    { page: 1, x: 468, y: 715, fontSize: 8, maxWidth: 120 },
+  //   Row 2 DOB/Citizenship/TIN/Occupation (label top=91.7 → value y=684)
+  spouse_dob:            { page: 1, x: 30,  y: 684, fontSize: 9, maxWidth: 135 },
+  spouse_citizenship:    { page: 1, x: 170, y: 684, fontSize: 8, maxWidth: 135 },
+  spouse_tin:            { page: 1, x: 312, y: 684, fontSize: 9, maxWidth: 120 },
+  spouse_occupation:     { page: 1, x: 438, y: 665, fontSize: 6, maxWidth: 148 },
+  //   Row 3 Employer name / Place / Years (label top=127.5 → value y=649)
+  spouse_employer_name:  { page: 1, x: 30,  y: 649, fontSize: 8, maxWidth: 278 },
+  spouse_place_assignment:{ page: 1, x: 312, y: 649, fontSize: 8, maxWidth: 120 },
+  spouse_years_employment:{ page: 1, x: 438, y: 649, fontSize: 9, maxWidth: 148 },
+  //   Row 4 Employer addr line + Position (label top=162.1 → value y=600)
+  spouse_employer_address_line: { page: 1, x: 30, y: 600, fontSize: 7.5, maxWidth: 395 },
+  spouse_position_dept:  { page: 1, x: 438, y: 614, fontSize: 8, maxWidth: 148 },
+  //   Row 5 Employer subdiv/barangay/city/prov/zip + Business Tel (label top=194.3 → y=581)
+  spouse_employer_subdivision: { page: 1, x: 30,  y: 581, fontSize: 7, maxWidth: 90 },
+  spouse_employer_barangay:    { page: 1, x: 146, y: 581, fontSize: 6, maxWidth: 48 },
+  spouse_employer_city:        { page: 1, x: 196, y: 581, fontSize: 8, maxWidth: 75 },
+  spouse_employer_province:    { page: 1, x: 273, y: 581, fontSize: 8, maxWidth: 120 },
+  spouse_employer_zip:         { page: 1, x: 395, y: 581, fontSize: 9, maxWidth: 40 },
+  spouse_business_tel:         { page: 1, x: 438, y: 581, fontSize: 9, maxWidth: 148 },
 };
 
 const HLF858_SKIP_VALUES: Record<string, string[]> = {
@@ -1922,6 +1999,26 @@ const HLF858_SKIP_VALUES: Record<string, string[]> = {
   ext_name: ['', 'N/A'],
   middle_name: [''],
   maiden_middle_name: [''],
+  // Spouse fields — all optional, skip when blank or N/A
+  spouse_last_name: [''],
+  spouse_first_name: [''],
+  spouse_ext_name: ['', 'N/A'],
+  spouse_middle_name: [''],
+  spouse_dob: [''],
+  spouse_citizenship: [''],
+  spouse_tin: [''],
+  spouse_occupation: [''],
+  spouse_employer_name: [''],
+  spouse_place_assignment: [''],
+  spouse_years_employment: [''],
+  spouse_employer_address_line: [''],
+  spouse_position_dept: [''],
+  spouse_employer_subdivision: [''],
+  spouse_employer_barangay: [''],
+  spouse_employer_city: [''],
+  spouse_employer_province: [''],
+  spouse_employer_zip: [''],
+  spouse_business_tel: [''],
   perm_subdivision: [''],
   perm_country_tel: [''],
   perm_home_tel: [''],
@@ -2038,30 +2135,31 @@ const HLF858_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
   },
   // INDUSTRY / NATURE OF BUSINESS — 4-col × 7-row grid (\uf0a8 Wingdings)
   // Columns cx: 26.88 / 175.58 / 307 / 413.23 ; page 0, h=792 (-7 offset)
+  // Calibrated 2026-04: each column x +3 to align tick with box center.
   industry_category: {
-    'Accounting':                                   { page: 0, x:  23, y: hlf858CheckY(691.4) },
-    'Activities of Private Households as Employers':{ page: 0, x:  23, y: hlf858CheckY(698.9) },
-    'Agriculture, Hunting, Forestry & Fishing':     { page: 0, x:  23, y: hlf858CheckY(721.3) },
-    'Basic Materials':                              { page: 0, x:  23, y: hlf858CheckY(728.7) },
-    'Construction':                                 { page: 0, x:  23, y: hlf858CheckY(736.3) },
-    'Business Process Outsourcing (BPO)':           { page: 0, x: 172, y: hlf858CheckY(691.4) },
-    'Education & Training':                         { page: 0, x: 172, y: hlf858CheckY(698.9) },
-    'Electricity, Gas and Water Supply':            { page: 0, x: 172, y: hlf858CheckY(706.3) },
-    'Extra-Territorial Organization & Bodies':      { page: 0, x: 172, y: hlf858CheckY(713.9) },
-    'Financial Services/Intermediation':            { page: 0, x: 172, y: hlf858CheckY(721.3) },
-    'HR/Recruitment':                               { page: 0, x: 172, y: hlf858CheckY(728.7) },
-    'Life Sciences':                                { page: 0, x: 172, y: hlf858CheckY(736.3) },
-    'Health and Social Work':                       { page: 0, x: 303, y: hlf858CheckY(691.4) },
-    'Management':                                   { page: 0, x: 303, y: hlf858CheckY(706.3) },
-    'Manufacturing':                                { page: 0, x: 303, y: hlf858CheckY(713.9) },
-    'Media':                                        { page: 0, x: 303, y: hlf858CheckY(721.3) },
-    'Mining and Quarrying':                         { page: 0, x: 303, y: hlf858CheckY(728.7) },
-    'Technology':                                   { page: 0, x: 303, y: hlf858CheckY(736.3) },
-    'Other Community, Social & Personal Service Activities': { page: 0, x: 410, y: hlf858CheckY(691.4) },
-    'Public Administration & Defense':              { page: 0, x: 410, y: hlf858CheckY(698.9) },
-    'Transport, Storage and Communications':        { page: 0, x: 410, y: hlf858CheckY(713.9) },
-    'Travel and Leisure':                           { page: 0, x: 410, y: hlf858CheckY(721.3) },
-    'Wholesale & Retail Trade':                     { page: 0, x: 410, y: hlf858CheckY(728.7) },
+    'Accounting':                                   { page: 0, x:  26, y: hlf858CheckY(691.4) },
+    'Activities of Private Households as Employers':{ page: 0, x:  26, y: hlf858CheckY(698.9) },
+    'Agriculture, Hunting, Forestry & Fishing':     { page: 0, x:  26, y: hlf858CheckY(721.3) },
+    'Basic Materials':                              { page: 0, x:  26, y: hlf858CheckY(728.7) },
+    'Construction':                                 { page: 0, x:  26, y: hlf858CheckY(736.3) },
+    'Business Process Outsourcing (BPO)':           { page: 0, x: 175, y: hlf858CheckY(691.4) },
+    'Education & Training':                         { page: 0, x: 175, y: hlf858CheckY(698.9) },
+    'Electricity, Gas and Water Supply':            { page: 0, x: 175, y: hlf858CheckY(706.3) },
+    'Extra-Territorial Organization & Bodies':      { page: 0, x: 175, y: hlf858CheckY(713.9) },
+    'Financial Services/Intermediation':            { page: 0, x: 175, y: hlf858CheckY(721.3) },
+    'HR/Recruitment':                               { page: 0, x: 175, y: hlf858CheckY(728.7) },
+    'Life Sciences':                                { page: 0, x: 175, y: hlf858CheckY(736.3) },
+    'Health and Social Work':                       { page: 0, x: 306, y: hlf858CheckY(691.4) },
+    'Management':                                   { page: 0, x: 306, y: hlf858CheckY(706.3) },
+    'Manufacturing':                                { page: 0, x: 306, y: hlf858CheckY(713.9) },
+    'Media':                                        { page: 0, x: 306, y: hlf858CheckY(721.3) },
+    'Mining and Quarrying':                         { page: 0, x: 306, y: hlf858CheckY(728.7) },
+    'Technology':                                   { page: 0, x: 306, y: hlf858CheckY(736.3) },
+    'Other Community, Social & Personal Service Activities': { page: 0, x: 413, y: hlf858CheckY(691.4) },
+    'Public Administration & Defense':              { page: 0, x: 413, y: hlf858CheckY(698.9) },
+    'Transport, Storage and Communications':        { page: 0, x: 413, y: hlf858CheckY(713.9) },
+    'Travel and Leisure':                           { page: 0, x: 413, y: hlf858CheckY(721.3) },
+    'Wholesale & Retail Trade':                     { page: 0, x: 413, y: hlf858CheckY(728.7) },
   },
 };
 

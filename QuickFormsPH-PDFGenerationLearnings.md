@@ -1830,3 +1830,224 @@ present but alignment can only be confirmed by opening the PDF visually:
 - Loan amounts: ✅ HLF-858, HLF-068, SLF-065, SLF-089
 - Medical diagnosis fields: ✅ CF-1 (diagnosis), CF-2 (admission_diagnosis_1/2)
 - HCI information: ✅ CF-2 (hci_name, hci_bldg_street, hci_city)
+
+
+---
+
+## 2026-04-24 — SLF-089 Previous Employment Details (BLOCKER → FIXED)
+
+### Problem
+Mai's QuickFormsPH-Test on `pagibig-slf-089` (Pag-IBIG HELPs) flagged a
+completely unfilled section on page 1: **"PREVIOUS EMPLOYMENT DETAILS FROM DATE
+OF Pag-IBIG MEMBERSHIP"** — a 3-row × 4-col table (Employer Name / Address /
+From mm-yy / To mm-yy) right below the Loan Term checkboxes.
+
+Root cause: the schema's MVP description explicitly stated it would only cover
+*"main applicant identification, address, employer, and loan details on page 1"*
+— the previous-employment table was **never added** to `fields[]`, so the
+generator had nothing to draw and no coord mapping existed.
+
+### Fix
+1. Added 12 new field definitions to `pagibigSlf089.fields` under a new
+   **Step 6 — Previous Employment** step:
+   `prev_emp{1,2,3}_{name, address, from, to}` — all `required: false`
+   (user may leave rows blank).
+2. Added a new step entry to `pagibigSlf089.steps` exposing them in the wizard.
+3. Added the 12 coord entries to `SLF089_FIELD_COORDS` in
+   `src/lib/pdf-generator.ts` with baseline-y values derived from the cell
+   rects extracted by pdfplumber:
+   - Row rects (top → bottom): `334.7–342.9`, `343.4–351.4`, `351.9–359.9`
+   - Col rects (x0–x1): NAME `22.7–223`, ADDRESS `223.5–492`,
+     FROM `492.5–544.3`, TO `544.8–592.7`
+   - pdf-lib baseline y = `936 − row_bottom + 2` → 595 / 586 / 578
+   - fontSize 7 with per-column `maxWidth` (195/263/47/43).
+
+### Verification
+Persona A (Carlos Bautista) renders all 3 rows (Globe Telecom / PLDT / Jollibee
+with valid mm/yy ranges). Persona B (Patricia Cruz-Domingo) renders rows 1+2
+populated and row 3 correctly blank. Smoke-check confirmed text lands inside
+the correct table cells at expected x-ranges.
+
+### Lesson
+- **Never trust "MVP page 1 only" descriptions** — scan the actual source PDF
+  for every visible table and box. Blank regions on the generated PDF are an
+  immediate BLOCKER signal.
+- When a section is a **repeating table**, enumerate the rows explicitly in the
+  schema (`prev_emp1_*`, `prev_emp2_*`, …) rather than a single JSON array —
+  this keeps the coord map flat and allows per-cell calibration.
+- Coord formula for cell-based layouts:
+  `y_pdflib = page_height − cell_bottom + 2` for 7pt font with a ~2pt descender.
+
+---
+
+## 2026-04-24 — HLF-858 Mass Coordinate Correction (BLOCKER → FIXED)
+
+### Problem (as reported by Mai)
+User-supplied payloads for `pagibig-hlf-858` Personas A and B had all 54/53 fields populated,
+yet the rendered PDFs showed many entries sitting outside their intended cells:
+
+- **MID number** printed as a single string at `x=240, y=684` — floated left of the 12 digit
+  boxes entirely (header label area).
+- **Contact Details column** (right side): `perm_country_tel`, `perm_home_tel`,
+  `perm_business_tel` all drawn on the same y (single row) instead of three stacked cells.
+  `email_address` and `pres_cellphone` were drawn on the permanent-address y instead of the
+  present-address contact cells.
+- **Employer contact column**: `employer_business_tel` landed in the *Trunk Line* cell;
+  `employer_email` was rendered on the wrong y (next-row label).
+- **Subdivision columns** (`perm_subdivision`, `pres_subdivision`): pdf-lib's `maxWidth`
+  caused "Greenfield Estates" / "Fort Bonifacio" to wrap to the NEXT row, polluting the
+  Barangay field in the row below.
+- **Perm/Pres Barangay x-coord**: too far left (x=124) — collided with Subdivision column.
+
+### Root cause
+The original HLF-858 coord map used a single `HLF_858_Y_PERM1` / `HLF_858_Y_PERM2` for *both*
+left-side address fields and right-side contact-detail fields, but the form's right column
+has **three** telephone cells stacked vertically (Country+Area, Home, Business) that do not
+share y-rows with the left address. Similarly, CELLPHONE / E-MAIL cells are in a different
+vertical stack than the perm home/business tel. The shortcut (reusing the left-side y
+constants) packed every right-column value onto one y-row, causing overlaps.
+
+### Fix
+Recalibrated the right-column contact cells against pdfplumber rect data
+(`public/forms/PagIbig - HLF858_*.pdf`):
+
+| Field                    | Old coord                | New coord                |
+|--------------------------|--------------------------|--------------------------|
+| `mid_no`                 | x=240 y=684 (string)     | boxCenters=[287.15…409.63] y=687.75 |
+| `housing_account_no`     | x=420 y=684 (string)     | boxCenters=[432.85…576.81] y=687.75 |
+| `perm_country_tel`       | x=449 y=415              | x=446 y=396 (cell top 387.8–400.6) |
+| `perm_home_tel`          | x=449 y=392              | x=482 y=371 (cell top 413.4–426.1) |
+| `perm_business_tel`      | x=449 y=374              | x=482 y=346 (cell top 438.2–451.0) |
+| `pres_cellphone`         | x=449 y=356              | x=445 y=316 (cell top 467.7–480.4) |
+| `email_address`          | x=449 y=392              | x=445 y=298 (cell top 484.8–502.5) |
+| `employer_business_tel`  | y=255 (same row as TIN)  | x=475 y=205 (Direct Line top 575.3) |
+| `employer_email`         | y=220                    | x=442 y=159 (cell top 625.2–637.1) |
+| `perm_barangay`          | x=124                    | x=146 (shift out of subdivision col) |
+| `pres_barangay`          | x=124                    | x=146                    |
+| `perm_subdivision`       | fontSize=8 maxWidth=30   | fontSize=5.5 maxWidth=53 |
+| `pres_subdivision`       | fontSize=8 maxWidth=30   | fontSize=5.5 maxWidth=53 |
+
+MID/Housing now use the `boxCenters[]` per-character rendering pattern from PFF-049 — each
+digit is drawn at the centre of its pre-printed cell.
+
+### Verification
+- Programmatic: pdfplumber char-dump shows all 12 MID digits at expected x-centres; email,
+  cellphone, direct-line phone, and barangay values at expected (top, x0) positions.
+- Visual: `pdftoppm` render of Persona B (`/tmp/hlf858_B_v3-1.png`) confirms MID boxes
+  filled `1 1 1 1 2 2 2 2 3 3 3 3`, Direct Line = 77771234, subdivision columns no longer
+  overflow into Barangay row.
+
+### Lesson
+**Do not share y-constants across independent cell columns.** When a form has two parallel
+vertical stacks (left address column with 2 rows vs. right contact-details column with 3
+rows), each column needs its own y-ladder keyed off the rect data — not a reused constant
+from the other side. Always resolve cells via `pdfplumber.rects` (`top, bottom, x0, x1`) for
+each distinct column and set `y_baseline = pagesize_H - bottom + (height − fontSize*0.8)/2`.
+
+**Do not rely on `maxWidth` for narrow columns with long values.** pdf-lib `maxWidth` causes
+wrapping into the next logical row — if the column is shorter than the content, reduce
+`fontSize` instead so the text fits on one line.
+
+**For digit-box headers (MID, HOUSING), always use `boxCenters[]`**, not a single `x`.
+
+---
+
+## 2026-04-24 (round 2) — HLF-858 Occupation Overlap + Spouse Section (BLOCKER → FIXED)
+
+### Problem
+Mai re-tested HLF-858 and flagged two new issues:
+1. **Occupation text overlaps OFW radio label** (page 1). `occupation` was rendered at
+   `y=HLF_858_Y_OCC (=255)` which places it at pdfplumber top≈537 — exactly the row of
+   "Overseas Filipino Worker (OFW)" (top=532). "Civil Engineer" printed on top of the radio
+   label text.
+2. **Entire SPOUSE'S PERSONAL DATA section on page 2 was blank** even though the user
+   marked both personas as Married. Root cause: the schema had NO spouse fields defined
+   at all — the page-2 section existed only as printed label artwork with no coords.
+3. **Signature date rendered inside the Certification paragraph** (page 2 top~507),
+   rather than on the DATE underline below the borrower signature block (top=714).
+
+### Fix
+1. `occupation` coord moved to `x=30 y=248 fontSize=6.5 maxWidth=122` — pushes the text
+   just below the OFW row into the bottom of the OCCUPATION cell (cell bottom 540.1).
+2. Added **19 spouse fields** to the schema (`pagibig-hlf-858` step 5 "Spouse (if Married)"):
+   `spouse_last_name/first_name/ext_name/middle_name/dob/citizenship/tin/occupation/
+   employer_name/place_assignment/years_employment/employer_address_line/position_dept/
+   employer_subdivision/employer_barangay/employer_city/employer_province/employer_zip/
+   business_tel`. Added matching entries to `HLF858_FIELD_COORDS` with page=1 and
+   `HLF858_SKIP_VALUES` entries so blank spouse data is silently skipped.
+3. `signature_date` coord moved from `y=285` (mid-certification) to `y=75` (DATE underline
+   at pdfplumber top=714). Both Persona A & B now show `04/24/2026` beside the BORROWER
+   DATE line at the bottom of page 2.
+4. Spouse coord calibration notes (page 2, 612×792):
+   - Row 1 names (label top=60.7)           → baseline y=715
+   - Row 2 DOB/Citizenship/TIN/Occupation   → y=684 (occupation tucked into bottom-right at y=665 f=6 to avoid the employment-type radios on that row)
+   - Row 3 Employer name/Place/Years        → y=649
+   - Row 4 Employer address line + Position → y=600 (addr) / y=614 (pos)
+   - Row 5 Employer subdiv→zip + Bus. Tel   → y=581
+   Barangay x=146 (shifted out of subdivision column, same as page-1 fix).
+
+### Verification
+Visual (pdftoppm persona B page 2): all 17 populated spouse cells render in their intended
+boxes; Fort Bonifacio barangay tucked cleanly at fontSize=6; signature_date correctly on
+DATE underline.
+
+### Lesson
+**Form schemas must include a field for every cell on the printed PDF — blank cells render
+as "user didn't fill it in" to the reviewer, regardless of whether they were optional or
+never defined.** When the printed form has a SPOUSE section, add every spouse field to the
+schema even if they're all optional (use `SKIP_VALUES: ['']`) so the form can be completely
+filled when applicable.
+
+**Signature/date fields must target the underline, not a "nearby y-band".** The original
+`signature_date: y=285` was inherited from HLF-868 without re-anchoring to HLF-858's actual
+DATE underline at top=714. Always re-query the underline position from the source PDF per
+form slug.
+
+---
+
+## 2026-04-24 (round 3) — HLF-858 Right Column Row Off-By-One (MAJOR → FIXED)
+
+### Problem (as reported by Mai)
+Screenshot showed the value `09175551234` rendered in the **E-MAIL ADDRESS** cell instead
+of the CELLPHONE cell, and the email value `rafael.mendoza@example.com` sitting inside the
+PREFERRED MAILING ADDRESS block.
+
+### Root cause
+I had mis-mapped the right-column cell positions in round 2. The previous round used rect
+y-positions as *labels-plus-cells*, but the actual form is:
+
+```
+Label top → Value cell top
+HOME TEL     378.8 → 387.8–400.6   (split: country | phone)
+BUSINESS TEL 406.4 → 413.4–426.1   (split: country | phone)
+CELLPHONE    431.7 → 438.2–451.0   (split: country | phone)
+E-MAIL       459.9 → 467.7–480.4   (single wide cell)
+PREFERRED MAILING 490.5 → 484.8–502.5 (checkbox cell; NOT a text cell)
+```
+
+Round-2 fix had used cells 467.7 and 484.8 for CELLPHONE and E-MAIL respectively — off by
+one entire row. Result: CELLPHONE value landed in E-MAIL cell, and E-MAIL value landed in
+the PREFERRED MAILING checkbox area.
+
+### Fix (round 3)
+| Field                 | Cell (pdfplumber top–bottom) | New y  |
+|-----------------------|------------------------------|--------|
+| `perm_country_tel`    | 387.8–400.6 (HOME row country split)   | 395 |
+| `perm_home_tel`       | 387.8–400.6 (HOME row phone split)     | 395 (x=482) |
+| `perm_business_tel`   | 413.4–426.1 (BUSINESS row phone split) | 369 (x=482) |
+| `pres_cellphone`      | 438.2–451.0 (CELLPHONE row phone split)| 344 (x=482) |
+| `email_address`       | 467.7–480.4 (E-MAIL row, wide)         | 315 (x=445) |
+
+### Verification
+Visual (pdftoppm 120dpi): all five right-column values now appear in their correct labeled
+cells. Mai's reported collision (`09175551234` vs. PREFERRED MAILING) no longer occurs.
+
+### Lesson
+**Never assume `label_top + ~27 = cell_top`.** Each form has its own label-to-cell gap that
+can differ per row. The correct procedure is:
+1. Extract all labels and their `top` positions.
+2. Extract all rects with `height > 10 && width > 40` in the same x-range.
+3. Pair each label with the NEAREST cell below it (smallest positive delta).
+
+Confirm the mapping visually BEFORE pushing calibration; a `pdftoppm` snapshot at 100+dpi
+is the cheapest final check.

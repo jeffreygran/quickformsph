@@ -3175,6 +3175,7 @@ const pagibigSlf089: FormSchema = {
     { label: 'Permanent Address', fieldIds: ['perm_unit', 'perm_street', 'perm_cell_phone', 'perm_home_tel', 'perm_subdivision', 'perm_barangay', 'perm_city', 'perm_province', 'perm_zip', 'perm_email', 'perm_tin'] },
     { label: 'Present Address', fieldIds: ['pres_unit', 'pres_street', 'pres_employee_id', 'pres_nature_of_work', 'pres_subdivision', 'pres_barangay', 'pres_city', 'pres_province', 'pres_zip', 'pres_sss_gsis', 'pres_business_tel'] },
     { label: 'Employer / Loan', fieldIds: ['employer_name', 'date_of_employment', 'desired_loan_amount', 'loan_amount_type', 'employer_address_line', 'source_of_fund', 'employer_subdivision', 'employer_barangay', 'employer_city', 'employer_province', 'employer_zip', 'loan_purpose', 'beneficiary_last', 'beneficiary_first', 'beneficiary_ext', 'beneficiary_middle', 'student_id_no', 'loan_term', 'signature_date'] },
+    { label: 'Previous Employment', fieldIds: ['prev_emp1_name', 'prev_emp1_address', 'prev_emp1_from', 'prev_emp1_to', 'prev_emp2_name', 'prev_emp2_address', 'prev_emp2_from', 'prev_emp2_to', 'prev_emp3_name', 'prev_emp3_address', 'prev_emp3_from', 'prev_emp3_to'] },
   ],
   fields: [
     // ── Step 1: Identification ──
@@ -3284,6 +3285,20 @@ const pagibigSlf089: FormSchema = {
       options: ['Six (6) Months', 'Twelve (12) Months', 'Twenty-four (24) Months', 'Thirty-six (36) Months'], step: 5 },
     { id: 'signature_date', label: 'Date Signed (mm/dd/yyyy)', type: 'text', required: true,
       placeholder: '04/23/2026', maxLength: 10, step: 5 },
+
+    // ── Step 6: Previous Employment Details (3 rows, optional) ──
+    { id: 'prev_emp1_name',    label: 'Prev. Employer #1 — Name',        type: 'text', required: false, step: 6 },
+    { id: 'prev_emp1_address', label: 'Prev. Employer #1 — Address',     type: 'text', required: false, step: 6 },
+    { id: 'prev_emp1_from',    label: 'Prev. Employer #1 — From (mm/yy)', type: 'text', required: false, placeholder: '06/10', maxLength: 5, step: 6 },
+    { id: 'prev_emp1_to',      label: 'Prev. Employer #1 — To (mm/yy)',   type: 'text', required: false, placeholder: '03/15', maxLength: 5, step: 6 },
+    { id: 'prev_emp2_name',    label: 'Prev. Employer #2 — Name',        type: 'text', required: false, step: 6 },
+    { id: 'prev_emp2_address', label: 'Prev. Employer #2 — Address',     type: 'text', required: false, step: 6 },
+    { id: 'prev_emp2_from',    label: 'Prev. Employer #2 — From (mm/yy)', type: 'text', required: false, maxLength: 5, step: 6 },
+    { id: 'prev_emp2_to',      label: 'Prev. Employer #2 — To (mm/yy)',   type: 'text', required: false, maxLength: 5, step: 6 },
+    { id: 'prev_emp3_name',    label: 'Prev. Employer #3 — Name',        type: 'text', required: false, step: 6 },
+    { id: 'prev_emp3_address', label: 'Prev. Employer #3 — Address',     type: 'text', required: false, step: 6 },
+    { id: 'prev_emp3_from',    label: 'Prev. Employer #3 — From (mm/yy)', type: 'text', required: false, maxLength: 5, step: 6 },
+    { id: 'prev_emp3_to',      label: 'Prev. Employer #3 — To (mm/yy)',   type: 'text', required: false, maxLength: 5, step: 6 },
   ],
 };
 
@@ -3578,6 +3593,7 @@ const pagibigHlf858: FormSchema = {
     { label: 'Permanent Address', fieldIds: ['perm_unit', 'perm_street', 'perm_subdivision', 'perm_barangay', 'perm_city', 'perm_province', 'perm_zip', 'perm_country_tel', 'perm_home_tel', 'perm_business_tel'] },
     { label: 'Present Address', fieldIds: ['pres_unit', 'pres_street', 'pres_subdivision', 'pres_barangay', 'pres_city', 'pres_province', 'pres_zip', 'pres_cellphone', 'email_address', 'years_stay_present', 'home_ownership', 'mailing_preference'] },
     { label: 'Employer', fieldIds: ['employment_type', 'industry_category', 'occupation', 'tin', 'sss_gsis', 'employer_business_tel', 'employer_name', 'employer_address_line', 'employer_subdivision', 'employer_barangay', 'employer_city', 'employer_province', 'employer_zip', 'employer_email', 'position_dept', 'preferred_time_contact', 'place_assignment', 'years_employment', 'signature_date'] },
+    { label: 'Spouse (if Married)', fieldIds: ['spouse_last_name', 'spouse_first_name', 'spouse_ext_name', 'spouse_middle_name', 'spouse_dob', 'spouse_citizenship', 'spouse_tin', 'spouse_occupation', 'spouse_employer_name', 'spouse_place_assignment', 'spouse_years_employment', 'spouse_employer_address_line', 'spouse_position_dept', 'spouse_employer_subdivision', 'spouse_employer_barangay', 'spouse_employer_city', 'spouse_employer_province', 'spouse_employer_zip', 'spouse_business_tel'] },
   ],
   fields: [
     { id: 'mid_no', label: 'Pag-IBIG MID Number', type: 'text', required: true,
@@ -3685,6 +3701,28 @@ const pagibigHlf858: FormSchema = {
     { id: 'years_employment', label: 'Years in Employment / Business', type: 'text', required: true, inputMode: 'numeric', maxLength: 3, step: 4 },
     { id: 'signature_date', label: 'Date Signed (mm/dd/yyyy)', type: 'text', required: true,
       placeholder: '04/23/2026', maxLength: 10, step: 4 },
+
+    // ── Step 5: Spouse's Personal Data (page 2) — populated when Married ─────
+    { id: 'spouse_last_name', label: 'Spouse Last Name', type: 'text', required: false, autoUppercase: true, step: 5 },
+    { id: 'spouse_first_name', label: 'Spouse First Name', type: 'text', required: false, autoUppercase: true, step: 5 },
+    { id: 'spouse_ext_name', label: 'Spouse Name Extension', type: 'dropdown', required: false,
+      options: ['N/A', 'Jr.', 'Sr.', 'II', 'III', 'IV'], step: 5 },
+    { id: 'spouse_middle_name', label: 'Spouse Middle Name', type: 'text', required: false, autoUppercase: true, step: 5 },
+    { id: 'spouse_dob', label: 'Spouse Date of Birth (mm/dd/yyyy)', type: 'text', required: false, maxLength: 10, step: 5 },
+    { id: 'spouse_citizenship', label: 'Spouse Citizenship', type: 'text', required: false, step: 5 },
+    { id: 'spouse_tin', label: 'Spouse TIN', type: 'text', required: false, inputMode: 'numeric', maxLength: 12, step: 5 },
+    { id: 'spouse_occupation', label: 'Spouse Occupation', type: 'text', required: false, step: 5 },
+    { id: 'spouse_employer_name', label: 'Spouse Employer/Business Name', type: 'text', required: false, step: 5 },
+    { id: 'spouse_place_assignment', label: 'Spouse Place of Assignment', type: 'text', required: false, step: 5 },
+    { id: 'spouse_years_employment', label: 'Spouse Years in Employment', type: 'text', required: false, inputMode: 'numeric', maxLength: 3, step: 5 },
+    { id: 'spouse_employer_address_line', label: 'Spouse Employer Address — Unit/Floor/Bldg/Street', type: 'text', required: false, step: 5 },
+    { id: 'spouse_position_dept', label: 'Spouse Position & Department', type: 'text', required: false, step: 5 },
+    { id: 'spouse_employer_subdivision', label: 'Spouse Employer Subdivision', type: 'text', required: false, step: 5 },
+    { id: 'spouse_employer_barangay', label: 'Spouse Employer Barangay', type: 'text', required: false, step: 5 },
+    { id: 'spouse_employer_city', label: 'Spouse Employer City', type: 'text', required: false, step: 5 },
+    { id: 'spouse_employer_province', label: 'Spouse Employer Province / Country', type: 'text', required: false, step: 5 },
+    { id: 'spouse_employer_zip', label: 'Spouse Employer ZIP', type: 'text', required: false, inputMode: 'numeric', maxLength: 4, step: 5 },
+    { id: 'spouse_business_tel', label: 'Spouse Business Telephone', type: 'tel', required: false, step: 5 },
   ],
 };
 
