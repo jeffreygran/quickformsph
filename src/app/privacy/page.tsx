@@ -75,8 +75,7 @@ export default function PrivacyPolicyPage() {
           <p className="text-sm text-gray-700 leading-relaxed">
             Your data rights under RA 10173 include: the right to be informed, right of access, right
             to correction, right to erasure or blocking, right to damages, right to file a complaint,
-            right to data portability, and right to object. To exercise any of these rights, contact
-            us at the address in Section 7.
+            right to data portability, and right to object.
           </p>
         </section>
 
@@ -98,17 +97,11 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">7. Contact &amp; Privacy Concerns</h2>
+          <h2 className="text-base font-semibold text-gray-900">7. Privacy Concerns</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
-            For privacy concerns, to exercise your RA 10173 data rights (access, correction, deletion,
-            portability), or to file a privacy complaint, please contact us at:{' '}
-            <a href="mailto:hello@jeffreygran.com" className="text-blue-600 hover:underline">
-              hello@jeffreygran.com
-            </a>
-          </p>
-          <p className="text-sm text-gray-700 leading-relaxed">
-            If your concern is not resolved to your satisfaction, you may file a complaint with the
-            National Privacy Commission (NPC) at{' '}
+            To exercise your RA 10173 data rights (access, correction, deletion, portability), or to
+            file a privacy complaint, you may file directly with the National Privacy Commission (NPC)
+            at{' '}
             <a
               href="https://www.privacy.gov.ph"
               target="_blank"
