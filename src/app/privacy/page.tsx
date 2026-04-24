@@ -20,13 +20,6 @@ export default function PrivacyPolicyPage() {
           <p className="text-sm text-gray-500 mt-1">Last updated: April 2026</p>
         </div>
 
-        {/* Non-affiliation notice */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-5 text-sm text-yellow-900">
-          <strong>⚠️ Disclaimer:</strong> QuickFormsPH is a <strong>private, independent tool</strong>. It is
-          not affiliated with, endorsed by, or connected to any Philippine government agency. Forms are reproduced
-          from publicly available official templates solely to help users complete them correctly.
-        </div>
-
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 text-sm text-blue-900">
           <strong>Short version:</strong> Your personal data (name, address, IDs) is used <em>only</em> to fill
           your PDF form. Draft data never leaves your browser. When you generate a PDF, your data is sent over
@@ -112,6 +105,13 @@ export default function PrivacyPolicyPage() {
             </a>.
           </p>
         </section>
+
+        {/* Non-affiliation notice */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-5 text-sm text-yellow-900">
+          <strong>⚠️ Disclaimer:</strong> QuickFormsPH is a <strong>private, independent tool</strong>. It is
+          not affiliated with, endorsed by, or connected to any Philippine government agency. Forms are reproduced
+          from publicly available official templates solely to help users complete them correctly.
+        </div>
 
         <div className="border-t border-gray-200 pt-6 text-center">
           <Link href="/" className="text-sm text-blue-600 hover:underline">← Back to QuickFormsPH</Link>
