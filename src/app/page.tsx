@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { FORMS, FormSchema } from '@/data/forms';
 import SuggestionModal from '@/components/SuggestionModal';
+import DonationModal from '@/components/DonationModal';
 
 const IS_DEV = process.env.NEXT_PUBLIC_APP_ENV === 'dev';
 const AGENCY_FILTERS = ['All', ...Array.from(new Set(FORMS.map((f) => f.agency)))];
@@ -37,6 +38,9 @@ export default function HomePage() {
 
   // Suggestion modal state
   const [showSuggestion, setShowSuggestion] = useState(false);
+
+  // Donation modal state
+  const [showDonation, setShowDonation] = useState(false);
 
   // Load saved code from localStorage on mount
   useEffect(() => {
@@ -153,6 +157,14 @@ export default function HomePage() {
 
           {/* Right nav */}
           <nav className="flex items-center gap-2">
+            {/* ── Donate button ── */}
+            <button
+              onClick={() => setShowDonation(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-2.5 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors"
+            >
+              💚 <span className="hidden sm:inline">Donate</span>
+            </button>
+
             {/* ── Forms link ── */}
             <Link
               href="/forms"
@@ -369,6 +381,11 @@ export default function HomePage() {
       {/* ── Suggestion Modal ── */}
       {showSuggestion && (
         <SuggestionModal onClose={() => setShowSuggestion(false)} />
+      )}
+
+      {/* ── Donation Modal ── */}
+      {showDonation && (
+        <DonationModal onClose={() => setShowDonation(false)} />
       )}
     </div>
   );
