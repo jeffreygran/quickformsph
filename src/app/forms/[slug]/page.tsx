@@ -1095,6 +1095,15 @@ export default function FormWizardPage() {
             <div className="text-xs font-mono text-gray-400 truncate">{form.code}</div>
             <div className="text-xs font-medium text-gray-700 truncate">{form.name}</div>
           </div>
+          <a
+            href={`/forms/${encodeURIComponent(form.pdfPath)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-gray-200 bg-white py-2 px-3 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap"
+            title="View blank PDF form"
+          >
+            📄 Blank
+          </a>
           <button
             onClick={() => setMode('review')}
             className="btn-primary py-2 px-4 text-xs"
