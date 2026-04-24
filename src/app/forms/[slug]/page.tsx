@@ -53,6 +53,8 @@ export default function FormWizardPage() {
   // Draft resume modal
   const [draftModalOpen, setDraftModalOpen] = useState(false);
   const [pendingDraft, setPendingDraft]     = useState<FormValues | null>(null);
+  // Track whether this is a brand-new form (no saved draft) — always prompt privacy on first preview
+  const [isNewFormSession, setIsNewFormSession] = useState(false);
 
   // Blank PDF viewer
   const [showBlankViewer, setShowBlankViewer] = useState(false);
@@ -77,6 +79,9 @@ export default function FormWizardPage() {
     if (draft && Object.keys(draft).length > 0) {
       setPendingDraft(draft);
       setDraftModalOpen(true);
+    } else {
+      // No saved draft — this is a fresh/new form session
+      setIsNewFormSession(true);
     }
   }, [slug]);
 
@@ -913,7 +918,8 @@ export default function FormWizardPage() {
   // ── Privacy gate — check acknowledgement before preview ──────────────────
   function handlePreviewRequest() {
     try {
-      if (localStorage.getItem('qfph_privacy_ack') === '1') {
+      // Always prompt on a new form session; otherwise check cached ack
+      if (!isNewFormSession && localStorage.getItem('qfph_privacy_ack') === '1') {
         handlePreviewInPDF();
       } else {
         setShowPrivacyModal(true);
@@ -925,6 +931,7 @@ export default function FormWizardPage() {
 
   function handlePrivacyAck() {
     try { localStorage.setItem('qfph_privacy_ack', '1'); } catch {}
+    setIsNewFormSession(false); // acknowledged — skip prompt for subsequent previews this session
     setShowPrivacyModal(false);
     handlePreviewInPDF();
   }
