@@ -4,6 +4,11 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getFormBySlug, FormField, FormSchema } from '@/data/forms';
+import LocalModeOverlay, { LocalModeBanner } from '@/components/LocalModeOverlay';
+import PaymentGate from '@/components/PaymentGate';
+import { isLocalModeReady, hasPrivacyAck, fetchFormTemplateBytes } from '@/lib/local-mode';
+import type { StoredAccessToken } from '@/lib/access-token-client';
+import { generatePDF } from '@/lib/pdf-generator';
 
 const GCASH_NUMBER = process.env.NEXT_PUBLIC_GCASH_NUMBER ?? '0917-551-4822';
 const GCASH_NAME   = process.env.NEXT_PUBLIC_GCASH_NAME   ?? 'JE****Y JO*N G.';
@@ -55,6 +60,18 @@ export default function FormWizardPage() {
   const [pendingDraft, setPendingDraft]     = useState<FormValues | null>(null);
   // Track whether this is a brand-new form (no saved draft) — always prompt privacy on first preview
   const [isNewFormSession, setIsNewFormSession] = useState(false);
+
+  // ─── Local Mode (v2.0) gate ────────────────────────────────────────────────────
+  // Form rendering is gated until the device has cached everything required
+  // to generate the PDF entirely in-browser. After activation a green banner
+  // stays at the top of the page.
+  const [localModeActive, setLocalModeActive] = useState(false);
+  useEffect(() => {
+    if (!form) return;
+    if (isLocalModeReady(form.code) && hasPrivacyAck()) {
+      setLocalModeActive(true);
+    }
+  }, [form]);
 
   // Blank PDF viewer
   const [showBlankViewer, setShowBlankViewer] = useState(false);
@@ -936,20 +953,15 @@ export default function FormWizardPage() {
     handlePreviewInPDF();
   }
 
-  // ── Preview in PDF: generate PDF → render page 1 as image with watermark ──
+  // ── Preview in PDF: generate PDF locally → render page 1 as image with watermark ──
   async function handlePreviewInPDF() {
     setPreviewing(true);
     try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug, values }),
-      });
-      if (!res.ok) throw new Error('PDF generation failed');
-
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      // blob used only for PDF.js preview rendering — actual download goes via /api/payment/confirm
+      // Local Mode v2.0: generate the PDF entirely in the browser using the
+      // pre-cached form template. No personal data is sent to the server.
+      const sourceBytes = await fetchFormTemplateBytes(form!.pdfPath);
+      const pdfBytes = await generatePDF(form!, values, sourceBytes);
+      const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
 
       // Render PDF page 1 to canvas
       const arrayBuffer = await blob.arrayBuffer();
@@ -994,13 +1006,51 @@ export default function FormWizardPage() {
       setMode('preview');
     } catch (err) {
       console.error(err);
-      alert('Could not generate preview. Please try again.');
+      const msg = err instanceof Error ? err.message : 'Could not generate preview.';
+      alert(msg + '\n\nPlease try again.');
     } finally {
       setPreviewing(false);
     }
   }
 
+  // ── Local download (v2.0): generate PDF in-browser + save Blob ──────────
+  // Replaces the legacy server-side `/api/payment/confirm` flow. Payment is
+  // already verified at Step 0 (PaymentGate) so this requires no network.
+  async function handleLocalDownload() {
+    if (!form) return;
+    try {
+      const sourceBytes = await fetchFormTemplateBytes(form.pdfPath);
+      const pdfBytes = await generatePDF(form, values, sourceBytes);
+      const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
+      const blobUrl = URL.createObjectURL(blob);
+
+      const firstName = (values.first_name ?? '').trim();
+      const lastName  = (values.last_name  ?? '').trim();
+      const fullName  = [firstName, lastName].filter(Boolean).join(' ') || 'Applicant';
+      const safeName  = fullName
+        .replace(/[\u0000-\u001F\u007F-\uFFFF]/g, '')
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toUpperCase() || 'Applicant';
+
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${safeName} - ${form.agency} - ${form.code}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error('[local-download]', err);
+      alert('Could not generate PDF. Please try again.');
+    }
+  }
+
   // ── Payment confirmed → generate final PDF + return 5-digit code ──────────
+  // (LEGACY v1.0 — kept for reference; no longer wired in v2.0.)
   async function handlePaymentConfirm(meta: { refNo: string | null; ocrAmount: number | null }) {
     if (!form) return;
     const res = await fetch('/api/payment/confirm', {
@@ -1074,21 +1124,54 @@ export default function FormWizardPage() {
     );
   }
 
+  // ─── Step 0 (PaymentGate) → Step 1 (Local Mode) gate ─────────────────────
+  // PaymentGate verifies a valid 48h access token; if absent it shows the
+  // "Pay ₱5 to Unlock" intro screen which opens PaymentModal. Once a token
+  // exists, LocalModeOverlay runs and primes offline assets. Both gates
+  // short-circuit BEFORE any draft prompt or wizard content.
+  if (!localModeActive) {
+    return (
+      <PaymentGate
+        formName={form.name}
+        formCode={form.code}
+        renderPaymentModal={({ onSuccess, onClose }) => (
+          <PaymentModal
+            gcashNumber={GCASH_NUMBER}
+            gcashName={GCASH_NAME}
+            onTokenIssued={(t: StoredAccessToken) => onSuccess(t)}
+            onClose={onClose}
+          />
+        )}
+      >
+        <LocalModeOverlay
+          pdfPath={form.pdfPath}
+          formName={form.name}
+          formCode={form.code}
+          onActivated={() => setLocalModeActive(true)}
+        />
+      </PaymentGate>
+    );
+  }
+
   if (draftModalOpen && pendingDraft) {
     const fieldCount = Object.values(pendingDraft).filter((v) => v.trim() !== '').length;
     return (
-      <DraftResumeModal
-        formName={form?.name ?? ''}
-        filledCount={fieldCount}
-        onResume={handleResumeDraft}
-        onStartNew={handleDiscardDraft}
-      />
+      <>
+        <LocalModeBanner />
+        <DraftResumeModal
+          formName={form?.name ?? ''}
+          filledCount={fieldCount}
+          onResume={handleResumeDraft}
+          onStartNew={handleDiscardDraft}
+        />
+      </>
     );
   }
 
   if (mode === 'review') {
     return (
       <>
+        <LocalModeBanner />
         <ReviewScreen
           form={form}
           values={values}
@@ -1112,23 +1195,16 @@ export default function FormWizardPage() {
   if (mode === 'preview') {
     return (
       <>
+        <LocalModeBanner />
         <PreviewScreen
           form={form}
           imageUrl={previewImageUrl}
-          onDownload={() => setShowPaymentModal(true)}
+          onDownload={handleLocalDownload}
           onBack={() => setMode('review')}
         />
-        {showPaymentModal && (
-          <PaymentModal
-            gcashNumber={GCASH_NUMBER}
-            gcashName={GCASH_NAME}
-            onConfirm={handlePaymentConfirm}
-            onClose={() => setShowPaymentModal(false)}
-          />
-        )}
         {showSuccessModal && (
           <SuccessCodeModal
-            code={downloadCode}
+            code={'\u2014'}
             onClose={() => { setShowSuccessModal(false); router.push('/'); }}
           />
         )}
@@ -1141,6 +1217,7 @@ export default function FormWizardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <LocalModeBanner />
       {/* Top nav */}
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
@@ -1931,19 +2008,19 @@ function GeneratingScreen() {
 function PaymentModal({
   gcashNumber: gcashNumberProp,
   gcashName: gcashNameProp,
-  onConfirm,
+  onTokenIssued,
   onClose,
 }: {
   gcashNumber: string;
   gcashName: string;
-  onConfirm: (meta: { refNo: string | null; ocrAmount: number | null }) => Promise<void>;
+  onTokenIssued: (token: StoredAccessToken) => void;
   onClose: () => void;
 }) {
   const [step, setStep]                   = useState<PaymentStep>('details');
   const [verifyErrors, setVerifyErrors]   = useState<string[]>([]);
   const [screenshotUrl, setScreenshotUrl] = useState<string>('');
   const [amount] = useState<number>(5);
-  const [verifiedMeta, setVerifiedMeta]   = useState<{ refNo: string | null; ocrAmount: number | null }>({ refNo: null, ocrAmount: null });
+  const [verifiedMeta, setVerifiedMeta]   = useState<StoredAccessToken | null>(null);
   const [failCount, setFailCount]         = useState(0);
   const [manualRef, setManualRef]         = useState('');
   const [manualRefError, setManualRefError] = useState('');
@@ -2016,9 +2093,21 @@ function PaymentModal({
     fd.append('amount', String(Math.max(amount, 5)));
     try {
       const res  = await fetch('/api/payment/verify-screenshot', { method: 'POST', body: fd });
-      const data = await res.json() as { valid: boolean; errors: string[]; refNo: string | null; ocrAmount: number | null };
-      if (data.valid) {
-        setVerifiedMeta({ refNo: data.refNo ?? null, ocrAmount: data.ocrAmount ?? null });
+      const data = await res.json() as {
+        valid: boolean;
+        errors: string[];
+        refNo: string | null;
+        ocrAmount: number | null;
+        token?: string | null;
+        tokenExpiresAt?: number | null;
+      };
+      if (data.valid && data.token && data.tokenExpiresAt && data.refNo) {
+        setVerifiedMeta({
+          token: data.token,
+          refNo: data.refNo,
+          amount: data.ocrAmount ?? 5,
+          expiresAt: data.tokenExpiresAt,
+        });
         setStep('verified');
       } else {
         setVerifyErrors(data.errors ?? ['Verification failed']);
@@ -2062,9 +2151,20 @@ function PaymentModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refNo: manualRef }),
       });
-      const data = await res.json() as { valid: boolean; refNo?: string; error?: string };
-      if (data.valid && data.refNo) {
-        setVerifiedMeta({ refNo: data.refNo, ocrAmount: null });
+      const data = await res.json() as {
+        valid: boolean;
+        refNo?: string;
+        error?: string;
+        token?: string | null;
+        tokenExpiresAt?: number | null;
+      };
+      if (data.valid && data.refNo && data.token && data.tokenExpiresAt) {
+        setVerifiedMeta({
+          token: data.token,
+          refNo: data.refNo,
+          amount: 5,
+          expiresAt: data.tokenExpiresAt,
+        });
         setStep('verified');
       } else {
         setManualRefError(data.error ?? 'Invalid reference number.');
@@ -2279,17 +2379,12 @@ function PaymentModal({
               <img src={screenshotUrl} alt="Receipt" className="w-full max-h-48 object-contain rounded-xl border border-green-200" />
             )}
             <button
-              onClick={async () => {
-                setStep('generating');
-                try {
-                  await onConfirm(verifiedMeta);
-                } catch {
-                  setStep('gen_failed');
-                }
+              onClick={() => {
+                if (verifiedMeta) onTokenIssued(verifiedMeta);
               }}
               className="w-full rounded-xl bg-blue-700 hover:bg-blue-800 disabled:opacity-60 py-3.5 text-sm font-bold text-white flex items-center justify-center gap-2 transition-colors"
             >
-              ⬇️ Download PDF
+              → Continue to Form
             </button>
           </div>
         )}
