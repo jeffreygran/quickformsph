@@ -50,7 +50,6 @@ export default function FormWizardPage() {
   const [previewImageUrl, setPreviewImageUrl] = useState('');
 
   // Privacy & payment modal state
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [downloadCode, setDownloadCode]         = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -58,8 +57,7 @@ export default function FormWizardPage() {
   // Draft resume modal
   const [draftModalOpen, setDraftModalOpen] = useState(false);
   const [pendingDraft, setPendingDraft]     = useState<FormValues | null>(null);
-  // Track whether this is a brand-new form (no saved draft) — always prompt privacy on first preview
-  const [isNewFormSession, setIsNewFormSession] = useState(false);
+
 
   // ─── Local Mode (v2.0) gate ────────────────────────────────────────────────────
   // Form rendering is gated until the device has cached everything required
@@ -96,9 +94,6 @@ export default function FormWizardPage() {
     if (draft && Object.keys(draft).length > 0) {
       setPendingDraft(draft);
       setDraftModalOpen(true);
-    } else {
-      // No saved draft — this is a fresh/new form session
-      setIsNewFormSession(true);
     }
   }, [slug]);
 
@@ -932,27 +927,6 @@ export default function FormWizardPage() {
     }
   }
 
-  // ── Privacy gate — check acknowledgement before preview ──────────────────
-  function handlePreviewRequest() {
-    try {
-      // Always prompt on a new form session; otherwise check cached ack
-      if (!isNewFormSession && localStorage.getItem('qfph_privacy_ack') === '1') {
-        handlePreviewInPDF();
-      } else {
-        setShowPrivacyModal(true);
-      }
-    } catch {
-      setShowPrivacyModal(true);
-    }
-  }
-
-  function handlePrivacyAck() {
-    try { localStorage.setItem('qfph_privacy_ack', '1'); } catch {}
-    setIsNewFormSession(false); // acknowledged — skip prompt for subsequent previews this session
-    setShowPrivacyModal(false);
-    handlePreviewInPDF();
-  }
-
   // ── Preview in PDF: generate PDF locally → render page 1 as image with watermark ──
   async function handlePreviewInPDF() {
     setPreviewing(true);
@@ -1179,15 +1153,9 @@ export default function FormWizardPage() {
             if (stepIdx !== undefined) setCurrentStep(stepIdx as StepIndex);
             setMode('form');
           }}
-          onPreview={handlePreviewRequest}
+          onPreview={handlePreviewInPDF}
           previewing={previewing}
         />
-        {showPrivacyModal && (
-          <PrivacyConsentModal
-            onAck={handlePrivacyAck}
-            onClose={() => setShowPrivacyModal(false)}
-          />
-        )}
       </>
     );
   }
