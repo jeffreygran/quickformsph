@@ -11,11 +11,9 @@ function requireAdmin(req: NextRequest): boolean {
 }
 
 function generateKey(): string {
-  // Format: XXXX-XXXX-XXXX-XXXX  (uppercase alphanumeric, easy to read)
+  // Format: XXXXX  (5-char uppercase alphanumeric, no ambiguous chars)
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous I/O/0/1
-  const segment = () =>
-    Array.from({ length: 4 }, () => chars[randomBytes(1)[0] % chars.length]).join('');
-  return `${segment()}-${segment()}-${segment()}-${segment()}`;
+  return Array.from({ length: 5 }, () => chars[randomBytes(1)[0] % chars.length]).join('');
 }
 
 /** GET /api/admin/license-keys — list all keys */

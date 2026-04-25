@@ -7,7 +7,7 @@ import { FORMS } from '@/data/forms';
 
 const IS_DEV = process.env.NEXT_PUBLIC_APP_ENV === 'dev';
 
-type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions' | 'refs' | 'pdfs' | 'security' | 'keys';
+type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions' | 'refs' | 'security' | 'keys';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('dashboard');
@@ -34,10 +34,9 @@ export default function AdminPage() {
     { id: 'storage',     icon: '💾', label: 'Storage Config' },
     { id: 'suggestions', icon: '💡', label: 'Suggestions' },
     { id: 'refs',        icon: '🧾', label: 'Payment Refs' },
-    { id: 'pdfs',        icon: '📄', label: 'Generated PDFs' },
     { id: 'settings',    icon: '⚙️', label: 'Settings' },
     { id: 'security',    icon: '🛡️', label: 'Security' },
-    { id: 'keys',        icon: '🔑', label: 'License Keys' },
+    { id: 'keys',        icon: '🏷️', label: 'Promo Codes' },
   ];
 
   return (
@@ -131,7 +130,6 @@ export default function AdminPage() {
           {tab === 'storage'     && <StorageConfigTab />}
           {tab === 'suggestions' && <SuggestionsTab />}
           {tab === 'refs'        && <PaymentRefsTab />}
-          {tab === 'pdfs'        && <GeneratedPDFsTab />}
           {tab === 'settings'    && <SettingsTab />}
           {tab === 'security'    && <SecurityTab />}
           {tab === 'keys'        && <LicenseKeysTab />}
@@ -1598,7 +1596,7 @@ function LicenseKeysTab() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this license key?')) return;
+    if (!confirm('Delete this promo code?')) return;
     setDeleting(id);
     await fetch(`/api/admin/license-keys?id=${id}`, { method: 'DELETE' });
     setDeleting(null);
@@ -1617,15 +1615,15 @@ function LicenseKeysTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-bold text-gray-900">🔑 License Keys</h2>
+        <h2 className="text-lg font-bold text-gray-900">🏷️ Promo Codes</h2>
         <p className="text-xs text-gray-500 mt-0.5">
-          Generate keys to give users 48-hour access without GCash payment.
+          Generate promo codes to give users 24-hour access without GCash payment.
         </p>
       </div>
 
       {/* Generator */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-700">Generate Keys</h3>
+        <h3 className="text-sm font-semibold text-gray-700">Generate Promo Codes</h3>
         <div className="flex gap-3 flex-wrap">
           <div className="flex flex-col gap-1">
             <label className="text-[11px] text-gray-500">Count</label>
@@ -1644,7 +1642,7 @@ function LicenseKeysTab() {
               type="text"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="e.g. Batch 1, Event promo…"
+              placeholder="e.g. Batch 1, Launch promo…"
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
@@ -1674,7 +1672,7 @@ function LicenseKeysTab() {
       {loading ? (
         <p className="text-sm text-gray-400">Loading…</p>
       ) : keys.length === 0 ? (
-        <p className="text-sm text-gray-400">No keys yet. Generate some above.</p>
+        <p className="text-sm text-gray-400">No promo codes yet. Generate some above.</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-gray-200">
           <table className="w-full text-xs">

@@ -71,35 +71,39 @@ export default function PaymentGate({
     setDemoMode(true);
   };
 
-  // ── Locked: show choice / pay / key screens ───────────────────────────────
+  // ── Locked: show choice / pay screens + promo dialog ──────────────────────
   return (
     <>
       <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
         <main className="flex-1 flex items-center justify-center px-4 py-6 overflow-hidden">
           <div className="w-full max-w-md">
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100 px-6 py-7 sm:px-8 sm:py-9">
-              {mode === 'choice' && (
-                <ChoiceScreen
-                  formName={formName}
-                  formCode={formCode}
-                  existingToken={existingToken}
-                  onDemo={() => { onAccessGranted?.(true); setDemoMode(true); }}
-                  onPay={() => setMode('pay')}
-                  onKey={() => setMode('key')}
-                  onProceed={() => { onAccessGranted?.(false); setDemoMode(true); }}
-                />
-              )}
-              {mode === 'key' && (
-                <LicenseKeyScreen
-                  onSuccess={handleTokenIssued}
-                  onBack={() => setMode('choice')}
-                />
-              )}
+              <ChoiceScreen
+                formName={formName}
+                formCode={formCode}
+                existingToken={existingToken}
+                onDemo={() => { onAccessGranted?.(true); setDemoMode(true); }}
+                onPay={() => setMode('pay')}
+                onKey={() => setMode('key')}
+                onProceed={() => { onAccessGranted?.(false); setDemoMode(true); }}
+              />
             </div>
 
           </div>
         </main>
       </div>
+
+      {/* Promo code dialog */}
+      {mode === 'key' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-gray-100 px-6 py-7">
+            <LicenseKeyScreen
+              onSuccess={handleTokenIssued}
+              onBack={() => setMode('choice')}
+            />
+          </div>
+        </div>
+      )}
 
       {mode === 'pay' &&
         renderPaymentModal({
@@ -192,12 +196,9 @@ function ChoiceScreen({
         <button
           type="button"
           onClick={onKey}
-          className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 underline-offset-4 hover:underline transition-colors"
+          className="text-xs text-gray-400 hover:text-gray-600 underline-offset-4 hover:underline transition-colors"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
-          </svg>
-          Have a promo code?
+          I have a promo code.
         </button>
       </div>
 
@@ -220,7 +221,7 @@ function LicenseKeyScreen({
 
   const handleRedeem = async () => {
     const trimmed = keyValue.trim().toUpperCase();
-    if (!trimmed) { setError('Please enter your license key.'); return; }
+    if (!trimmed) { setError('Please enter your promo code.'); return; }
     setLoading(true);
     setError(null);
     try {
@@ -237,7 +238,7 @@ function LicenseKeyScreen({
         error?: string;
       };
       if (!data.valid || !data.token || !data.expiresAt) {
-        setError(data.error ?? 'Invalid license key. Please check and try again.');
+        setError(data.error ?? 'Invalid promo code. Please check and try again.');
         return;
       }
       onSuccess({ token: data.token, expiresAt: data.expiresAt, refNo: data.refNo ?? '', amount: 0 });
@@ -262,8 +263,8 @@ function LicenseKeyScreen({
         <div className="mx-auto w-14 h-14 rounded-2xl bg-yellow-50 flex items-center justify-center mb-3">
           <span className="text-3xl" aria-hidden>🔑</span>
         </div>
-        <h2 className="text-lg font-bold text-gray-900 mb-1">Enter License Key</h2>
-        <p className="text-xs text-gray-500">Paste or type your key below — unlocks 48-hour access.</p>
+        <h2 className="text-lg font-bold text-gray-900 mb-1">Enter Promo Code</h2>
+        <p className="text-xs text-gray-500">Paste or type your promo code below — unlocks 24-hour access.</p>
       </div>
 
       <input
@@ -271,8 +272,8 @@ function LicenseKeyScreen({
         value={keyValue}
         onChange={(e) => { setKeyValue(e.target.value.toUpperCase()); setError(null); }}
         onKeyDown={(e) => e.key === 'Enter' && handleRedeem()}
-        placeholder="XXXX-XXXX-XXXX-XXXX"
-        maxLength={24}
+        placeholder="XXXXX"
+        maxLength={5}
         className="w-full rounded-xl border border-gray-300 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100 outline-none px-4 py-3 text-sm font-mono tracking-wider text-center mb-3 transition"
         autoComplete="off"
         spellCheck={false}
@@ -288,7 +289,7 @@ function LicenseKeyScreen({
         disabled={loading}
         className="w-full rounded-xl bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 text-white font-bold text-sm py-3.5 active:scale-[.98] transition-all"
       >
-        {loading ? 'Verifying…' : 'Redeem Key'}
+        {loading ? 'Verifying…' : 'Redeem Code'}
       </button>
     </>
   );
