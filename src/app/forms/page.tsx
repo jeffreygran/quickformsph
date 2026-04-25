@@ -68,26 +68,31 @@ export default function FormsPage() {
               className="rounded-2xl bg-white border border-gray-200 shadow-sm overflow-hidden"
             >
               <div className="p-5">
-                {/* Agency + category badges */}
-                <div className="flex flex-wrap items-center gap-2 mb-3">
+                {/* Logo + agency badge row */}
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex-shrink-0 flex items-center h-10">
+                    {AGENCY_LOGO[form.agency] ? (
+                      <Image
+                        src={AGENCY_LOGO[form.agency].src}
+                        alt={form.agency}
+                        width={AGENCY_LOGO[form.agency].w}
+                        height={AGENCY_LOGO[form.agency].h}
+                        className="object-contain"
+                      />
+                    ) : (
+                      <span className="text-2xl">📄</span>
+                    )}
+                  </div>
                   <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${agencyBadgeClass(form.agency)}`}>
                     {form.agency}
                   </span>
-                  <span className="text-[11px] text-gray-400 bg-gray-100 border border-gray-200 px-2.5 py-1 rounded-full">
-                    {form.category}
-                  </span>
-                  <span className="text-[11px] text-gray-400 font-mono ml-auto">{form.code}</span>
                 </div>
 
-                {/* Form name */}
-                <h2 className="text-base font-black text-gray-900 leading-tight mb-1">
+                {/* Code + Form name */}
+                <div className="text-xs font-mono text-gray-400 mb-0.5">{form.code}</div>
+                <h2 className="text-base font-black text-gray-900 leading-tight mb-4">
                   {form.name}
                 </h2>
-
-                {/* Description */}
-                <p className="text-sm text-gray-500 leading-relaxed mb-4">
-                  {form.description}
-                </p>
 
                 {/* Actions */}
                 <div className="flex flex-wrap items-center gap-2">
