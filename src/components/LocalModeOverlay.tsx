@@ -23,6 +23,17 @@ import {
   type LocalModeProgress,
   type LocalModeStatus,
 } from '@/lib/local-mode';
+import { getPdfjsLib } from '@/lib/get-pdfjs';
+
+// Static public assets needed for offline rendering.
+const OFFLINE_ASSETS = [
+  '/logos/bir.png',
+  '/logos/pagibig.png',
+  '/logos/philhealth.png',
+  '/quickformsph-logo-transparent-slogan.png',
+  '/quickformsph-logo-transparent.png',
+  '/quickformsph-logo.png',
+];
 
 interface Props {
   /** PDF template path under /public/forms/ (e.g. "hqp-pff-356.pdf"). */
@@ -54,8 +65,18 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
         // Engine: pdf-lib is bundled in our app shell — register SW + warm it up.
         setProgress((p) => ({ ...p, engine: 'in-progress' }));
         await ensureServiceWorker();
-        // Touch pdf-lib so its chunk is loaded into cache for offline use.
-        await import('pdf-lib');
+        // Pre-load all JS chunks needed for offline PDF generation.
+        // The SW's /_next/static/ handler will cache them on first fetch.
+        await Promise.all([
+          import('pdf-lib'),
+          getPdfjsLib(),
+        ]);
+        // Pre-cache logos and public images so they display offline.
+        await Promise.allSettled(
+          OFFLINE_ASSETS.map((url) =>
+            fetch(url, { cache: 'force-cache' }).catch(() => {}),
+          ),
+        );
         if (cancelled) return;
         setProgress((p) => ({ ...p, engine: 'done' }));
         await sleep(220); // small visual beat
