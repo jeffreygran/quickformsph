@@ -70,8 +70,8 @@ export default function PaymentGate({
   // ── Locked: show choice / pay / key screens ───────────────────────────────
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
-        <main className="flex-1 flex items-start sm:items-center justify-center px-4 py-6 sm:py-10">
+      <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
+        <main className="flex-1 flex items-center justify-center px-4 py-6 overflow-hidden">
           <div className="w-full max-w-md">
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100 px-6 py-7 sm:px-8 sm:py-9">
               {mode === 'choice' && (

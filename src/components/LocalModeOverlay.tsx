@@ -141,7 +141,7 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
   return (
     <>
       <div
-        className="fixed inset-0 z-[60] flex items-center justify-center bg-white/97 backdrop-blur-sm overflow-y-auto"
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-white/97 backdrop-blur-sm overflow-hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="local-mode-title"
