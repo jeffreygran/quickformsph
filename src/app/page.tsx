@@ -450,6 +450,17 @@ export default function HomePage() {
       {showPrivacyModal && (
         <PrivacyNoticeModal onAck={handlePrivacyAck} />
       )}
+
+      <footer className="border-t border-gray-200 py-4 px-6 text-center text-xs text-gray-400">
+        <div className="mb-1.5 text-[11px] text-gray-400">
+          QuickFormsPH is a private tool and is <strong className="text-gray-500">not affiliated with any Philippine government agency</strong>.
+        </div>
+        <Link href="/about" className="font-medium text-gray-600 hover:text-blue-700 transition-colors">
+          QuickFormsPH <span className="font-normal">v1.0</span>
+        </Link>
+        <span className="mx-2 text-gray-300">·</span>
+        <Link href="/privacy" className="text-blue-600 hover:text-blue-800 underline">Privacy Policy</Link>
+      </footer>
     </div>
   );
 }
