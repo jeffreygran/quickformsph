@@ -324,7 +324,7 @@ function ReadyState({
       {onlineError && (
         <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
           <p className="text-xs text-red-700 leading-relaxed">
-            <strong>You appear to be online.</strong> Please disconnect from the internet before filling this form in offline mode.
+            <strong>You appear to be online.</strong> Please disconnect from the internet before filling this form in offline mode. If you want to continue online anyway, uncheck &ldquo;Verify internet connection&rdquo; above.
           </p>
         </div>
       )}
