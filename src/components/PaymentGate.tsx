@@ -14,6 +14,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import {
   readAccessToken,
   writeAccessToken,
@@ -26,6 +27,7 @@ type Mode = 'choice' | 'pay' | 'key';
 interface Props {
   formName: string;
   formCode: string;
+  agency: string;
   /** Called when the user selects an access method. isDemo=true when Demo is chosen. */
   onAccessGranted?: (isDemo: boolean) => void;
   /** Render PaymentModal — keeps PaymentGate decoupled from its concrete UI. */
@@ -40,6 +42,7 @@ interface Props {
 export default function PaymentGate({
   formName,
   formCode,
+  agency,
   onAccessGranted,
   renderPaymentModal,
   children,
@@ -81,6 +84,7 @@ export default function PaymentGate({
               <ChoiceScreen
                 formName={formName}
                 formCode={formCode}
+                agency={agency}
                 existingToken={existingToken}
                 onDemo={() => { onAccessGranted?.(true); setDemoMode(true); }}
                 onPay={() => setMode('pay')}
@@ -114,11 +118,19 @@ export default function PaymentGate({
   );
 }
 
+// ── Agency logos (mirrors AGENCY_LOGO in form page) ────────────────────────────
+const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
+  'Bureau of Internal Revenue': { src: '/logos/bir.png',        w: 44, h: 44 },
+  'Pag-IBIG Fund':              { src: '/logos/pagibig.png',    w: 44, h: 44 },
+  'PhilHealth':                 { src: '/logos/philhealth.png', w: 88, h: 27 },
+};
+
 // ── Choice Screen ─────────────────────────────────────────────────────────────
 
 function ChoiceScreen({
   formName,
   formCode,
+  agency,
   existingToken,
   onDemo,
   onPay,
@@ -127,12 +139,15 @@ function ChoiceScreen({
 }: {
   formName: string;
   formCode: string;
+  agency: string;
   existingToken: StoredAccessToken | null;
   onDemo: () => void;
   onPay: () => void;
   onKey: () => void;
   onProceed: () => void;
 }) {
+  const logo = AGENCY_LOGO[agency];
+
   const [timeLeft, setTimeLeft] = useState(() =>
     existingToken ? formatTimeLeft(existingToken.expiresAt) : ''
   );
@@ -147,13 +162,18 @@ function ChoiceScreen({
 
   return (
     <>
-      <div className="text-center mb-6">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center mb-4 shadow-md">
-          <span className="text-3xl" aria-hidden>🔓</span>
+      {/* Agency logo + form identity — visually dominant */}
+      <div className="text-center mb-5">
+        <div className="mx-auto w-16 h-16 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center mb-3">
+          {logo ? (
+            <Image src={logo.src} alt={agency} width={logo.w} height={logo.h} className="object-contain" />
+          ) : (
+            <span className="text-3xl" aria-hidden>📄</span>
+          )}
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">How would you like to access?</h2>
-        <p className="text-xs text-gray-500 mb-1">{formName}</p>
-        <p className="text-[11px] uppercase tracking-wider font-semibold text-gray-400">{formCode}</p>
+        <p className="text-[11px] uppercase tracking-widest font-bold text-blue-500 mb-1">{formCode}</p>
+        <h2 className="text-base font-bold text-gray-900 leading-snug mb-4">{formName}</h2>
+        <p className="text-xs font-medium text-gray-400">How would you like to access?</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

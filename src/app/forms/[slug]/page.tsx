@@ -1117,6 +1117,7 @@ export default function FormWizardPage() {
       <PaymentGate
         formName={form.name}
         formCode={form.code}
+        agency={form.agency}
         onAccessGranted={(isDemo) => setIsDemoMode(isDemo)}
         renderPaymentModal={({ onSuccess, onClose }) => (
           <PaymentModal
