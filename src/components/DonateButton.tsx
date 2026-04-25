@@ -10,7 +10,7 @@ export default function DonateButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-green-600 hover:text-green-800 hover:underline transition-colors"
       >
         Donate 💚
       </button>
