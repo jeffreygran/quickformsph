@@ -281,7 +281,6 @@ function ReadyState({
       <ul className="space-y-2 mb-5">
         <ReadyItem label="PDF engine ready" />
         <ReadyItem label="Form template cached" />
-        <ReadyItem label="Offline mode verified" />
       </ul>
 
       <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-5">
@@ -294,18 +293,6 @@ function ReadyState({
         <input
           type="checkbox"
           className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
-          checked={consentChecked}
-          onChange={(e) => onConsentChange(e.target.checked)}
-        />
-        <span className="text-xs text-gray-700 leading-relaxed">
-          I understand my data stays on this device and consent to filling this form locally.
-        </span>
-      </label>
-
-      <label className="flex items-start gap-3 cursor-pointer mb-5 select-none">
-        <input
-          type="checkbox"
-          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
           checked={verifyOffline}
           onChange={(e) => onVerifyOfflineChange(e.target.checked)}
         />
@@ -314,6 +301,17 @@ function ReadyState({
         </span>
       </label>
 
+      <label className="flex items-start gap-3 cursor-pointer mb-5 select-none">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
+          checked={consentChecked}
+          onChange={(e) => onConsentChange(e.target.checked)}
+        />
+        <span className="text-xs text-gray-700 leading-relaxed">
+          I understand my data stays on this device and consent to filling this form locally.
+        </span>
+      </label>
       {onlineError && (
         <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
           <p className="text-xs text-red-700 leading-relaxed">
