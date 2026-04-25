@@ -1172,6 +1172,10 @@ export default function FormWizardPage() {
           isDemoMode={isDemoMode}
           onDownload={handleLocalDownload}
           onBack={() => setMode('review')}
+          onCloseSession={() => {
+            clearDraft(form.slug);
+            router.push('/');
+          }}
         />
         {showSuccessModal && (
           <SuccessCodeModal
@@ -1754,14 +1758,17 @@ function PreviewScreen({
   isDemoMode,
   onDownload,
   onBack,
+  onCloseSession,
 }: {
   form: FormSchema;
   imageUrl: string;
   isDemoMode: boolean;
   onDownload: () => void;
   onBack: () => void;
+  onCloseSession: () => void;
 }) {
   const [lightbox, setLightbox] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col">
@@ -1818,7 +1825,40 @@ function PreviewScreen({
         >
           ← Back to Editor
         </button>
+        <button
+          onClick={() => setShowCloseConfirm(true)}
+          className="w-full rounded-xl py-3 text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors"
+        >
+          Close Session
+        </button>
       </div>
+
+      {/* Close Session Confirmation */}
+      {showCloseConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-5">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+            <h3 className="text-base font-bold text-gray-900 mb-2">Close Session?</h3>
+            <p className="text-sm text-gray-600 leading-relaxed mb-5">
+              This will clear all your entered data, the current draft, and the PDF preview.
+              <strong className="text-gray-900"> This cannot be undone.</strong>
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCloseConfirm(false)}
+                className="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onCloseSession}
+                className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                Clear &amp; Exit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Fullscreen lightbox */}
       {lightbox && (
