@@ -42,6 +42,8 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
   const [progress, setProgress] = useState<LocalModeProgress>(INITIAL_PROGRESS);
   const [error, setError] = useState<string | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
+  const [verifyOffline, setVerifyOffline] = useState(true);
+  const [onlineError, setOnlineError] = useState(false);
 
   // Run the download/cache pipeline on mount.
   useEffect(() => {
@@ -92,11 +94,27 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
     };
   }, [pdfPath, formCode]);
 
-  const handleStart = useCallback(() => {
+  const handleStart = useCallback(async () => {
+    if (verifyOffline) {
+      // Try to reach a reliable external URL. If it succeeds, device is online → block.
+      try {
+        await fetch('https://www.google.com/favicon.ico', {
+          mode: 'no-cors',
+          cache: 'no-store',
+          signal: AbortSignal.timeout(3000),
+        });
+        // fetch succeeded → device is online
+        setOnlineError(true);
+        return;
+      } catch {
+        // fetch failed → device is offline, safe to proceed
+      }
+    }
+    setOnlineError(false);
     setPrivacyAck();
     setPhase('active');
     onActivated();
-  }, [onActivated]);
+  }, [onActivated, verifyOffline]);
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -163,6 +181,9 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
                 formCode={formCode}
                 consentChecked={consentChecked}
                 onConsentChange={setConsentChecked}
+                verifyOffline={verifyOffline}
+                onVerifyOfflineChange={setVerifyOffline}
+                onlineError={onlineError}
                 onStart={handleStart}
               />
             )}
@@ -232,12 +253,18 @@ function ReadyState({
   formCode,
   consentChecked,
   onConsentChange,
+  verifyOffline,
+  onVerifyOfflineChange,
+  onlineError,
   onStart,
 }: {
   formName: string;
   formCode: string;
   consentChecked: boolean;
   onConsentChange: (v: boolean) => void;
+  verifyOffline: boolean;
+  onVerifyOfflineChange: (v: boolean) => void;
+  onlineError: boolean;
   onStart: () => void;
 }) {
   return (
@@ -264,7 +291,7 @@ function ReadyState({
         </p>
       </div>
 
-      <label className="flex items-start gap-3 cursor-pointer mb-5 select-none">
+      <label className="flex items-start gap-3 cursor-pointer mb-3 select-none">
         <input
           type="checkbox"
           className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
@@ -275,6 +302,26 @@ function ReadyState({
           I understand my data stays on this device and consent to filling this form locally.
         </span>
       </label>
+
+      <label className="flex items-start gap-3 cursor-pointer mb-5 select-none">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
+          checked={verifyOffline}
+          onChange={(e) => onVerifyOfflineChange(e.target.checked)}
+        />
+        <span className="text-xs text-gray-700 leading-relaxed">
+          Verify my internet connection and stop if online.
+        </span>
+      </label>
+
+      {onlineError && (
+        <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
+          <p className="text-xs text-red-700 leading-relaxed">
+            <strong>You appear to be online.</strong> Please disconnect from the internet before filling this form in offline mode.
+          </p>
+        </div>
+      )}
 
       <button
         type="button"
