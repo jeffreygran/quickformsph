@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getFormBySlug, FormField, FormSchema } from '@/data/forms';
 import LocalModeOverlay, { LocalModeBanner } from '@/components/LocalModeOverlay';
 import PaymentGate from '@/components/PaymentGate';
@@ -12,6 +13,13 @@ import { generatePDF } from '@/lib/pdf-generator';
 
 const GCASH_NUMBER = process.env.NEXT_PUBLIC_GCASH_NUMBER ?? '0917-551-4822';
 const GCASH_NAME   = process.env.NEXT_PUBLIC_GCASH_NAME   ?? 'JE****Y JO*N G.';
+
+// ─── Agency logos ────────────────────────────────────────────────────────────
+const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
+  'Bureau of Internal Revenue': { src: '/logos/bir.png',       w: 36, h: 36 },
+  'Pag-IBIG Fund':              { src: '/logos/pagibig.png',   w: 36, h: 36 },
+  'PhilHealth':                 { src: '/logos/philhealth.png', w: 72, h: 22 },
+};
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type FormValues = Record<string, string>;
@@ -1203,9 +1211,20 @@ export default function FormWizardPage() {
           >
             ←
           </button>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-mono text-gray-400 truncate">{form.code}</div>
-            <div className="text-xs font-medium text-gray-700 truncate">{form.name}</div>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {AGENCY_LOGO[form.agency] && (
+              <Image
+                src={AGENCY_LOGO[form.agency].src}
+                alt={form.agency}
+                width={AGENCY_LOGO[form.agency].w}
+                height={AGENCY_LOGO[form.agency].h}
+                className="object-contain flex-shrink-0"
+              />
+            )}
+            <div className="min-w-0">
+              <div className="text-xs font-mono text-gray-400 truncate">{form.code}</div>
+              <div className="text-xs font-medium text-gray-700 truncate">{form.name}</div>
+            </div>
           </div>
           <button
             onClick={handleOpenBlankViewer}
@@ -1642,9 +1661,20 @@ function ReviewScreen({
           >
             ←
           </button>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-mono text-gray-400 truncate">{form.code}</div>
-            <div className="text-xs font-medium text-gray-700">Review Your Entries</div>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {AGENCY_LOGO[form.agency] && (
+              <Image
+                src={AGENCY_LOGO[form.agency].src}
+                alt={form.agency}
+                width={AGENCY_LOGO[form.agency].w}
+                height={AGENCY_LOGO[form.agency].h}
+                className="object-contain flex-shrink-0"
+              />
+            )}
+            <div className="min-w-0">
+              <div className="text-xs font-mono text-gray-400 truncate">{form.code}</div>
+              <div className="text-xs font-medium text-gray-700">Review Your Entries</div>
+            </div>
           </div>
           <div className="text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
             {totalFilled}/{form.fields.length} filled
