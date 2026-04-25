@@ -148,9 +148,9 @@ export default function AboutPage() {
           <div>
             <h3 className="font-bold text-gray-900 mb-1.5">A Minimal Fee</h3>
             <p className="text-sm text-gray-600 leading-relaxed">
-              QuickFormsPH charges a small <strong>₱5 fee</strong> to cover operating costs, new form additions,
-              and ongoing improvements.{' '}
-              <span className="font-semibold text-gray-800">Salamat po!</span>
+              QuickFormsPH charges a small <strong>₱5 fee</strong> to support maintenance, new form additions,
+              and ongoing improvements. Every peso goes directly into making the service better for all Filipinos.{' '}
+              <strong>Salamat po!</strong>
             </p>
           </div>
         </div>
