@@ -1110,7 +1110,6 @@ export default function FormWizardPage() {
       <PaymentGate
         formName={form.name}
         formCode={form.code}
-        pdfPath={form.pdfPath}
         onAccessGranted={(isDemo) => setIsDemoMode(isDemo)}
         renderPaymentModal={({ onSuccess, onClose }) => (
           <PaymentModal

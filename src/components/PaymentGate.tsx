@@ -24,7 +24,6 @@ type Mode = 'choice' | 'pay' | 'key';
 interface Props {
   formName: string;
   formCode: string;
-  pdfPath: string;
   /** Called when the user selects an access method. isDemo=true when Demo is chosen. */
   onAccessGranted?: (isDemo: boolean) => void;
   /** Render PaymentModal — keeps PaymentGate decoupled from its concrete UI. */
@@ -39,7 +38,6 @@ interface Props {
 export default function PaymentGate({
   formName,
   formCode,
-  pdfPath,
   onAccessGranted,
   renderPaymentModal,
   children,
@@ -93,22 +91,6 @@ export default function PaymentGate({
               )}
             </div>
 
-            <div className="mt-5 flex items-center justify-center gap-3">
-              <a
-                href="/"
-                className="text-xs text-gray-500 hover:text-gray-700 underline-offset-4 hover:underline"
-              >
-                ← Browse other forms
-              </a>
-              <span className="text-gray-300 select-none">|</span>
-              <a
-                href={`/forms/${pdfPath}`}
-                download
-                className="text-xs text-blue-500 hover:text-blue-700 underline-offset-4 hover:underline inline-flex items-center gap-1"
-              >
-                <span aria-hidden>📥</span> Download Form
-              </a>
-            </div>
           </div>
         </main>
       </div>
@@ -136,7 +118,6 @@ function ChoiceScreen({
   onDemo: () => void;
   onPay: () => void;
   onKey: () => void;
-  // pdfPath used by parent for download link
 }) {
   return (
     <>
