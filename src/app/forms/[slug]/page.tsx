@@ -1763,6 +1763,7 @@ function ReviewScreen({
 
       {/* Fixed CTA */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 pt-3 pb-6 shadow-lg">
+        <div className="mx-auto max-w-lg">
         <div className="mb-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 flex items-start gap-2">
           <span className="text-sm shrink-0 mt-0.5">⚠️</span>
           <p className="text-[11px] text-amber-800 leading-relaxed">
@@ -1783,6 +1784,7 @@ function ReviewScreen({
             '🔍 Preview in PDF'
           )}
         </button>
+        </div>
       </div>
     </div>
   );
