@@ -492,6 +492,13 @@ export default function HomePage() {
         </div>
         <Link href="/about" className="text-gray-500 hover:text-blue-700 transition-colors">About</Link>
         <span className="mx-2 text-gray-300">·</span>
+        <Link href="/" className="inline-flex items-center gap-1 text-gray-500 hover:text-blue-700 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+          Forms
+        </Link>
+        <span className="mx-2 text-gray-300">·</span>
         <Link href="/privacy" className="text-gray-500 hover:text-blue-700 transition-colors">Privacy Policy</Link>
       </footer>
     </div>

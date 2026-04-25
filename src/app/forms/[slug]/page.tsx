@@ -1227,13 +1227,6 @@ export default function FormWizardPage() {
             </div>
           </div>
           <button
-            onClick={handleOpenBlankViewer}
-            className="rounded-lg border border-gray-200 bg-white py-2 px-3 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap"
-            title="View blank PDF form"
-          >
-            📄 View
-          </button>
-          <button
             onClick={() => setMode('review')}
             className="btn-primary py-2 px-4 text-xs"
           >
