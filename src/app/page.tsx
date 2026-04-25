@@ -318,8 +318,8 @@ export default function HomePage() {
 
         <div className="relative z-10 mx-auto max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-blue-100 font-medium mb-5">
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-200 animate-pulse" />
-            No sign-up · Works on mobile
+            <span className="text-sm">🔒</span>
+            Runs fully offline — your data never leaves your device
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight">
@@ -345,13 +345,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {['📄 PDF Auto-Fill', '🔒 Privacy Protected'].map((c) => (
-              <span key={c} className="text-xs bg-white/10 border border-white/20 text-blue-100 px-3 py-1 rounded-full">
-                {c}
-              </span>
-            ))}
-          </div>
         </div>
       </section>
 
