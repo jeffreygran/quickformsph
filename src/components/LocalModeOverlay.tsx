@@ -53,8 +53,10 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
   const [progress, setProgress] = useState<LocalModeProgress>(INITIAL_PROGRESS);
   const [error, setError] = useState<string | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
-  const [verifyOffline, setVerifyOffline] = useState(true);
-  const [onlineError, setOnlineError] = useState(false);
+  const [verifyOffline, setVerifyOffline]   = useState(true);
+  const [onlineError, setOnlineError]       = useState(false);
+  const [checking, setChecking]             = useState(false);
+  const [checkAttempt, setCheckAttempt]     = useState(0);
 
   // Run the download/cache pipeline on mount.
   useEffect(() => {
@@ -117,27 +119,48 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
 
   const handleStart = useCallback(async () => {
     if (verifyOffline) {
-      // Primary check: browser's own connectivity flag.
-      if (navigator.onLine) {
-        setOnlineError(true);
-        return;
+      setChecking(true);
+      setCheckAttempt(0);
+      setOnlineError(false);
+
+      let foundOnline = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        setCheckAttempt(attempt);
+
+        // Primary: browser connectivity flag
+        if (navigator.onLine) {
+          foundOnline = true;
+          break;
+        }
+
+        // Secondary: real network probe
+        try {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 3000);
+          await fetch('https://www.google.com/favicon.ico', {
+            mode: 'no-cors',
+            cache: 'no-store',
+            signal: ctrl.signal,
+          });
+          clearTimeout(timer);
+          foundOnline = true;
+          break;
+        } catch {
+          // offline — continue to next attempt
+        }
+
+        // Wait 1.5s before next attempt (skip after last)
+        if (attempt < 3) {
+          await new Promise<void>((r) => setTimeout(r, 1500));
+        }
       }
-      // Secondary check: attempt a real network request to confirm offline.
-      // Use AbortController (universal) instead of AbortSignal.timeout.
-      try {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 3000);
-        await fetch('https://www.google.com/favicon.ico', {
-          mode: 'no-cors',
-          cache: 'no-store',
-          signal: ctrl.signal,
-        });
-        clearTimeout(timer);
-        // fetch resolved → device is online
+
+      setChecking(false);
+      setCheckAttempt(0);
+
+      if (foundOnline) {
         setOnlineError(true);
         return;
-      } catch {
-        // fetch failed / aborted → device appears offline, safe to proceed
       }
     }
     setOnlineError(false);
@@ -214,6 +237,8 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
                 verifyOffline={verifyOffline}
                 onVerifyOfflineChange={setVerifyOffline}
                 onlineError={onlineError}
+                checking={checking}
+                checkAttempt={checkAttempt}
                 onStart={handleStart}
               />
             )}
@@ -286,6 +311,8 @@ function ReadyState({
   verifyOffline,
   onVerifyOfflineChange,
   onlineError,
+  checking,
+  checkAttempt,
   onStart,
 }: {
   formName: string;
@@ -295,6 +322,8 @@ function ReadyState({
   verifyOffline: boolean;
   onVerifyOfflineChange: (v: boolean) => void;
   onlineError: boolean;
+  checking: boolean;
+  checkAttempt: number;
   onStart: () => void;
 }) {
   return (
@@ -342,7 +371,40 @@ function ReadyState({
           I understand my data stays on this device and consent to filling this form locally.
         </span>
       </label>
-      {onlineError && (
+
+      {/* Internet check progress */}
+      {checking && (
+        <div className="mb-4 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-blue-700 font-semibold">
+              Checking internet connectivity…
+            </p>
+            <span className="text-[10px] text-blue-500">{checkAttempt}/3</span>
+          </div>
+          <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
+            <div
+              className="h-2 rounded-full bg-blue-500 transition-all duration-700 ease-in-out"
+              style={{ width: `${Math.round((checkAttempt / 3) * 100)}%` }}
+            />
+          </div>
+          <div className="flex gap-1.5 mt-2">
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className={`flex-1 h-1 rounded-full transition-all duration-500 ${
+                  n < checkAttempt
+                    ? 'bg-blue-500'
+                    : n === checkAttempt
+                    ? 'bg-blue-400 animate-pulse'
+                    : 'bg-blue-100'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {onlineError && !checking && (
         <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
           <p className="text-xs text-red-700 leading-relaxed">
             <strong>You appear to be online.</strong> Please disconnect from the internet before filling this form in offline mode. If you want to continue online anyway, uncheck &ldquo;Verify internet connection&rdquo; above.
@@ -353,15 +415,15 @@ function ReadyState({
       <button
         type="button"
         onClick={onStart}
-        disabled={!consentChecked}
+        disabled={!consentChecked || checking}
         className={
           'w-full inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold transition-all active:scale-[.98] ' +
-          (consentChecked
+          (consentChecked && !checking
             ? 'bg-blue-700 text-white hover:bg-blue-800'
             : 'bg-gray-100 text-gray-400 cursor-not-allowed')
         }
       >
-        Start Filling Form
+        {checking ? 'Checking…' : 'Start Filling Form'}
       </button>
     </>
   );
