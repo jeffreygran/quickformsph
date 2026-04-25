@@ -130,7 +130,7 @@ function ChoiceScreen({
         <p className="text-[11px] uppercase tracking-wider font-semibold text-gray-400">{formCode}</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {/* Demo */}
         <button
           type="button"
@@ -152,16 +152,15 @@ function ChoiceScreen({
           <span className="text-sm font-bold text-blue-700">Pay ₱5</span>
           <span className="text-[10px] text-blue-500 text-center leading-tight">48-hr full access</span>
         </button>
+      </div>
 
-        {/* License Key */}
+      <div className="mt-3 text-center">
         <button
           type="button"
           onClick={onKey}
-          className="flex flex-col items-center gap-2 rounded-2xl border-2 border-yellow-400 hover:border-yellow-500 bg-yellow-50 hover:bg-yellow-100 px-3 py-4 active:scale-[.97] transition-all"
+          className="text-xs text-gray-400 hover:text-gray-600 underline-offset-4 hover:underline transition-colors"
         >
-          <span className="text-2xl" aria-hidden>🔑</span>
-          <span className="text-sm font-bold text-yellow-700">License Key</span>
-          <span className="text-[10px] text-yellow-600 text-center leading-tight">Enter your key</span>
+          🔑 Have a license key?
         </button>
       </div>
 

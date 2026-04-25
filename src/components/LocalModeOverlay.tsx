@@ -254,11 +254,6 @@ function ReadyState({
         <p className="text-[11px] uppercase tracking-wider font-semibold text-green-700 mb-4">
           {formCode}
         </p>
-        <p className="text-sm text-gray-600 leading-relaxed mb-5">
-          Everything is downloaded. You may now <strong className="text-gray-900">turn off your
-          Wi-Fi or mobile data</strong> to verify that we are not sending your information to any
-          server.
-        </p>
       </div>
 
       <ul className="space-y-2 mb-5">

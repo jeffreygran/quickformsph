@@ -8,6 +8,9 @@ import { FORMS, FormSchema } from '@/data/forms';
 import SuggestionModal from '@/components/SuggestionModal';
 import DonationModal from '@/components/DonationModal';
 
+const HERO_CATEGORIES = ['Pag-IBIG', 'PhilHealth', 'BIR', 'SSS', 'DFA', 'LTO', 'Government'];
+const HERO_INTERVAL_MS = 6000; // 6 seconds
+
 const IS_DEV = process.env.NEXT_PUBLIC_APP_ENV === 'dev';
 const AGENCY_FILTERS = ['All', ...Array.from(new Set(FORMS.map((f) => f.agency)))];
 const PAGE_SIZE = 6;
@@ -45,6 +48,21 @@ export default function HomePage() {
 
   // Privacy notice — show only on first visit
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
+  // Hero category animation
+  const [heroCategoryIdx, setHeroCategoryIdx] = useState(0);
+  const [heroFading, setHeroFading]           = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeroFading(true);
+      setTimeout(() => {
+        setHeroCategoryIdx((i) => (i + 1) % HERO_CATEGORIES.length);
+        setHeroFading(false);
+      }, 400);
+    }, HERO_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     try {
@@ -339,7 +357,13 @@ export default function HomePage() {
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight">
-            Fill Government Forms
+            Fill{' '}
+            <span
+              className="inline-block transition-opacity duration-400"
+              style={{ opacity: heroFading ? 0 : 1 }}
+            >
+              {HERO_CATEGORIES[heroCategoryIdx]}
+            </span>{' '}Forms
             <br />
             <span className="text-blue-200">in Minutes</span>
           </h1>
