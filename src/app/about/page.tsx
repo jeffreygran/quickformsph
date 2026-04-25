@@ -42,17 +42,16 @@ export default function AboutPage() {
             QuickFormsPH
           </h1>
           <p className="text-sm text-gray-600 leading-relaxed">
-            A simple tool built to help Filipinos fill out Philippine government forms quickly — right on their phone or browser — and download a clean, print-ready PDF.
-            No account needed. Your form drafts stay in your browser — only PDF generation briefly contacts our server.
+            A simple tool that helps Filipinos fill out Philippine government forms — right on their phone or browser — and download a clean, print-ready PDF. No account. No uploads. Everything stays on your device.
           </p>
 
-          {/* Quick notes — inspired by marketplace.jeffreygran.com/about layout */}
+          {/* Quick notes */}
           <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-5 space-y-2.5">
-            <div className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-3">Quick Notes</div>
+            <div className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-3">How It Works</div>
             {[
               ['📱', 'Works entirely in your browser — no app download required'],
-              ['🔒', 'Form drafts stay in your browser only (localStorage). Data is sent to our server only to generate the PDF over an encrypted HTTPS connection.'],
-              ['⬇️', 'PDFs are re-downloadable for 48 hours via your download code, then your data is permanently deleted from our servers'],
+              ['🔒', 'Everything you type stays on your device. Nothing is sent to any server.'],
+              ['⬇️', 'The PDF is generated offline on your device and downloaded directly to you'],
               ['🏛️', 'Forms are sourced from official Philippine government agency templates'],
             ].map(([icon, text]) => (
               <div key={String(text)} className="flex items-start gap-2.5 text-sm text-blue-900">
@@ -62,7 +61,7 @@ export default function AboutPage() {
             ))}
           </div>
 
-          {/* Non-affiliation notice — RA 10173 transparency obligation */}
+          {/* Non-affiliation notice */}
           <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-xs text-yellow-900">
             <strong>⚠️ Disclaimer:</strong> QuickFormsPH is a private, independent tool. It is <strong>not affiliated with, endorsed by, or connected to any Philippine government agency</strong>.
             Forms are reproduced from publicly available official templates for the sole purpose of helping users complete them correctly.
@@ -73,7 +72,7 @@ export default function AboutPage() {
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 flex gap-3 items-start">
           <span className="text-xl shrink-0">☕</span>
           <p className="text-sm text-amber-900 leading-relaxed">
-            The small ₱5 fee helps keep QuickFormsPH running — covering hosting costs, future form additions, ongoing improvements, and the occasional sleepless night it took to build this.
+            The small ₱5 fee helps keep QuickFormsPH running — covering costs, new form additions, and ongoing improvements.
             Every peso goes directly back into making the app better for everyone. <span className="font-semibold">Salamat Po!</span>
           </p>
         </div>
