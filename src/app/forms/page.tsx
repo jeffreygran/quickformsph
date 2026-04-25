@@ -17,6 +17,12 @@ const AGENCY_COLORS: Record<string, string> = {
   'DFA':            'bg-red-50 border-red-200 text-red-700',
 };
 
+const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
+  'Bureau of Internal Revenue': { src: '/logos/bir.png',       w: 40, h: 40 },
+  'Pag-IBIG Fund':              { src: '/logos/pagibig.png',   w: 40, h: 40 },
+  'PhilHealth':                 { src: '/logos/philhealth.png', w: 80, h: 24 },
+};
+
 function agencyBadgeClass(agency: string) {
   return AGENCY_COLORS[agency] ?? 'bg-gray-100 border-gray-200 text-gray-600';
 }
@@ -49,9 +55,6 @@ export default function FormsPage() {
       <main className="mx-auto max-w-3xl px-4 py-10">
         {/* Page heading */}
         <div className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-100 px-3 py-1 text-xs text-blue-700 font-semibold mb-4">
-            📋 All Forms
-          </div>
           <h1 className="text-2xl font-black text-gray-900 leading-tight mb-2">
             Available Forms
           </h1>
