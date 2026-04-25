@@ -4,46 +4,42 @@ import { useState } from 'react';
 import SuggestionModal from '@/components/SuggestionModal';
 
 export default function DevSection() {
-  const [showProfile, setShowProfile]       = useState(false);
   const [showSuggestion, setShowSuggestion] = useState(false);
 
   return (
-    <section className="text-center">
-      {/* Badge with clickable J.Gran */}
-      <div className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 border border-gray-200 px-3 py-1 text-xs text-gray-600 font-semibold mb-4">
-        👨‍💻 Developed by:{' '}
-        <button
-          onClick={() => setShowProfile((v) => !v)}
-          className="text-blue-600 hover:text-blue-800 underline font-semibold focus:outline-none"
-        >
-          J.Gran
-        </button>
+    <>
+      <div className="text-center mb-8">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-blue-600 mb-2">Developer</p>
+        <h2 className="text-2xl font-black text-gray-900">Built by a Filipino</h2>
       </div>
 
-      {/* Animated profile section — hidden by default */}
-      <div
-        className={`overflow-hidden transition-all duration-500 ease-in-out ${
-          showProfile ? 'max-h-48 opacity-100 mt-0' : 'max-h-0 opacity-0'
-        }`}
-      >
-        <h2 className="text-xl font-black text-gray-900">Jeffrey John Gran</h2>
-        <p className="text-sm text-blue-700 font-semibold mt-0.5">Cloud Solutions Architect · Microsoft</p>
-        <p className="text-xs text-gray-500 mt-2 italic">
+      <div className="mx-auto max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-sm text-center">
+        {/* Avatar */}
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-800 text-white font-black text-xl mb-5 shadow-sm select-none">
+          JG
+        </div>
+
+        <h3 className="text-lg font-black text-gray-900 tracking-tight">Jeffrey John Gran</h3>
+        <p className="text-sm font-semibold text-blue-700 mt-1">Cloud Solutions Architect · Microsoft</p>
+
+        <p className="text-xs text-gray-500 mt-4 italic leading-relaxed max-w-xs mx-auto">
           &ldquo;Empowering organizations to accelerate frontier transformation with cloud and AI.&rdquo;
         </p>
 
-        {/* Divider + Suggestion link inside the revealed block */}
-        <div className="mt-5 border-t border-gray-200 pt-4 pb-2">
+        <div className="mt-7 pt-6 border-t border-gray-100">
           <button
             onClick={() => setShowSuggestion(true)}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 active:scale-95 transition-all shadow-sm"
           >
-            💡 Suggest a form &amp; Feedback
+            <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            Suggest a Form · Share Feedback
           </button>
         </div>
       </div>
 
       {showSuggestion && <SuggestionModal onClose={() => setShowSuggestion(false)} />}
-    </section>
+    </>
   );
 }
