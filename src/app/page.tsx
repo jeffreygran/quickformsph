@@ -539,12 +539,26 @@ function PrivacyNoticeModal({ onAck }: { onAck: () => void }) {
   );
 }
 
+// ─── Agency logo map ─────────────────────────────────────────────────────────
+const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
+  'Bureau of Internal Revenue': { src: '/logos/bir.png', w: 40, h: 40 },
+  'Pag-IBIG Fund':              { src: '/logos/pagibig.png', w: 40, h: 40 },
+  'PhilHealth':                 { src: '/logos/philhealth.png', w: 80, h: 24 },
+};
+
 // ─── FormCard ─────────────────────────────────────────────────────────────────
 function FormCard({ form }: { form: FormSchema }) {
+  const logo = AGENCY_LOGO[form.agency];
   return (
     <Link href={`/forms/${form.slug}`} className="form-card p-5 block">
       <div className="flex items-start justify-between gap-2">
-        <div className="text-2xl">📄</div>
+        <div className="flex-shrink-0">
+          {logo ? (
+            <Image src={logo.src} alt={form.agency} width={logo.w} height={logo.h} className="object-contain" />
+          ) : (
+            <span className="text-2xl">📄</span>
+          )}
+        </div>
         <span className="rounded-full bg-blue-50 border border-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 uppercase tracking-wide whitespace-nowrap">{form.agency}</span>
       </div>
       <div className="mt-3">
