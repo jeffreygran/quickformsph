@@ -52,7 +52,7 @@ export default function DevSection({ forceVisible = false }: DevSectionProps) {
               transition-all duration-[1200ms] ease-out delay-[1500ms]
               ${visible ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-180 scale-50'}`}
           >
-            <span className="flex flex-col items-center leading-tight gap-0.5">
+            <span className="flex flex-col items-start leading-tight gap-0">
               <span className="text-[9px] font-normal text-slate-400">By</span>
               <span className="text-sm font-black text-white">J.Gran</span>
             </span>
