@@ -73,8 +73,7 @@ export default function AboutContent() {
             QuickFormsPH
           </h1>
           <p className="text-lg text-slate-300 max-w-xl mx-auto leading-relaxed">
-            A private, offline-first tool that helps Filipinos fill Philippine government forms
-            and generate print-ready PDFs — entirely inside their browser.
+            Offline-first tool that helps Filipinos fill government forms and generate print-ready PDFs directly in the browser.
           </p>
           <div className="mt-9 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-slate-400">
             {['No account required', 'No data uploaded', 'Works on any device'].map((item) => (
