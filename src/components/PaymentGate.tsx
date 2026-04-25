@@ -73,14 +73,6 @@ export default function PaymentGate({
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
-        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-          <a href="/" className="text-gray-500 hover:text-gray-800 text-lg" aria-label="Back">←</a>
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-mono text-gray-400 truncate">{formCode}</div>
-            <div className="text-xs font-medium text-gray-700 truncate">{formName}</div>
-          </div>
-        </header>
-
         <main className="flex-1 flex items-start sm:items-center justify-center px-4 py-6 sm:py-10">
           <div className="w-full max-w-md">
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100 px-6 py-7 sm:px-8 sm:py-9">
@@ -101,20 +93,20 @@ export default function PaymentGate({
               )}
             </div>
 
-            <div className="mt-5 text-center space-y-3">
+            <div className="mt-5 flex items-center justify-center gap-3">
               <a
                 href="/"
                 className="text-xs text-gray-500 hover:text-gray-700 underline-offset-4 hover:underline"
               >
                 ← Browse other forms
               </a>
-              <div className="border-t border-gray-100 mx-2" />
+              <span className="text-gray-300 select-none">|</span>
               <a
                 href={`/forms/${pdfPath}`}
                 download
                 className="text-xs text-blue-500 hover:text-blue-700 underline-offset-4 hover:underline inline-flex items-center gap-1"
               >
-                <span aria-hidden>📥</span> Download PDF Form
+                <span aria-hidden>📥</span> Download Form
               </a>
             </div>
           </div>
