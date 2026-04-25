@@ -9,7 +9,10 @@ import SuggestionModal from '@/components/SuggestionModal';
 import DonationModal from '@/components/DonationModal';
 
 const HERO_CATEGORIES = ['Pag-IBIG', 'PhilHealth', 'BIR', 'SSS', 'DFA', 'LTO', 'Government'];
-const HERO_INTERVAL_MS = 6000; // 6 seconds
+const HERO_INTERVAL_MS = 3500; // 3.5 seconds
+
+const HERO_ANIMATIONS = ['anim-fade', 'anim-flip', 'anim-slide-up', 'anim-blur', 'anim-scale'] as const;
+type HeroAnim = typeof HERO_ANIMATIONS[number];
 
 const IS_DEV = process.env.NEXT_PUBLIC_APP_ENV === 'dev';
 const AGENCY_FILTERS = ['All', ...Array.from(new Set(FORMS.map((f) => f.agency)))];
@@ -51,15 +54,19 @@ export default function HomePage() {
 
   // Hero category animation
   const [heroCategoryIdx, setHeroCategoryIdx] = useState(0);
-  const [heroFading, setHeroFading]           = useState(false);
+  const [heroAnim, setHeroAnim]               = useState<HeroAnim>('anim-fade');
+  const [heroVisible, setHeroVisible]         = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setHeroFading(true);
+      // Pick random next animation
+      const next = HERO_ANIMATIONS[Math.floor(Math.random() * HERO_ANIMATIONS.length)];
+      setHeroVisible(false);
       setTimeout(() => {
         setHeroCategoryIdx((i) => (i + 1) % HERO_CATEGORIES.length);
-        setHeroFading(false);
-      }, 400);
+        setHeroAnim(next);
+        setHeroVisible(true);
+      }, 350);
     }, HERO_INTERVAL_MS);
     return () => clearInterval(timer);
   }, []);
@@ -229,11 +236,11 @@ export default function HomePage() {
               href="/forms"
               className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
             >
-              📋 <span className="hidden sm:inline">Downloadable Forms</span>
+              � <span className="hidden sm:inline">Forms</span>
             </Link>
 
-            {/* ── Download Code Button ── */}
-            <div className="relative" ref={codePanelRef}>
+            {/* ── Download Code Button (hidden) ── */}
+            <div className="relative hidden" ref={codePanelRef}>
               <button
                 onClick={() => { setShowCodePanel((v) => !v); setCodeError(''); setShowConfirm(false); }}
                 className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
@@ -359,8 +366,9 @@ export default function HomePage() {
           <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight">
             Fill{' '}
             <span
-              className="inline-block transition-opacity duration-400"
-              style={{ opacity: heroFading ? 0 : 1 }}
+              key={heroCategoryIdx}
+              className={`inline-block ${heroVisible ? heroAnim : 'opacity-0'}`}
+              style={{ animationDuration: '0.45s', animationFillMode: 'both' }}
             >
               {HERO_CATEGORIES[heroCategoryIdx]}
             </span>{' '}Forms
