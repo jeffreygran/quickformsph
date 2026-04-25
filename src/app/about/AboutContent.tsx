@@ -16,20 +16,20 @@ export default function AboutContent() {
   useEffect(() => {
     const timers = [
       // Pillars
-      setTimeout(() => setVis(v => ({ ...v, p1: true })),  2000),
-      setTimeout(() => setVis(v => ({ ...v, p2: true })),  4000),
-      setTimeout(() => setVis(v => ({ ...v, p3: true })),  5000),
+      setTimeout(() => setVis(v => ({ ...v, p1: true })),  1000),
+      setTimeout(() => setVis(v => ({ ...v, p2: true })),  3000),
+      setTimeout(() => setVis(v => ({ ...v, p3: true })),  4000),
       // How It Works heading
-      setTimeout(() => setVis(v => ({ ...v, how: true })), 8000),
+      setTimeout(() => setVis(v => ({ ...v, how: true })), 6000),
       // Steps
-      setTimeout(() => setVis(v => ({ ...v, s1: true  })),  9000),
-      setTimeout(() => setVis(v => ({ ...v, s2: true  })), 11000),
-      setTimeout(() => setVis(v => ({ ...v, s3: true  })), 12000),
-      setTimeout(() => setVis(v => ({ ...v, s4: true  })), 13000),
+      setTimeout(() => setVis(v => ({ ...v, s1: true  })),  7000),
+      setTimeout(() => setVis(v => ({ ...v, s2: true  })),  9000),
+      setTimeout(() => setVis(v => ({ ...v, s3: true  })), 10000),
+      setTimeout(() => setVis(v => ({ ...v, s4: true  })), 10500),
       // Fee
-      setTimeout(() => setVis(v => ({ ...v, fee: true })), 15000),
+      setTimeout(() => setVis(v => ({ ...v, fee: true })), 12000),
       // Developer
-      setTimeout(() => setVis(v => ({ ...v, dev: true })), 17000),
+      setTimeout(() => setVis(v => ({ ...v, dev: true })), 14000),
     ];
     return () => timers.forEach(clearTimeout);
   }, []);
