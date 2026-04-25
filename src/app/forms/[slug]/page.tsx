@@ -146,6 +146,7 @@ export default function FormWizardPage() {
 
   // ── Auto-populate ────────────────────────────────────────────────────────
   const [showSamplePicker, setShowSamplePicker] = useState(false);
+  const [showSampleButton, setShowSampleButton] = useState(false);
 
   function autoPopulate(sampleIndex?: number) {
     const hqpSamples = [
@@ -1344,9 +1345,13 @@ export default function FormWizardPage() {
 
         {/* Progress note + sample picker */}
         <div className="mt-3 flex flex-col items-center gap-1">
-          <p className="text-center text-xs text-gray-400">
+          <p
+            className="text-center text-xs text-gray-400 select-none"
+            onClick={(e) => { if (e.shiftKey) setShowSampleButton(true); }}
+          >
             {totalFilled()} of {form.fields.length} fields filled &mdash; Empty fields will be left blank on the PDF.
           </p>
+          {showSampleButton && (
           <div className="relative">
             <button
               className="text-[11px] text-blue-500 hover:text-blue-700 underline underline-offset-2"
@@ -1379,6 +1384,7 @@ export default function FormWizardPage() {
               </div>
             )}
           </div>
+          )}
         </div>
       </main>
 
