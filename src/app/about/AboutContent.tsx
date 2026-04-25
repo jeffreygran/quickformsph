@@ -15,20 +15,21 @@ export default function AboutContent() {
 
   useEffect(() => {
     const timers = [
-      // Pillars — 5 s, then 2 s apart
-      setTimeout(() => setVis(v => ({ ...v, p1: true })), 5000),
-      setTimeout(() => setVis(v => ({ ...v, p2: true })), 7000),
-      setTimeout(() => setVis(v => ({ ...v, p3: true })), 9000),
-      // How It Works — wait 5 s after last pillar (9+5=14), steps every 2 s
-      setTimeout(() => setVis(v => ({ ...v, how: true })), 14000),
+      // Pillars
+      setTimeout(() => setVis(v => ({ ...v, p1: true })),  2000),
+      setTimeout(() => setVis(v => ({ ...v, p2: true })),  4000),
+      setTimeout(() => setVis(v => ({ ...v, p3: true })),  5000),
+      // How It Works heading
+      setTimeout(() => setVis(v => ({ ...v, how: true })), 8000),
+      // Steps every 2 s starting at 15 s
       setTimeout(() => setVis(v => ({ ...v, s1: true  })), 15000),
       setTimeout(() => setVis(v => ({ ...v, s2: true  })), 17000),
       setTimeout(() => setVis(v => ({ ...v, s3: true  })), 19000),
       setTimeout(() => setVis(v => ({ ...v, s4: true  })), 21000),
-      // Fee — wait 5 s after last step (21+5=26)
-      setTimeout(() => setVis(v => ({ ...v, fee: true })), 26000),
-      // Developer — wait 5 s after fee (26+5=31)
-      setTimeout(() => setVis(v => ({ ...v, dev: true })), 31000),
+      // Fee
+      setTimeout(() => setVis(v => ({ ...v, fee: true })), 12000),
+      // Developer
+      setTimeout(() => setVis(v => ({ ...v, dev: true })), 20000),
     ];
     return () => timers.forEach(clearTimeout);
   }, []);
@@ -93,51 +94,45 @@ export default function AboutContent() {
         <div className="grid sm:grid-cols-3 gap-6">
 
           {/* Privacy */}
-          <div className={`group rounded-2xl border border-gray-100 bg-white p-7 shadow-sm cursor-default ${fd(vis.p1)}`}>
+          <div className={`rounded-2xl border border-gray-100 bg-white p-7 shadow-sm ${fd(vis.p1)}`}>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 mb-5">
               <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
               </svg>
             </div>
             <h3 className="font-bold text-gray-900 mb-2">Private by Design</h3>
-            <div className="overflow-hidden max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100 transition-all duration-400 ease-in-out">
-              <p className="text-sm text-gray-500 leading-relaxed">
-                All form data is processed entirely within your browser. No information is ever sent to,
-                stored on, or processed by any external server.
-              </p>
-            </div>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              All form data is processed entirely within your browser. No information is ever sent to,
+              stored on, or processed by any external server.
+            </p>
           </div>
 
           {/* Official Forms */}
-          <div className={`group rounded-2xl border border-gray-100 bg-white p-7 shadow-sm cursor-default ${fd(vis.p2)}`}>
+          <div className={`rounded-2xl border border-gray-100 bg-white p-7 shadow-sm ${fd(vis.p2)}`}>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 mb-5">
               <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
               </svg>
             </div>
             <h3 className="font-bold text-gray-900 mb-2">Official Templates</h3>
-            <div className="overflow-hidden max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100 transition-all duration-400 ease-in-out">
-              <p className="text-sm text-gray-500 leading-relaxed">
-                Forms are sourced directly from publicly available templates published by Philippine
-                government agencies — accurately reproduced for correctness.
-              </p>
-            </div>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Forms are sourced directly from publicly available templates published by Philippine
+              government agencies — accurately reproduced for correctness.
+            </p>
           </div>
 
           {/* Instant PDF */}
-          <div className={`group rounded-2xl border border-gray-100 bg-white p-7 shadow-sm cursor-default ${fd(vis.p3)}`}>
+          <div className={`rounded-2xl border border-gray-100 bg-white p-7 shadow-sm ${fd(vis.p3)}`}>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 mb-5">
               <svg className="h-5 w-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
             </div>
             <h3 className="font-bold text-gray-900 mb-2">Instant PDF Download</h3>
-            <div className="overflow-hidden max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100 transition-all duration-400 ease-in-out">
-              <p className="text-sm text-gray-500 leading-relaxed">
-                PDFs are generated offline on your device and downloaded instantly. No waiting, no cloud
-                processing — just a clean, ready-to-print file.
-              </p>
-            </div>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              PDFs are generated offline on your device and downloaded instantly. No waiting, no cloud
+              processing — just a clean, ready-to-print file.
+            </p>
           </div>
 
         </div>
@@ -151,14 +146,12 @@ export default function AboutContent() {
           </div>
           <div className="grid sm:grid-cols-4 gap-8 text-center">
             {STEPS.map(({ step, title, body, vk }) => (
-              <div key={step} className={`group flex flex-col items-center cursor-default ${fd(vis[vk])}`}>
+              <div key={step} className={`flex flex-col items-center ${fd(vis[vk])}`}>
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white font-black text-sm mb-4 shadow-sm">
                   {step}
                 </div>
                 <h3 className="font-bold text-gray-900 mb-1.5">{title}</h3>
-                <div className="overflow-hidden max-h-0 opacity-0 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-400 ease-in-out">
-                  <p className="text-xs text-gray-500 leading-relaxed">{body}</p>
-                </div>
+                <p className="text-xs text-gray-500 leading-relaxed">{body}</p>
               </div>
             ))}
           </div>
@@ -167,7 +160,7 @@ export default function AboutContent() {
 
       {/* ── Fee Note ── */}
       <section className="mx-auto max-w-5xl px-6 py-14">
-        <div className={`group rounded-2xl border border-gray-200 bg-white p-8 flex flex-col sm:flex-row gap-6 items-start shadow-sm cursor-default ${fd(vis.fee)}`}>
+        <div className={`rounded-2xl border border-gray-200 bg-white p-8 flex flex-col sm:flex-row gap-6 items-start shadow-sm ${fd(vis.fee)}`}>
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 border border-amber-100">
             <svg className="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -175,13 +168,11 @@ export default function AboutContent() {
           </div>
           <div>
             <h3 className="font-bold text-gray-900 mb-1.5">A Minimal Fee</h3>
-            <div className="overflow-hidden max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100 transition-all duration-400 ease-in-out">
-              <p className="text-sm text-gray-600 leading-relaxed">
-                QuickFormsPH charges a small <strong>₱5 fee</strong> to support maintenance, new form additions,
-                and ongoing improvements. Every peso goes directly into making the service better for all Filipinos.{' '}
-                <strong>Salamat po!</strong>
-              </p>
-            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              QuickFormsPH charges a small <strong>₱5 fee</strong> to support maintenance, new form additions,
+              and ongoing improvements. Every peso goes directly into making the service better for all Filipinos.{' '}
+              <strong>Salamat po!</strong>
+            </p>
           </div>
         </div>
       </section>
