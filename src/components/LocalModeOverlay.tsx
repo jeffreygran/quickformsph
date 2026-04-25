@@ -286,8 +286,7 @@ function ReadyState({
 
       <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-5">
         <p className="text-xs text-green-800 leading-relaxed">
-          ✅ <strong>Privacy confirmed:</strong> Your personal data will be processed only on this
-          device and will never be uploaded to any server.
+          🔒 <strong>Privacy first:</strong> Your data stays on this device and is never uploaded.
         </p>
       </div>
 
