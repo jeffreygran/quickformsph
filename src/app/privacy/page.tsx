@@ -21,10 +21,7 @@ export default function PrivacyPolicyPage() {
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 text-sm text-blue-900">
-          <strong>Short version:</strong> Your personal data (name, address, IDs) is used <em>only</em> to fill
-          your PDF form. Draft data never leaves your browser. When you generate a PDF, your data is sent over
-          HTTPS to our server, used to produce the PDF, and — if you paid the ₱5 support fee — stored
-          <strong> encrypted</strong> for up to 48 hours to allow re-downloads, then permanently deleted.
+          <strong>Your data stays with you.</strong> Everything you type is processed <em>entirely inside your browser</em> — nothing is sent to any server. Your form details are used only to fill your PDF, and the PDF is generated offline on your device. We do not collect, store, or transmit your personal information. Once you close or refresh the page, your draft is gone.
         </div>
 
         <section className="space-y-3">
