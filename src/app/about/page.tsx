@@ -146,7 +146,7 @@ export default function AboutPage() {
             </svg>
           </div>
           <div>
-            <h3 className="font-bold text-gray-900 mb-1.5">A Minimal Fee, Transparently Used</h3>
+            <h3 className="font-bold text-gray-900 mb-1.5">A Minimal Fee</h3>
             <p className="text-sm text-gray-600 leading-relaxed">
               QuickFormsPH charges a small <strong>₱5 fee</strong> to cover operating costs, new form additions,
               and ongoing improvements. There is no subscription — you only pay when you generate.
