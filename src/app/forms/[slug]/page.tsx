@@ -1843,18 +1843,20 @@ function PreviewScreen({
 
       {/* Actions */}
       <div className="bg-gray-900 border-t border-gray-700 px-4 pt-3 pb-8 space-y-2">
-        <button
-          onClick={onDownload}
-          className="w-full rounded-xl bg-blue-600 py-3.5 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800"
-        >
-          ⬇️ Download PDF
-        </button>
-        <button
-          onClick={onBack}
-          className="w-full rounded-xl border border-gray-600 py-3 text-sm text-gray-400 hover:bg-gray-800"
-        >
-          ← Back to Editor
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={onDownload}
+            className="flex-1 rounded-xl bg-blue-600 py-3.5 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800"
+          >
+            ⬇️ Download PDF
+          </button>
+          <button
+            onClick={onBack}
+            className="flex-1 rounded-xl border border-gray-600 py-3 text-sm text-gray-400 hover:bg-gray-800"
+          >
+            ← Back to Editor
+          </button>
+        </div>
         <button
           onClick={() => setShowCloseConfirm(true)}
           className="w-full rounded-xl py-3 text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors"
