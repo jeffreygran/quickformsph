@@ -15,10 +15,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  readAccessToken,
   writeAccessToken,
-  clearAccessToken,
-  formatTimeLeft,
   type StoredAccessToken,
 } from '@/lib/access-token-client';
 
@@ -42,28 +39,16 @@ export default function PaymentGate({
   renderPaymentModal,
   children,
 }: Props) {
-  const [token, setToken]       = useState<StoredAccessToken | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const [mode, setMode]         = useState<Mode>('choice');
 
   useEffect(() => {
-    setToken(readAccessToken());
     setHydrated(true);
   }, []);
 
   // Avoid SSR/hydration flash.
   if (!hydrated) return null;
-
-  // ── Already unlocked ──────────────────────────────────────────────────────
-  if (token) {
-    return (
-      <>
-        <UnlockedBadge token={token} onForget={() => { clearAccessToken(); setToken(null); }} />
-        {children}
-      </>
-    );
-  }
 
   // ── Demo mode (no token needed) ───────────────────────────────────────────
   if (demoMode) {
@@ -73,8 +58,9 @@ export default function PaymentGate({
   // ── Callback shared by Pay + Key flows ────────────────────────────────────
   const handleTokenIssued = (t: StoredAccessToken) => {
     writeAccessToken(t);
-    setToken(t);
     setMode('choice');
+    // Proceed directly to form after token issued
+    setDemoMode(true);
   };
 
   // ── Locked: show choice / pay / key screens ───────────────────────────────
@@ -300,23 +286,4 @@ function FeatureRow({ icon, text }: { icon: string; text: string }) {
   );
 }
 
-/** Tiny hidden hook — token info is conveyed via Local Mode green banner. */
-function UnlockedBadge({
-  token,
-  onForget,
-}: {
-  token: StoredAccessToken;
-  onForget: () => void;
-}) {
-  const [, force] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => force((n) => n + 1), 60_000);
-    return () => clearInterval(id);
-  }, []);
-  const left = formatTimeLeft(token.expiresAt);
-  return (
-    <div className="hidden" aria-hidden>
-      <span data-unlock-left={left} onClick={onForget}>{left}</span>
-    </div>
-  );
-}
+
