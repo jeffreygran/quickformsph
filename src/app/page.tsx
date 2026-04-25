@@ -423,20 +423,17 @@ export default function HomePage() {
 
       {/* ── Form Cards ── */}
       <main className="mx-auto max-w-5xl px-4 pb-12">
-        {!search.trim() ? (
-          <div className="mt-12 text-center text-gray-400">
-            <div className="text-4xl mb-3">🔍</div>
-            <p className="text-sm">Type above to search for a form.</p>
-          </div>
-        ) : filtered.length === 0 ? (
+        {!search.trim() ? null : filtered.length === 0 ? (
           <div className="mt-12 text-center text-gray-400">
             <div className="text-4xl mb-3">📋</div>
             <p className="text-sm">No forms match your search.</p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {search.trim() && visibleForms.map((form) => (
-              <FormCard key={form.slug} form={form} />
+            {search.trim() && visibleForms.map((form, i) => (
+              <div key={form.slug} className="form-card-animate" style={{ animationDelay: `${i * 50}ms` }}>
+                <FormCard form={form} />
+              </div>
             ))}
             {/* Skeleton cards while loading more */}
             {loadingMore && Array.from({ length: Math.min(PAGE_SIZE, filtered.length - visibleCount) }).map((_, i) => (
@@ -463,15 +460,13 @@ export default function HomePage() {
         <div ref={sentinelRef} className="h-1" />
 
         {/* ── Coming Soon ── */}
-        <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center">
-          <div className="text-2xl mb-1">🔜</div>
-          <p className="text-sm font-semibold text-gray-700">More forms coming soon …</p>
-          <p className="text-xs text-gray-400 mt-1">BIR, SSS, PhilHealth, PSA, DFA, LTO and more</p>
+        <div className="mt-6 rounded-xl border border-dashed border-gray-200 bg-white px-5 py-4 flex items-center justify-between gap-4">
+          <p className="text-sm font-medium text-gray-500">More forms coming soon …</p>
           <button
             onClick={() => setShowSuggestion(true)}
-            className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+            className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
           >
-            💡 Suggest a form &amp; Feedback
+            💡 Suggest a form
           </button>
         </div>
       </main>
