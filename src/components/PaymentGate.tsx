@@ -51,6 +51,7 @@ export default function PaymentGate({
   const [demoMode, setDemoMode]             = useState(false);
   const [mode, setMode]                     = useState<Mode>('choice');
   const [existingToken, setExistingToken]   = useState<StoredAccessToken | null>(null);
+  const [isExiting, setIsExiting]           = useState(false);
 
   useEffect(() => {
     setHydrated(true);
@@ -65,13 +66,18 @@ export default function PaymentGate({
     return <>{children}</>;
   }
 
+  // Carousel exit: plays slide-out animation then fires action
+  const triggerExit = (action: () => void) => {
+    setIsExiting(true);
+    setTimeout(action, 290);
+  };
+
   // ── Callback shared by Pay + Key flows ────────────────────────────────────
   const handleTokenIssued = (t: StoredAccessToken) => {
     writeAccessToken(t);
     setMode('choice');
     onAccessGranted?.(false);
-    // Proceed directly to form after token issued
-    setDemoMode(true);
+    triggerExit(() => setDemoMode(true));
   };
 
   // ── Locked: show choice / pay screens + promo dialog ──────────────────────
@@ -80,16 +86,16 @@ export default function PaymentGate({
       <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
         <main className="flex-1 flex items-center justify-center px-4 py-6 overflow-hidden">
           <div className="w-full max-w-md">
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 px-6 py-7 sm:px-8 sm:py-9">
+            <div className={`${isExiting ? 'carousel-exit' : 'carousel-enter'} bg-white rounded-3xl shadow-xl border border-gray-100 px-6 py-7 sm:px-8 sm:py-9`}>
               <ChoiceScreen
                 formName={formName}
                 formCode={formCode}
                 agency={agency}
                 existingToken={existingToken}
-                onDemo={() => { onAccessGranted?.(true); setDemoMode(true); }}
+                onDemo={() => { onAccessGranted?.(true); triggerExit(() => setDemoMode(true)); }}
                 onPay={() => setMode('pay')}
                 onKey={() => setMode('key')}
-                onProceed={() => { onAccessGranted?.(false); setDemoMode(true); }}
+                onProceed={() => { onAccessGranted?.(false); triggerExit(() => setDemoMode(true)); }}
               />
             </div>
 
@@ -173,7 +179,7 @@ function ChoiceScreen({
         </div>
         <p className="text-[11px] uppercase tracking-widest font-bold text-blue-500 mb-1">{formCode}</p>
         <h2 className="text-base font-bold text-gray-900 leading-snug mb-4">{formName}</h2>
-        <p className="text-xs font-medium text-gray-400">How would you like to access?</p>
+        <p className="text-base font-semibold text-gray-500">How would you like to access?</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -181,7 +187,7 @@ function ChoiceScreen({
         <button
           type="button"
           onClick={onDemo}
-          className="flex flex-col items-center gap-2 rounded-2xl border-2 border-gray-200 hover:border-gray-400 bg-gray-50 hover:bg-gray-100 px-3 py-4 active:scale-[.97] transition-all"
+          className="flex flex-col items-center gap-2 rounded-2xl border border-gray-200 hover:border-gray-300 bg-gray-50/60 hover:bg-gray-100/70 px-3 py-4 active:scale-[.97] transition-all"
         >
           <span className="text-2xl" aria-hidden>🧪</span>
           <span className="text-sm font-bold text-gray-800">Demo</span>
@@ -203,7 +209,7 @@ function ChoiceScreen({
           <button
             type="button"
             onClick={onPay}
-            className="flex flex-col items-center gap-2 rounded-2xl border-2 border-blue-500 hover:border-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-4 active:scale-[.97] transition-all"
+            className="flex flex-col items-center gap-2 rounded-2xl border border-blue-200 hover:border-blue-300 bg-blue-50/60 hover:bg-blue-100/70 px-3 py-4 active:scale-[.97] transition-all"
           >
             <span className="text-2xl" aria-hidden>💚</span>
             <span className="text-sm font-bold text-blue-700">Pay ₱5</span>

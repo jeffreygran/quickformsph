@@ -110,6 +110,26 @@ html {
   animation: card-fade-in 0.3s ease both;
 }
 
+.dialog-fade-in {
+  animation: card-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes carousel-enter {
+  from { opacity: 0; transform: translateX(44px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes carousel-exit {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-44px); }
+}
+.carousel-enter {
+  animation: carousel-enter 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.carousel-exit {
+  animation: carousel-exit 0.28s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+
 @keyframes shake-x {
   0%,100% { transform: translateX(0); }
   15%     { transform: translateX(-6px); }

@@ -53,7 +53,7 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
   const [progress, setProgress] = useState<LocalModeProgress>(INITIAL_PROGRESS);
   const [error, setError] = useState<string | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
-  const [verifyOffline, setVerifyOffline]   = useState(true);
+  const [verifyOffline, setVerifyOffline]   = useState(false);
   const [onlineError, setOnlineError]       = useState(false);
   const [checking, setChecking]             = useState(false);
   const [checkAttempt, setCheckAttempt]     = useState(0);
@@ -218,7 +218,10 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
         aria-labelledby="local-mode-title"
       >
         <div className="w-full max-w-md mx-auto my-auto px-5 py-6">
-          <div className="bg-white rounded-3xl shadow-xl border border-gray-100 px-6 py-7 sm:px-8 sm:py-9">
+          <div
+            key={error ? 'error' : phase}
+            className="carousel-enter bg-white rounded-3xl shadow-xl border border-gray-100 px-6 py-7 sm:px-8 sm:py-9"
+          >
             {error ? (
               <ErrorState message={error} onRetry={handleRetry} />
             ) : phase === 'downloading' ? (
@@ -351,72 +354,46 @@ function ReadyState({
         <h2 id="local-mode-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
           Program now runs locally
         </h2>
-        <p className="text-xs text-gray-400">Everything stays on this device — no uploads.</p>
       </div>
 
-      {/* Offline / Online toggle */}
-      <div className="mb-5">
-        <p className="text-xs text-gray-500 text-center mb-2">Keep me</p>
+      {/* Privacy first banner */}
+      <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-5">
+        <p className="text-xs text-green-800 leading-relaxed">
+          🔒 <strong>Privacy first:</strong> You can safely go offline — everything runs on your device.
+        </p>
+      </div>
+
+      {/* Offline / Online toggle — same row as label */}
+      <div className="flex items-center justify-center gap-3 mb-5">
+        <span className="text-sm text-gray-600 font-medium">Keep me</span>
         <button
           type="button"
+          role="switch"
+          aria-checked={!verifyOffline}
           onClick={() => onVerifyOfflineChange(!verifyOffline)}
           className={
-            'w-full flex items-center justify-center gap-3 rounded-2xl border-2 py-3 px-4 transition-all active:scale-[.98] select-none ' +
-            (verifyOffline
-              ? 'border-indigo-500 bg-indigo-50'
-              : 'border-gray-200 bg-gray-50')
+            'relative inline-flex h-8 w-[108px] flex-shrink-0 rounded-full transition-colors duration-300 focus:outline-none ' +
+            (!verifyOffline ? 'bg-green-500' : 'bg-gray-400')
           }
         >
-          {/* Toggle pill */}
           <span
             className={
-              'relative inline-flex h-7 w-14 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-300 ' +
-              (verifyOffline ? 'bg-indigo-600' : 'bg-gray-300')
+              'absolute text-[11px] font-bold text-white top-1/2 -translate-y-1/2 select-none transition-all duration-300 ' +
+              (!verifyOffline ? 'left-3' : 'right-3')
             }
           >
-            <span
-              className={
-                'inline-block h-6 w-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ' +
-                (verifyOffline ? 'translate-x-7' : 'translate-x-0')
-              }
-            />
+            {!verifyOffline ? 'ONLINE' : 'OFFLINE'}
           </span>
-          <span className={
-            'text-base font-black tracking-wide ' +
-            (verifyOffline ? 'text-indigo-700' : 'text-gray-500')
-          }>
-            {verifyOffline ? 'OFFLINE' : 'ONLINE'}
-          </span>
+          <span
+            className={
+              'absolute top-1 h-6 w-6 rounded-full bg-white shadow-md transition-all duration-300 ' +
+              (!verifyOffline ? 'right-1' : 'left-1')
+            }
+          />
         </button>
       </div>
 
-      {/* Consent — big touch-friendly checkbox */}
-      <label className="flex items-center gap-4 cursor-pointer mb-5 select-none rounded-2xl border-2 border-gray-100 hover:border-blue-200 bg-gray-50 hover:bg-blue-50 px-4 py-3 transition-all">
-        <span
-          className={
-            'flex-shrink-0 w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-all ' +
-            (consentChecked
-              ? 'bg-blue-600 border-blue-600'
-              : 'bg-white border-gray-300')
-          }
-          onClick={() => onConsentChange(!consentChecked)}
-        >
-          {consentChecked && (
-            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          )}
-        </span>
-        <input
-          type="checkbox"
-          className="sr-only"
-          checked={consentChecked}
-          onChange={(e) => onConsentChange(e.target.checked)}
-        />
-        <span className="text-sm font-medium text-gray-700 leading-snug">
-          Data stays on my device. I agree.
-        </span>
-      </label>
+      {/* Internet check progress */}
 
       {/* Internet check progress */}
       {checking && (
@@ -450,16 +427,50 @@ function ReadyState({
         </div>
       )}
 
-      {onlineError && !checking && (
+      {onlineError && !checking && verifyOffline && (
         <div
           key={nudgeKey}
-          className="shake mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3"
+          className="shake mb-4 rounded-xl bg-orange-50 border border-orange-200 px-4 py-3"
         >
-          <p className="text-xs text-red-700 leading-relaxed">
-            <strong>You appear to be online.</strong> Please disconnect from the internet before filling this form in offline mode. Toggle to <strong>ONLINE</strong> above if you want to continue connected.
+          <p className="text-xs text-orange-800 leading-relaxed mb-2">
+            <strong>Still connected to the internet.</strong> Please turn off your WiFi or mobile data before continuing in offline mode.
           </p>
+          <button
+            type="button"
+            onClick={() => onVerifyOfflineChange(false)}
+            className="text-xs font-semibold text-blue-600 underline underline-offset-2"
+          >
+            Keep me Online instead
+          </button>
         </div>
       )}
+
+      {/* Consent — plain row near button */}
+      <label className="flex items-center gap-3 cursor-pointer mb-3 select-none px-1">
+        <span
+          className={
+            'flex-shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ' +
+            (consentChecked
+              ? 'bg-blue-600 border-blue-600'
+              : 'bg-white border-gray-300')
+          }
+        >
+          {consentChecked && (
+            <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
+        </span>
+        <input
+          type="checkbox"
+          className="sr-only"
+          checked={consentChecked}
+          onChange={(e) => onConsentChange(e.target.checked)}
+        />
+        <span className="text-sm text-gray-600 leading-snug">
+          Data stays on my device. I agree.
+        </span>
+      </label>
 
       <button
         type="button"
