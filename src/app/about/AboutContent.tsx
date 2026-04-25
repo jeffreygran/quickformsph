@@ -21,15 +21,15 @@ export default function AboutContent() {
       setTimeout(() => setVis(v => ({ ...v, p3: true })),  5000),
       // How It Works heading
       setTimeout(() => setVis(v => ({ ...v, how: true })), 8000),
-      // Steps every 2 s starting at 15 s
-      setTimeout(() => setVis(v => ({ ...v, s1: true  })), 15000),
-      setTimeout(() => setVis(v => ({ ...v, s2: true  })), 17000),
-      setTimeout(() => setVis(v => ({ ...v, s3: true  })), 19000),
-      setTimeout(() => setVis(v => ({ ...v, s4: true  })), 21000),
+      // Steps
+      setTimeout(() => setVis(v => ({ ...v, s1: true  })),  9000),
+      setTimeout(() => setVis(v => ({ ...v, s2: true  })), 11000),
+      setTimeout(() => setVis(v => ({ ...v, s3: true  })), 12000),
+      setTimeout(() => setVis(v => ({ ...v, s4: true  })), 13000),
       // Fee
-      setTimeout(() => setVis(v => ({ ...v, fee: true })), 12000),
+      setTimeout(() => setVis(v => ({ ...v, fee: true })), 15000),
       // Developer
-      setTimeout(() => setVis(v => ({ ...v, dev: true })), 20000),
+      setTimeout(() => setVis(v => ({ ...v, dev: true })), 17000),
     ];
     return () => timers.forEach(clearTimeout);
   }, []);
