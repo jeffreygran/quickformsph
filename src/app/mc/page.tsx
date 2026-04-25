@@ -7,7 +7,7 @@ import { FORMS } from '@/data/forms';
 
 const IS_DEV = process.env.NEXT_PUBLIC_APP_ENV === 'dev';
 
-type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions' | 'refs' | 'security' | 'keys';
+type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions' | 'refs' | 'security' | 'keys' | 'docs';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('dashboard');
@@ -37,6 +37,7 @@ export default function AdminPage() {
     { id: 'settings',    icon: '⚙️', label: 'Settings' },
     { id: 'security',    icon: '🛡️', label: 'Security' },
     { id: 'keys',        icon: '🏷️', label: 'Promo Codes' },
+    { id: 'docs',        icon: '📚', label: 'Docs' },
   ];
 
   return (
@@ -133,6 +134,7 @@ export default function AdminPage() {
           {tab === 'settings'    && <SettingsTab />}
           {tab === 'security'    && <SecurityTab />}
           {tab === 'keys'        && <LicenseKeysTab />}
+          {tab === 'docs'        && <DocsTab />}
         </main>
       </div>
     </div>
@@ -1724,6 +1726,81 @@ function LicenseKeysTab() {
             </tbody>
           </table>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Docs Tab ─────────────────────────────────────────────────────────────────
+function DocsTab() {
+  const [manifest, setManifest] = useState<{ label: string; file: string }[]>([]);
+  const [selected, setSelected] = useState('');
+  const [content, setContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/admin/docs')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.docs) {
+          setManifest(d.docs);
+          setSelected(d.docs[0]?.file ?? '');
+        }
+      })
+      .catch(() => setError('Could not load doc list'));
+  }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    setLoading(true);
+    setContent(null);
+    setError('');
+    fetch(`/api/admin/docs?file=${encodeURIComponent(selected)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) { setError(d.error); return; }
+        // Convert markdown to HTML via marked (loaded dynamically)
+        import('marked').then(({ marked }) => {
+          setContent(marked.parse(d.content) as string);
+        });
+      })
+      .catch(() => setError('Could not load document'))
+      .finally(() => setLoading(false));
+  }, [selected]);
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="flex items-center gap-3 mb-5">
+        <h2 className="text-base font-semibold text-gray-800">📚 Documentation</h2>
+        <select
+          value={selected}
+          onChange={(e) => setSelected(e.target.value)}
+          className="ml-auto text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {manifest.map((d) => (
+            <option key={d.file} value={d.file}>{d.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      {loading && (
+        <div className="flex items-center gap-2 text-sm text-gray-400 py-12 justify-center">
+          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+          Loading…
+        </div>
+      )}
+
+      {content && !loading && (
+        <div
+          className="prose prose-sm prose-gray max-w-none bg-white border border-gray-200 rounded-xl p-6 overflow-auto"
+          dangerouslySetInnerHTML={{ __html: content }}
+        />
       )}
     </div>
   );
