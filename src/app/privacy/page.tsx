@@ -21,56 +21,44 @@ export default function PrivacyPolicyPage() {
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 text-sm text-blue-900">
-          <strong>Your data stays with you.</strong> Everything you type is processed <em>entirely inside your browser</em> — nothing is sent to any server. Your form details are used only to fill your PDF, and the PDF is generated offline on your device. We do not collect, store, or transmit your personal information. Once you close or refresh the page, your draft is gone.
+          <strong>Your data stays with you.</strong> Everything you type is processed <em>entirely inside your browser</em> — nothing is sent to any server. Your form details are used only to fill your PDF, and the PDF is generated offline on your device. We do not collect, store, or transmit your personal information.
         </div>
 
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-gray-900">1. Information We Use</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
-            When you fill in a government form on QuickFormsPH, you enter personal information such as
-            your full name, address, identification numbers, contact details, and financial information
-            (depending on the form). This information is entered by you, in your browser, and is used
-            solely to generate a print-ready PDF of the form you selected.
+            When you fill in a government form on QuickFormsPH, you may enter personal information such as
+            your full name, address, identification numbers, contact details, and financial figures
+            (depending on the form). This information is entered by you, stays in your browser, and is used
+            solely to generate a print-ready PDF of the selected form on your device.
           </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-gray-900">2. How We Handle Your Data</h2>
           <ul className="text-sm text-gray-700 leading-relaxed space-y-2 list-disc list-inside">
-            <li><strong>Auto-save drafts:</strong> Your in-progress entries are saved to your browser&apos;s <code>localStorage</code> so you can resume later. This data never leaves your device.</li>
-            <li><strong>PDF generation:</strong> Your form values are sent over HTTPS, stored <strong>encrypted</strong> (AES-256-GCM) on our server for up to 48 hours to enable PDF re-downloads via your unique code. Once the code expires, all associated data is permanently and automatically deleted.</li>
-            <li><strong>Download codes:</strong> A temporary record linking your code to your encrypted form data is stored for up to 48 hours, then automatically deleted. This allows you to re-download your PDF within that window.</li>
+            <li><strong>Auto-save drafts:</strong> Your in-progress entries may be saved to your browser&apos;s <code>localStorage</code> so you can resume later. This data never leaves your device.</li>
+            <li><strong>PDF generation:</strong> PDFs are built entirely within your browser using a client-side PDF library. No form data is ever transmitted to or stored on any external server.</li>
+            <li><strong>Privacy acknowledgement:</strong> A simple flag (<code>qfph_privacy_ack</code>) is stored in <code>localStorage</code> to remember that you have read this policy. It contains no personal data.</li>
           </ul>
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">3. Security Logs (IP Addresses)</h2>
+          <h2 className="text-base font-semibold text-gray-900">3. Republic Act No. 10173 — Data Privacy Act of 2012</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
-            To protect against abuse and unauthorized access, our servers maintain security audit logs.
-            These logs record your IP address alongside security-relevant events (such as rate-limit
-            violations or blocked requests). IP addresses are personal data under RA 10173 and are
-            handled accordingly. Security logs are retained for a rolling 90-day window, after which
-            they are automatically purged.
-          </p>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">4. Republic Act No. 10173 — Data Privacy Act of 2012</h2>
-          <p className="text-sm text-gray-700 leading-relaxed">
-            QuickFormsPH is committed to protecting your personal data in compliance with the Philippine
-            Data Privacy Act of 2012 (RA 10173) and its implementing rules and regulations. By using
-            this service, you consent to the collection and limited processing of your personal data as
-            described in this policy.
+            QuickFormsPH is designed with privacy by default: because all processing happens locally on
+            your device and no personal data is collected or transmitted, we act as a mere tool rather
+            than a personal information controller. Nevertheless, we respect and support the intent of
+            the Philippine Data Privacy Act of 2012 (RA 10173).
           </p>
           <p className="text-sm text-gray-700 leading-relaxed">
             Your data rights under RA 10173 include: the right to be informed, right of access, right
-            to correction, right to erasure or blocking, right to damages, right to file a complaint,
-            right to data portability, and right to object.
+            to correction, right to erasure or blocking, right to data portability, and right to object.
           </p>
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">5. Cookies &amp; Analytics</h2>
+          <h2 className="text-base font-semibold text-gray-900">4. Cookies &amp; Analytics</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
             We do not use tracking cookies or third-party analytics. The only browser storage we use
             is <code>localStorage</code> for saving your form drafts and your privacy acknowledgement.
@@ -78,7 +66,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">6. Third Parties</h2>
+          <h2 className="text-base font-semibold text-gray-900">5. Third Parties</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
             We do not sell, share, or transfer your personal data to third parties. Government agencies
             are not automatically notified when you fill a form — you still need to print and submit
@@ -87,11 +75,12 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-gray-900">7. Privacy Concerns</h2>
+          <h2 className="text-base font-semibold text-gray-900">6. Privacy Concerns</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
-            To exercise your RA 10173 data rights (access, correction, deletion, portability), or to
-            file a privacy complaint, you may file directly with the National Privacy Commission (NPC)
-            at{' '}
+            Since no personal data is collected or held by QuickFormsPH, there is nothing to request
+            access to, correct, or delete on our end. To clear any locally saved drafts, simply clear
+            your browser&apos;s site data for this page. For general RA 10173 complaints or inquiries,
+            you may contact the National Privacy Commission (NPC) at{' '}
             <a
               href="https://www.privacy.gov.ph"
               target="_blank"
