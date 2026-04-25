@@ -361,7 +361,7 @@ function ReadyState({
             : 'bg-gray-100 text-gray-400 cursor-not-allowed')
         }
       >
-        🔒 Start Filling Form
+        Start Filling Form
       </button>
     </>
   );
