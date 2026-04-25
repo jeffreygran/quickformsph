@@ -10,6 +10,7 @@ import PaymentGate from '@/components/PaymentGate';
 import { fetchFormTemplateBytes } from '@/lib/local-mode';
 import type { StoredAccessToken } from '@/lib/access-token-client';
 import { generatePDF } from '@/lib/pdf-generator';
+import { getPdfjsLib } from '@/lib/get-pdfjs';
 
 const GCASH_NUMBER = process.env.NEXT_PUBLIC_GCASH_NUMBER ?? '0917-551-4822';
 const GCASH_NAME   = process.env.NEXT_PUBLIC_GCASH_NAME   ?? 'JE****Y JO*N G.';
@@ -917,8 +918,7 @@ export default function FormWizardPage() {
     setBlankPdfLoading(true);
     setShowBlankViewer(true);
     try {
-      const pdfjsLib = await import('pdfjs-dist');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+      const pdfjsLib = await getPdfjsLib();
       const doc = await pdfjsLib.getDocument(`/forms/${encodeURIComponent(form!.pdfPath)}`).promise;
       blankPdfDocRef.current = doc;
       setBlankPdfTotal(doc.numPages);
@@ -944,8 +944,7 @@ export default function FormWizardPage() {
 
       // Render PDF page 1 to canvas
       const arrayBuffer = await blob.arrayBuffer();
-      const pdfjsLib = await import('pdfjs-dist');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+      const pdfjsLib = await getPdfjsLib();
 
       const npdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
       const page = await npdf.getPage(1);
