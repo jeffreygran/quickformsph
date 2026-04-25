@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { getFormBySlug, FormField, FormSchema } from '@/data/forms';
 import LocalModeOverlay, { LocalModeBanner } from '@/components/LocalModeOverlay';
 import PaymentGate from '@/components/PaymentGate';
-import { isLocalModeReady, hasPrivacyAck, fetchFormTemplateBytes } from '@/lib/local-mode';
+import { fetchFormTemplateBytes } from '@/lib/local-mode';
 import type { StoredAccessToken } from '@/lib/access-token-client';
 import { generatePDF } from '@/lib/pdf-generator';
 
@@ -65,12 +65,7 @@ export default function FormWizardPage() {
   // to generate the PDF entirely in-browser. After activation a green banner
   // stays at the top of the page.
   const [localModeActive, setLocalModeActive] = useState(false);
-  useEffect(() => {
-    if (!form) return;
-    if (isLocalModeReady(form.code) && hasPrivacyAck()) {
-      setLocalModeActive(true);
-    }
-  }, [form]);
+  // Always start fresh — never skip the overlay on re-entry.
 
   // Blank PDF viewer
   const [showBlankViewer, setShowBlankViewer] = useState(false);
@@ -1865,9 +1860,7 @@ function PrivacyConsentModal({
         {/* Body */}
         <div className="p-5 space-y-3">
           <p className="text-sm text-gray-700 leading-relaxed">
-            To generate your PDF, QuickFormsPH will use the personal information you entered — your
-            name, address, and other form details — <strong>solely to pre-fill the official government
-            form template</strong>.
+            Your details are used only to prefill the official form and create your PDF, and the process runs offline so you can safely disconnect from the internet.
           </p>
           <Link
             href="/privacy"
