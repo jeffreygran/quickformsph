@@ -329,9 +329,9 @@ function ReadyState({
   const [nudgeKey, setNudgeKey] = useState(0);
   const prevOnlineError = useRef(false);
 
-  // When onlineError fires while it was already showing, bump nudgeKey to retrigger shake
+  // Shake every time onlineError fires (first show or repeat attempt)
   useEffect(() => {
-    if (onlineError && prevOnlineError.current) {
+    if (onlineError) {
       setNudgeKey((k) => k + 1);
     }
     prevOnlineError.current = onlineError;
