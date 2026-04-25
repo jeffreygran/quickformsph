@@ -3,12 +3,21 @@
 import { useState, useEffect, useRef } from 'react';
 import SuggestionModal from '@/components/SuggestionModal';
 
-export default function DevSection() {
+interface DevSectionProps {
+  /** When true, triggers the cascade animation immediately (bypasses IntersectionObserver). */
+  forceVisible?: boolean;
+}
+
+export default function DevSection({ forceVisible = false }: DevSectionProps) {
   const [showSuggestion, setShowSuggestion] = useState(false);
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (forceVisible) {
+      setVisible(true);
+      return;
+    }
     const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(
@@ -17,7 +26,7 @@ export default function DevSection() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [forceVisible]);
 
   return (
     <>
