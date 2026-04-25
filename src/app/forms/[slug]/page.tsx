@@ -1188,7 +1188,8 @@ export default function FormWizardPage() {
         {showSuccessModal && (
           <SuccessCodeModal
             onDownloadAgain={handleLocalDownload}
-            onClose={() => { setShowSuccessModal(false); router.push('/'); }}
+            onClose={() => setShowSuccessModal(false)}
+            onCloseSession={() => { setShowSuccessModal(false); setShowCloseConfirm(true); }}
           />
         )}
       </>
@@ -2593,9 +2594,11 @@ function VerifyingScreen({ screenshotUrl }: { screenshotUrl: string }) {
 function SuccessCodeModal({
   onDownloadAgain,
   onClose,
+  onCloseSession,
 }: {
   onDownloadAgain: () => void;
   onClose: () => void;
+  onCloseSession: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
@@ -2607,18 +2610,18 @@ function SuccessCodeModal({
           <div className="text-blue-200 text-xs mt-0.5">Your download has started</div>
         </div>
         {/* Body */}
-        <div className="p-5 space-y-3">
-          <button
-            onClick={onDownloadAgain}
-            className="w-full rounded-xl border border-blue-200 bg-blue-50 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
-          >
-            ⬇️ Download again
-          </button>
+        <div className="p-5 flex gap-3">
           <button
             onClick={onClose}
-            className="w-full rounded-xl bg-blue-700 py-3 text-sm font-semibold text-white hover:bg-blue-800 transition-colors"
+            className="flex-1 rounded-xl border border-gray-300 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
           >
-            Done
+            OK
+          </button>
+          <button
+            onClick={onCloseSession}
+            className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
+          >
+            Close Session
           </button>
         </div>
       </div>
