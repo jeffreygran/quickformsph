@@ -9,12 +9,14 @@ const JWT_SECRET = new TextEncoder().encode(
 
 const DOCS_DIR = process.env.DOCS_DIR ?? '/home/skouzen/mcp-dashboard/docs/quickformsph';
 
-// List of docs to expose in the dropdown (label → filename)
-const DOC_MANIFEST: { label: string; file: string }[] = [
+// List of docs to expose in the dropdown (label → filename, optional dir override)
+const DOC_MANIFEST: { label: string; file: string; dir?: string }[] = [
   { label: 'Field Data Dictionary',         file: 'QuickFormsPH-FieldDataDictionary.md' },
   { label: 'Architecture',                  file: 'ARCHITECTURE.md' },
   { label: 'Deployment',                    file: 'DEPLOYMENT.md' },
   { label: 'PDF Generation Learnings',      file: 'QuickFormsPH-PDFGenerationLearnings.md' },
+  { label: 'PDF Learnings — BIR Addendum',  file: 'learnings-addendum-BIR.md',
+    dir: '/home/skouzen/projects/quickformsph-dev/docs/bir-intake-scaffolding' },
   { label: 'Payment Screenshot Learnings',  file: 'QuickForms-PaymentScreenshotLearnings.md' },
   { label: 'New Form Guide',                file: 'QuickFormsPH-NewForm.md' },
   { label: 'Secure LocalStorage',           file: 'SECURE-LOCALSTORAGE.md' },
@@ -53,10 +55,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  // Extra guard: ensure resolved path stays within DOCS_DIR
-  const resolved = path.resolve(DOCS_DIR, fileName);
-  if (!resolved.startsWith(path.resolve(DOCS_DIR) + path.sep) &&
-      resolved !== path.resolve(DOCS_DIR)) {
+  // Extra guard: ensure resolved path stays within its allowed base dir
+  const baseDir = path.resolve(allowed.dir ?? DOCS_DIR);
+  const resolved = path.resolve(baseDir, fileName);
+  if (!resolved.startsWith(baseDir + path.sep) && resolved !== baseDir) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
