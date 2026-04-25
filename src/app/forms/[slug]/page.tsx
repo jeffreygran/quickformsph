@@ -54,6 +54,7 @@ export default function FormWizardPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [downloadCode, setDownloadCode]         = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isDemoMode, setIsDemoMode]             = useState(false);
 
   // Draft resume modal
   const [draftModalOpen, setDraftModalOpen] = useState(false);
@@ -967,6 +968,11 @@ export default function FormWizardPage() {
           );
           ctx.rotate(-Math.PI / 6);
           ctx.fillText('QuickFormsPH', 0, 0);
+          if (isDemoMode) {
+            ctx.font = `bold ${Math.round(fSize * 0.65)}px Arial, sans-serif`;
+            ctx.fillText('Demo', 0, fSize * 0.9);
+            ctx.font = `bold ${fSize}px Arial, sans-serif`;
+          }
           ctx.restore();
         }
       }
@@ -1104,6 +1110,7 @@ export default function FormWizardPage() {
       <PaymentGate
         formName={form.name}
         formCode={form.code}
+        onAccessGranted={(isDemo) => setIsDemoMode(isDemo)}
         renderPaymentModal={({ onSuccess, onClose }) => (
           <PaymentModal
             gcashNumber={GCASH_NUMBER}
@@ -1163,6 +1170,7 @@ export default function FormWizardPage() {
         <PreviewScreen
           form={form}
           imageUrl={previewImageUrl}
+          isDemoMode={isDemoMode}
           onDownload={handleLocalDownload}
           onBack={() => setMode('review')}
         />
@@ -1752,11 +1760,13 @@ function ReviewScreen({
 function PreviewScreen({
   form,
   imageUrl,
+  isDemoMode,
   onDownload,
   onBack,
 }: {
   form: FormSchema;
   imageUrl: string;
+  isDemoMode: boolean;
   onDownload: () => void;
   onBack: () => void;
 }) {
@@ -1776,8 +1786,11 @@ function PreviewScreen({
           <div className="text-xs text-gray-400 truncate">{form.code}</div>
           <div className="text-xs font-medium text-white">PDF Preview</div>
         </div>
-        <div className="text-[10px] text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 px-2 py-1 rounded">
-          WATERMARKED
+        <div className={isDemoMode
+          ? 'text-[10px] text-orange-400 bg-orange-400/10 border border-orange-400/30 px-2 py-1 rounded'
+          : 'text-[10px] text-green-400 bg-green-400/10 border border-green-400/30 px-2 py-1 rounded'
+        }>
+          {isDemoMode ? '[ Demo Mode ]' : '[ Paid Version ]'}
         </div>
       </header>
 

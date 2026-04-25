@@ -24,6 +24,8 @@ type Mode = 'choice' | 'pay' | 'key';
 interface Props {
   formName: string;
   formCode: string;
+  /** Called when the user selects an access method. isDemo=true when Demo is chosen. */
+  onAccessGranted?: (isDemo: boolean) => void;
   /** Render PaymentModal — keeps PaymentGate decoupled from its concrete UI. */
   renderPaymentModal: (args: {
     onSuccess: (token: StoredAccessToken) => void;
@@ -36,6 +38,7 @@ interface Props {
 export default function PaymentGate({
   formName,
   formCode,
+  onAccessGranted,
   renderPaymentModal,
   children,
 }: Props) {
@@ -59,6 +62,7 @@ export default function PaymentGate({
   const handleTokenIssued = (t: StoredAccessToken) => {
     writeAccessToken(t);
     setMode('choice');
+    onAccessGranted?.(false);
     // Proceed directly to form after token issued
     setDemoMode(true);
   };
@@ -82,7 +86,7 @@ export default function PaymentGate({
                 <ChoiceScreen
                   formName={formName}
                   formCode={formCode}
-                  onDemo={() => setDemoMode(true)}
+                  onDemo={() => { onAccessGranted?.(true); setDemoMode(true); }}
                   onPay={() => setMode('pay')}
                   onKey={() => setMode('key')}
                 />
