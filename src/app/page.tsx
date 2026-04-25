@@ -460,13 +460,13 @@ export default function HomePage() {
         <div ref={sentinelRef} className="h-1" />
 
         {/* ── Coming Soon ── */}
-        <div className="mt-6 rounded-xl border border-dashed border-gray-200 bg-white px-5 py-4 flex items-center justify-between gap-4">
+        <div className="mt-6 rounded-xl border border-dashed border-gray-200 bg-white px-4 py-4 flex flex-col items-center justify-center gap-1 text-center">
           <p className="text-sm font-medium text-gray-500">More forms coming soon …</p>
           <button
             onClick={() => setShowSuggestion(true)}
-            className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
           >
-            💡 Suggest a form
+            Suggest a form &amp; feedback
           </button>
         </div>
       </main>
