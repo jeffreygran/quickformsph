@@ -1231,16 +1231,6 @@ export default function FormWizardPage() {
             </svg>
             PDF
           </button>
-          <button
-            onClick={() => setMode('review')}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors whitespace-nowrap"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-              <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            Review
-          </button>
         </div>
       </header>
 
@@ -1282,10 +1272,13 @@ export default function FormWizardPage() {
           {/* Connector to Review */}
           <div className="flex-shrink-0 w-2 h-0.5 bg-gray-200 rounded mt-[14px]" />
           {/* Review pseudo-step */}
-          <div className="flex flex-1 min-w-0 flex-col items-center gap-1">
+          <button
+            onClick={() => setMode('review')}
+            className="flex flex-1 min-w-0 flex-col items-center gap-1"
+          >
             <div className="flex-shrink-0 step-dot step-dot-idle">✎</div>
             <span className="text-[10px] font-medium text-gray-400 text-center leading-tight min-h-[2.5em] w-full">Review</span>
-          </div>
+          </button>
         </div>
       </div>
 
