@@ -120,7 +120,7 @@ export default function AboutPage() {
           <div className="grid sm:grid-cols-4 gap-8 text-center">
             {[
               { step: '01', title: 'Pick a Form', body: 'Choose from the list of available Philippine government forms.' },
-              { step: '02', title: 'Fill It In',  body: 'Complete the fields in your browser. Auto-save keeps your draft safe.' },
+              { step: '02', title: 'Fill It In',  body: 'Complete the fields in your browser. Offline and Locally.' },
               { step: '03', title: 'Generate PDF', body: 'Hit "Generate PDF" — everything is processed locally on your device.' },
               { step: '04', title: 'Print & Submit', body: 'Download your print-ready PDF and submit to the relevant agency.' },
             ].map(({ step, title, body }) => (
