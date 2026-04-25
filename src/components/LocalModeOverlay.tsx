@@ -96,18 +96,27 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
 
   const handleStart = useCallback(async () => {
     if (verifyOffline) {
-      // Try to reach a reliable external URL. If it succeeds, device is online → block.
+      // Primary check: browser's own connectivity flag.
+      if (navigator.onLine) {
+        setOnlineError(true);
+        return;
+      }
+      // Secondary check: attempt a real network request to confirm offline.
+      // Use AbortController (universal) instead of AbortSignal.timeout.
       try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 3000);
         await fetch('https://www.google.com/favicon.ico', {
           mode: 'no-cors',
           cache: 'no-store',
-          signal: AbortSignal.timeout(3000),
+          signal: ctrl.signal,
         });
-        // fetch succeeded → device is online
+        clearTimeout(timer);
+        // fetch resolved → device is online
         setOnlineError(true);
         return;
       } catch {
-        // fetch failed → device is offline, safe to proceed
+        // fetch failed / aborted → device appears offline, safe to proceed
       }
     }
     setOnlineError(false);
