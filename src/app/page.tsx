@@ -344,7 +344,7 @@ export default function HomePage() {
             <span className="text-blue-200">in Minutes</span>
           </h1>
           <p className="mt-3 text-sm text-blue-200 max-w-md mx-auto leading-relaxed">
-            Fill it out on your phone. Download a clean, print-ready PDF. No erasures, no hassle.
+            Select a form, fill it out on your phone, and download a print-ready PDF. And no messy erasures.
           </p>
 
           {/* Search bar */}
