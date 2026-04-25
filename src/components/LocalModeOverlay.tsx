@@ -337,14 +337,9 @@ function ReadyState({
         </h2>
       </div>
 
-      <ul className="space-y-2 mb-5">
-        <ReadyItem label="PDF engine ready" />
-        <ReadyItem label="Form template cached" />
-      </ul>
-
       <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-5">
         <p className="text-xs text-green-800 leading-relaxed">
-          🔒 <strong>Privacy first:</strong> Your data stays on this device and is never uploaded.
+          🔒 <strong>Privacy first:</strong> You can safely go offline — everything runs on your device.
         </p>
       </div>
 
