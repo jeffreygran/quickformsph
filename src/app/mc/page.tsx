@@ -41,7 +41,7 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -93,8 +93,8 @@ export default function AdminPage() {
           ))}
         </nav>
 
-        <div className="border-t border-gray-100 px-4 py-2 flex items-center justify-between">
-          <span className="text-xs text-gray-400">admin</span>
+        <div className="border-t border-gray-100 p-4">
+          <div className="text-xs text-gray-400 mb-2">Logged in as admin</div>
           <button
             onClick={handleLogout}
             className="text-xs text-red-500 hover:text-red-700 font-medium"
@@ -105,7 +105,7 @@ export default function AdminPage() {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
         <header className="sticky top-0 z-20 border-b border-gray-200 bg-white px-4 py-2 flex items-center gap-3">
           <button
