@@ -56,7 +56,7 @@ export default function AdminPage() {
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <Image
               src="/quickformsph-logo-transparent-slogan.png"
@@ -73,7 +73,7 @@ export default function AdminPage() {
           )}
         </div>
 
-        <nav className="flex-1 py-3 overflow-y-auto">
+        <nav className="flex-1 py-2 overflow-y-auto">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -81,7 +81,7 @@ export default function AdminPage() {
                 setTab(t.id);
                 setSidebarOpen(false);
               }}
-              className={`flex w-full items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+              className={`flex w-full items-center gap-3 px-4 py-2 text-sm font-medium transition-colors ${
                 tab === t.id
                   ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
                   : 'text-gray-600 hover:bg-gray-50'
@@ -107,7 +107,7 @@ export default function AdminPage() {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="sticky top-0 z-20 border-b border-gray-200 bg-white px-4 py-3 flex items-center gap-3">
+        <header className="sticky top-0 z-20 border-b border-gray-200 bg-white px-4 py-2 flex items-center gap-3">
           <button
             className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 lg:hidden"
             onClick={() => setSidebarOpen(true)}
@@ -124,7 +124,7 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-4 overflow-y-auto">
           {tab === 'dashboard'   && <DashboardTab />}
           {tab === 'catalog'     && <CatalogTab />}
           {tab === 'upload'      && <UploadTab />}
@@ -151,19 +151,19 @@ function DashboardTab() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-2xl bg-white border border-gray-200 p-5">
-            <div className={`inline-flex rounded-xl p-2 text-lg ${s.color} mb-3`}>{s.icon}</div>
-            <div className="text-2xl font-bold text-gray-900">{s.value}</div>
+          <div key={s.label} className="rounded-xl bg-white border border-gray-200 p-3">
+            <div className={`inline-flex rounded-lg p-1.5 text-base ${s.color} mb-1.5`}>{s.icon}</div>
+            <div className="text-lg font-bold text-gray-900">{s.value}</div>
             <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl bg-white border border-gray-200 p-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h2>
+      <div className="rounded-xl bg-white border border-gray-200 p-3">
+        <h2 className="text-sm font-semibold text-gray-900 mb-2">Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
           <button className="btn-primary text-xs px-4 py-2">⬆️ Upload New PDF</button>
           <button className="btn-secondary text-xs px-4 py-2">📋 View Form Catalog</button>
@@ -171,7 +171,7 @@ function DashboardTab() {
         </div>
       </div>
 
-      <div className="rounded-2xl bg-amber-50 border border-amber-200 p-5">
+      <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
         <div className="font-medium text-amber-900 text-sm">⚠️ Dev Environment Notice</div>
         <p className="text-xs text-amber-700 mt-1">
           This is the local development instance. Production is at{' '}
@@ -186,11 +186,11 @@ function DashboardTab() {
 // ─── Catalog Tab ──────────────────────────────────────────────────────────────
 function CatalogTab() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {FORMS.map((form) => (
-        <div key={form.slug} className="rounded-2xl bg-white border border-gray-200 p-5">
-          <div className="flex items-start gap-4">
-            <div className="text-2xl">📄</div>
+        <div key={form.slug} className="rounded-xl bg-white border border-gray-200 p-3">
+          <div className="flex items-start gap-3">
+            <div className="text-xl">📄</div>
             <div className="flex-1 min-w-0">
               <div className="text-xs font-mono text-gray-400">{form.code} · {form.version}</div>
               <div className="text-sm font-semibold text-gray-900 mt-0.5">{form.name}</div>
@@ -240,18 +240,18 @@ function UploadTab() {
   }
 
   return (
-    <div className="max-w-lg space-y-5">
-      <div className="rounded-2xl bg-white border border-gray-200 p-6">
+    <div className="max-w-lg space-y-3">
+      <div className="rounded-xl bg-white border border-gray-200 p-4">
         <h2 className="text-sm font-semibold text-gray-900 mb-1">Upload Government PDF</h2>
-        <p className="text-xs text-gray-500 mb-4">
+        <p className="text-xs text-gray-500 mb-2">
           Upload the original flat PDF. Azure Document Intelligence will extract field positions.
         </p>
 
         <div
-          className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 transition-colors"
+          className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:border-blue-400 transition-colors"
           onClick={() => document.getElementById('pdf-upload')?.click()}
         >
-          <div className="text-3xl mb-2">📤</div>
+          <div className="text-2xl mb-1">📤</div>
           {file ? (
             <div className="text-sm text-gray-700 font-medium">{file.name}</div>
           ) : (
@@ -284,7 +284,7 @@ function UploadTab() {
         </button>
       </div>
 
-      <div className="rounded-2xl bg-blue-50 border border-blue-200 p-5 text-xs text-blue-800">
+      <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
         <strong>Manual upload:</strong> Place the PDF at{' '}
         <code className="bg-blue-100 px-1 rounded">public/forms/hqp-pff-356.pdf</code> to enable
         real PDF generation. The coordinate overlay will be applied automatically.
@@ -315,10 +315,10 @@ function StorageConfigTab() {
   }
 
   return (
-    <div className="max-w-lg space-y-5">
-      <div className="rounded-2xl bg-white border border-gray-200 p-6">
+    <div className="max-w-lg space-y-3">
+      <div className="rounded-xl bg-white border border-gray-200 p-4">
         <h2 className="text-sm font-semibold text-gray-900 mb-1">Storage Backend</h2>
-        <p className="text-xs text-gray-500 mb-4">
+        <p className="text-xs text-gray-500 mb-2">
           Where generated PDFs and uploads are stored. Changes take effect immediately.
         </p>
 
@@ -326,7 +326,7 @@ function StorageConfigTab() {
           {(['local', 'azure'] as const).map((b) => (
             <label
               key={b}
-              className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors ${
+              className={`flex items-start gap-3 rounded-lg border p-2.5 cursor-pointer transition-colors ${
                 backend === b ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-white'
               }`}
             >
@@ -487,12 +487,12 @@ function SettingsTab() {
   }
 
   return (
-    <div className="max-w-lg space-y-4">
+    <div className="max-w-lg space-y-3">
       {/* Change Password */}
-      <div className="rounded-2xl bg-white border border-gray-200 p-6">
+      <div className="rounded-xl bg-white border border-gray-200 p-4">
         <h2 className="text-sm font-semibold text-gray-900 mb-1">Change Password</h2>
-        <p className="text-xs text-gray-400 mb-4">Update the admin login password.</p>
-        <form onSubmit={handleChangePassword} className="space-y-3">
+        <p className="text-xs text-gray-400 mb-2">Update the admin login password.</p>
+        <form onSubmit={handleChangePassword} className="space-y-2">
           <div>
             <label className="field-label">Current Password</label>
             <div className="relative">
@@ -557,10 +557,10 @@ function SettingsTab() {
       </div>
 
       {/* GCash Payment Settings */}
-      <div className="rounded-2xl bg-white border border-gray-200 p-6 space-y-4">
+      <div className="rounded-xl bg-white border border-gray-200 p-4 space-y-3">
         <h2 className="text-sm font-semibold text-gray-900">GCash Payment Settings</h2>
         {loadError && <p className="text-xs text-red-600">{loadError}</p>}
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div>
             <label className="field-label">Mobile Number</label>
             <input type="text" value={gcashNumber} onChange={e => setGcashNumber(e.target.value)}
@@ -579,7 +579,7 @@ function SettingsTab() {
       </div>
 
       {/* GCash QR Code */}
-      <div className="rounded-2xl bg-white border border-gray-200 p-6 space-y-4">
+      <div className="rounded-xl bg-white border border-gray-200 p-4 space-y-3">
         <h2 className="text-sm font-semibold text-gray-900">GCash QR Code</h2>
         <p className="text-xs text-gray-500">Upload a QR code image so users can scan and pay directly.</p>
         {qrUrl ? (
@@ -596,8 +596,8 @@ function SettingsTab() {
             </div>
           </div>
         ) : (
-          <label className="flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 py-8 cursor-pointer transition-colors">
-            <span className="text-2xl">📷</span>
+          <label className="flex flex-col items-center justify-center gap-1.5 w-full rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 py-4 cursor-pointer transition-colors">
+            <span className="text-xl">📷</span>
             <span className="text-xs font-medium text-gray-500">{uploadBusy ? 'Uploading…' : 'Click to upload QR image'}</span>
             <span className="text-[10px] text-gray-400">PNG, JPG, WEBP — max 2 MB</span>
             <input ref={qrInputRef} type="file" accept="image/*" className="hidden" onChange={handleQRUpload} disabled={uploadBusy} />
@@ -609,8 +609,8 @@ function SettingsTab() {
       </div>
 
       {/* Environment Info */}
-      <div className="rounded-2xl bg-white border border-gray-200 p-6">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Environment Info</h2>
+      <div className="rounded-xl bg-white border border-gray-200 p-4">
+        <h2 className="text-sm font-semibold text-gray-900 mb-2">Environment Info</h2>
         <div className="space-y-2">
           {[
             ['Environment', 'Development (local DGX)'],
@@ -626,9 +626,9 @@ function SettingsTab() {
         </div>
       </div>
 
-      <div className="rounded-2xl bg-red-50 border border-red-200 p-5">
+      <div className="rounded-xl bg-red-50 border border-red-200 p-3">
         <h3 className="text-sm font-semibold text-red-900">Danger Zone</h3>
-        <p className="text-xs text-red-600 mt-1 mb-3">
+        <p className="text-xs text-red-600 mt-1 mb-2">
           These actions cannot be undone.
         </p>
         <button className="text-xs text-red-600 border border-red-300 rounded-lg px-3 py-1.5 hover:bg-red-100">
@@ -718,9 +718,9 @@ function SuggestionsTab() {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-base font-semibold text-gray-900">💡 User Suggestions</h2>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="text-sm font-semibold text-gray-900">💡 User Suggestions</h2>
         <div className="flex gap-2">
           <button onClick={load} className="text-xs text-blue-600 border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50">
             ↻ Refresh
@@ -763,14 +763,14 @@ function SuggestionsTab() {
           No suggestions yet.
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {displayed.map((s) => {
             const meta   = STATUS_LABELS[s.status] ?? STATUS_LABELS.pending;
             const dateStr = new Date(s.created_at).toLocaleDateString('en-PH', {
               month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
             });
             return (
-              <div key={s.id} className="rounded-2xl bg-white border border-gray-200 p-5">
+              <div key={s.id} className="rounded-xl bg-white border border-gray-200 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-900 leading-relaxed">{s.suggestion}</p>
@@ -785,7 +785,7 @@ function SuggestionsTab() {
                     {meta.label}
                   </span>
                 </div>
-                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
                   {(['pending', 'reviewed', 'added'] as const).map((st) => (
                     <button
                       key={st}
@@ -860,10 +860,10 @@ function PaymentRefsTab() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Payment Ref Numbers</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Payment Ref Numbers</h2>
           <p className="text-xs text-gray-500 mt-0.5">Used GCash Ref No. records — {refs.length} stored</p>
           {storageDir && <p className="text-[10px] text-gray-400 font-mono mt-0.5">{storageDir}</p>}
         </div>
@@ -1038,10 +1038,10 @@ function SecurityTab() {
   ] as const;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">🛡️ Security</h2>
+          <h2 className="text-sm font-semibold text-gray-900">🛡️ Security</h2>
           <p className="text-xs text-gray-500 mt-0.5">Rate limiting, IP blocklist, and audit trail</p>
         </div>
         <button
@@ -1074,8 +1074,8 @@ function SecurityTab() {
 
       {/* ── Overview ── */}
       {!loading && panel === 'overview' && (
-        <div className="space-y-5">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
               { label: 'Blocked IPs',         value: stats?.blockedIPCount ?? 0,    icon: '🚫', color: 'bg-red-50 text-red-700' },
               { label: 'Rate Limit Hits 24h', value: stats?.rateLimitHits24h ?? 0,  icon: '⚡', color: 'bg-amber-50 text-amber-700' },
@@ -1088,16 +1088,16 @@ function SecurityTab() {
                 icon: '📋', color: 'bg-blue-50 text-blue-700',
               },
             ].map((s) => (
-              <div key={s.label} className="rounded-2xl bg-white border border-gray-200 p-5">
-                <div className={`inline-flex rounded-xl p-2 text-lg ${s.color} mb-3`}>{s.icon}</div>
-                <div className="text-2xl font-bold text-gray-900">{s.value}</div>
+              <div key={s.label} className="rounded-xl bg-white border border-gray-200 p-3">
+                <div className={`inline-flex rounded-lg p-1.5 text-base ${s.color} mb-1.5`}>{s.icon}</div>
+                <div className="text-lg font-bold text-gray-900">{s.value}</div>
                 <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
               </div>
             ))}
           </div>
 
-          <div className="rounded-2xl bg-white border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Active Protections</h3>
+          <div className="rounded-xl bg-white border border-gray-200 p-3">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Active Protections</h3>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {[
                 ['Rate Limiting',       'Per-IP sliding window on all public endpoints'],
@@ -1124,9 +1124,9 @@ function SecurityTab() {
 
       {/* ── Blocklist ── */}
       {!loading && panel === 'blocklist' && (
-        <div className="space-y-4">
-          <div className="rounded-2xl bg-white border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Block an IP Address</h3>
+        <div className="space-y-3">
+          <div className="rounded-xl bg-white border border-gray-200 p-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Block an IP Address</h3>
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
@@ -1420,9 +1420,9 @@ function GeneratedPDFsTab() {
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
+      <div className="flex items-start justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Generated PDFs</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Generated PDFs</h2>
           <p className="text-xs text-gray-500 mt-0.5">
             {entries.length} total · {expiredCount} expired
           </p>
@@ -1465,7 +1465,7 @@ function GeneratedPDFsTab() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search by name, form, agency, or code…"
-        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
 
       {/* Table */}
@@ -1615,16 +1615,16 @@ function LicenseKeysTab() {
   const used    = keys.filter((k) => k.used_at);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-bold text-gray-900">🔑 License Keys</h2>
+        <h2 className="text-sm font-semibold text-gray-900">🔑 License Keys</h2>
         <p className="text-xs text-gray-500 mt-0.5">
           Generate keys to give users 48-hour access without GCash payment.
         </p>
       </div>
 
       {/* Generator */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
         <h3 className="text-sm font-semibold text-gray-700">Generate Keys</h3>
         <div className="flex gap-3 flex-wrap">
           <div className="flex flex-col gap-1">
@@ -1690,19 +1690,19 @@ function LicenseKeysTab() {
             <tbody className="divide-y divide-gray-100 bg-white">
               {keys.map((k) => (
                 <tr key={k.id} className={k.used_at ? 'opacity-50' : ''}>
-                  <td className="px-4 py-3 font-mono font-bold text-gray-900">{k.key_code}</td>
-                  <td className="px-4 py-3 text-gray-500">{k.label || '—'}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2 font-mono font-bold text-gray-900">{k.key_code}</td>
+                  <td className="px-4 py-2 text-gray-500">{k.label || '—'}</td>
+                  <td className="px-4 py-2">
                     {k.used_at ? (
                       <span className="text-red-500 font-semibold">Used</span>
                     ) : (
                       <span className="text-green-600 font-semibold">Available</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-400">
+                  <td className="px-4 py-2 text-gray-400">
                     {new Date(k.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-2 text-right">
                     <div className="flex gap-2 justify-end">
                       {!k.used_at && (
                         <button
