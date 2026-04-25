@@ -297,7 +297,7 @@ function ReadyState({
           onChange={(e) => onVerifyOfflineChange(e.target.checked)}
         />
         <span className="text-xs text-gray-700 leading-relaxed">
-          Verify my internet connection and stop if online.
+          Verify internet connection, do not proceed if I&apos;m online.
         </span>
       </label>
 
