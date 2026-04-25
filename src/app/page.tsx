@@ -547,7 +547,6 @@ function FormCard({ form }: { form: FormSchema }) {
       <div className="mt-3">
         <div className="text-xs font-mono text-gray-400 mb-0.5">{form.code}</div>
         <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-3">{form.name}</h3>
-        <p className="mt-2 text-xs text-gray-500 line-clamp-2">{form.description}</p>
       </div>
       <div className="mt-4 flex items-center justify-between">
         <span className="text-xs text-gray-400">{form.fields.length} fields</span>
