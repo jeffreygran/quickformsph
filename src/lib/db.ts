@@ -72,6 +72,18 @@ export function getDB(): Database.Database {
 
     CREATE INDEX IF NOT EXISTS idx_suggestions_created_at ON suggestions (created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_suggestions_status     ON suggestions (status);
+
+    CREATE TABLE IF NOT EXISTS license_keys (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      key_code   TEXT    NOT NULL UNIQUE,
+      label      TEXT    NOT NULL DEFAULT '',
+      used_at    INTEGER,
+      used_by_ip TEXT,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_license_keys_key_code   ON license_keys (key_code);
+    CREATE INDEX IF NOT EXISTS idx_license_keys_created_at ON license_keys (created_at DESC);
   `);
 
   // ── Migration: if generated_pdfs still has ref_no/amount columns from the
@@ -227,5 +239,48 @@ export function deleteSuggestion(id: string): boolean {
 
 export function deleteAllSuggestions(): number {
   return getDB().prepare('DELETE FROM suggestions').run().changes;
+}
+
+// ─── license_keys CRUD ────────────────────────────────────────────────────────
+
+export interface LicenseKey {
+  id: number;
+  key_code: string;
+  label: string;
+  used_at: number | null;
+  used_by_ip: string | null;
+  created_at: number;
+}
+
+export function insertLicenseKey(key_code: string, label: string): void {
+  getDB().prepare(`
+    INSERT INTO license_keys (key_code, label, created_at)
+    VALUES (?, ?, ?)
+  `).run(key_code, label, Date.now());
+}
+
+export function getLicenseKey(key_code: string): LicenseKey | null {
+  return (getDB()
+    .prepare('SELECT * FROM license_keys WHERE key_code = ?')
+    .get(key_code) as LicenseKey | undefined) ?? null;
+}
+
+export function markLicenseKeyUsed(key_code: string, ip: string): boolean {
+  const result = getDB().prepare(`
+    UPDATE license_keys SET used_at = ?, used_by_ip = ?
+    WHERE key_code = ? AND used_at IS NULL
+  `).run(Date.now(), ip, key_code);
+  return result.changes > 0;
+}
+
+export function getAllLicenseKeys(): LicenseKey[] {
+  return getDB()
+    .prepare('SELECT * FROM license_keys ORDER BY created_at DESC')
+    .all() as LicenseKey[];
+}
+
+export function deleteLicenseKey(id: number): boolean {
+  const result = getDB().prepare('DELETE FROM license_keys WHERE id = ?').run(id);
+  return result.changes > 0;
 }
 

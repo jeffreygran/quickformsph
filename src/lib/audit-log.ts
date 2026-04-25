@@ -26,7 +26,10 @@ export type AuditEventType =
   | 'ip_unblocked'
   | 'upload_attempt'
   | 'admin_action'
-  | 'request_blocked';
+  | 'request_blocked'
+  | 'license_key_invalid'
+  | 'license_key_already_used'
+  | 'license_key_redeemed';
 
 export interface AuditEvent {
   id: string;

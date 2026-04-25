@@ -7,7 +7,7 @@ import { FORMS } from '@/data/forms';
 
 const IS_DEV = process.env.NEXT_PUBLIC_APP_ENV === 'dev';
 
-type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions' | 'refs' | 'pdfs' | 'security';
+type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions' | 'refs' | 'pdfs' | 'security' | 'keys';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('dashboard');
@@ -37,6 +37,7 @@ export default function AdminPage() {
     { id: 'pdfs',        icon: '📄', label: 'Generated PDFs' },
     { id: 'settings',    icon: '⚙️', label: 'Settings' },
     { id: 'security',    icon: '🛡️', label: 'Security' },
+    { id: 'keys',        icon: '🔑', label: 'License Keys' },
   ];
 
   return (
@@ -133,6 +134,7 @@ export default function AdminPage() {
           {tab === 'pdfs'        && <GeneratedPDFsTab />}
           {tab === 'settings'    && <SettingsTab />}
           {tab === 'security'    && <SecurityTab />}
+          {tab === 'keys'        && <LicenseKeysTab />}
         </main>
       </div>
     </div>
@@ -1540,6 +1542,182 @@ function GeneratedPDFsTab() {
                         className="text-red-500 hover:text-red-700 border border-red-200 rounded-lg px-2.5 py-1 hover:bg-red-50 disabled:opacity-40"
                       >
                         {deleting === e.code ? '…' : 'Delete'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── License Keys Tab ─────────────────────────────────────────────────────────
+interface LicenseKeyRow {
+  id: number;
+  key_code: string;
+  label: string;
+  used_at: number | null;
+  used_by_ip: string | null;
+  created_at: number;
+}
+
+function LicenseKeysTab() {
+  const [keys, setKeys]       = useState<LicenseKeyRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [count, setCount]     = useState(1);
+  const [label, setLabel]     = useState('');
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<number | null>(null);
+  const [copied, setCopied]   = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    fetch('/api/admin/license-keys')
+      .then((r) => r.json())
+      .then((d: { keys: LicenseKeyRow[] }) => { setKeys(d.keys ?? []); setLoading(false); })
+      .catch(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleCreate = async () => {
+    setCreating(true);
+    await fetch('/api/admin/license-keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count, label }),
+    });
+    setLabel('');
+    setCount(1);
+    load();
+    setCreating(false);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this license key?')) return;
+    setDeleting(id);
+    await fetch(`/api/admin/license-keys?id=${id}`, { method: 'DELETE' });
+    setDeleting(null);
+    load();
+  };
+
+  const copyKey = (key: string) => {
+    navigator.clipboard.writeText(key).catch(() => {});
+    setCopied(key);
+    setTimeout(() => setCopied(null), 1500);
+  };
+
+  const unused  = keys.filter((k) => !k.used_at);
+  const used    = keys.filter((k) => k.used_at);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-bold text-gray-900">🔑 License Keys</h2>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Generate keys to give users 48-hour access without GCash payment.
+        </p>
+      </div>
+
+      {/* Generator */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3">
+        <h3 className="text-sm font-semibold text-gray-700">Generate Keys</h3>
+        <div className="flex gap-3 flex-wrap">
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] text-gray-500">Count</label>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={count}
+              onChange={(e) => setCount(Math.min(50, Math.max(1, Number(e.target.value))))}
+              className="w-20 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="flex flex-col gap-1 flex-1">
+            <label className="text-[11px] text-gray-500">Label (optional)</label>
+            <input
+              type="text"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="e.g. Batch 1, Event promo…"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="flex flex-col justify-end">
+            <button
+              onClick={handleCreate}
+              disabled={creating}
+              className="rounded-lg bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold text-sm px-5 py-2"
+            >
+              {creating ? 'Creating…' : 'Generate'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Summary */}
+      <div className="flex gap-3 text-sm">
+        <span className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-3 py-1.5 font-medium">
+          {unused.length} unused
+        </span>
+        <span className="bg-gray-100 border border-gray-200 text-gray-600 rounded-lg px-3 py-1.5 font-medium">
+          {used.length} used
+        </span>
+      </div>
+
+      {/* Keys table */}
+      {loading ? (
+        <p className="text-sm text-gray-400">Loading…</p>
+      ) : keys.length === 0 ? (
+        <p className="text-sm text-gray-400">No keys yet. Generate some above.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border border-gray-200">
+          <table className="w-full text-xs">
+            <thead className="bg-gray-50 text-gray-500 uppercase tracking-wide">
+              <tr>
+                <th className="px-4 py-3 text-left">Key</th>
+                <th className="px-4 py-3 text-left">Label</th>
+                <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Created</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {keys.map((k) => (
+                <tr key={k.id} className={k.used_at ? 'opacity-50' : ''}>
+                  <td className="px-4 py-3 font-mono font-bold text-gray-900">{k.key_code}</td>
+                  <td className="px-4 py-3 text-gray-500">{k.label || '—'}</td>
+                  <td className="px-4 py-3">
+                    {k.used_at ? (
+                      <span className="text-red-500 font-semibold">Used</span>
+                    ) : (
+                      <span className="text-green-600 font-semibold">Available</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-gray-400">
+                    {new Date(k.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex gap-2 justify-end">
+                      {!k.used_at && (
+                        <button
+                          onClick={() => copyKey(k.key_code)}
+                          className="text-blue-600 hover:text-blue-800 border border-blue-200 rounded-lg px-2.5 py-1 hover:bg-blue-50"
+                        >
+                          {copied === k.key_code ? '✓ Copied' : 'Copy'}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(k.id)}
+                        disabled={deleting === k.id}
+                        className="text-red-500 hover:text-red-700 border border-red-200 rounded-lg px-2.5 py-1 hover:bg-red-50 disabled:opacity-40"
+                      >
+                        {deleting === k.id ? '…' : 'Delete'}
                       </button>
                     </div>
                   </td>
