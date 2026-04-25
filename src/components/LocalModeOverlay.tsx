@@ -246,12 +246,9 @@ function ReadyState({
         <div className="mx-auto w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center mb-4">
           <span className="text-3xl" aria-hidden>🛡️</span>
         </div>
-        <h2 id="local-mode-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
+        <h2 id="local-mode-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-4">
           Ready to Go Offline
         </h2>
-        <p className="text-[11px] uppercase tracking-wider font-semibold text-green-700 mb-4">
-          {formCode}
-        </p>
       </div>
 
       <ul className="space-y-2 mb-5">
