@@ -412,7 +412,7 @@ export function LocalModeBanner() {
         style={{ animation: 'qfphPulse 1.6s ease infinite' }}
         aria-hidden
       />
-      <span>🔒 Running Locally — your data stays on your device. Safe to go offline.</span>
+      <span>🔒 Running locally — data never leaves this device</span>
       <style jsx>{`
         @keyframes qfphPulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(134, 239, 172, 0.55); }
