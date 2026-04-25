@@ -15,8 +15,8 @@ export default function DevSection() {
 
       <div className="mx-auto max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-sm text-center">
         {/* Avatar */}
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-800 text-white font-black text-xl mb-5 shadow-sm select-none">
-          JG
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-800 text-white font-black text-base mb-5 shadow-sm select-none tracking-tight">
+          J.Gran
         </div>
 
         <h3 className="text-lg font-black text-gray-900 tracking-tight">Jeffrey John Gran</h3>
