@@ -956,34 +956,34 @@ export default function FormWizardPage() {
       const ctx = canvas.getContext('2d')!;
       await page.render({ canvasContext: ctx as never, viewport }).promise;
 
-      // Apply tiled watermark
-      const fSize = Math.max(22, Math.round(canvas.width / 11));
-      ctx.save();
-      ctx.globalAlpha = 0.10;
-      ctx.fillStyle = '#1d4ed8';
-      ctx.font = `bold ${fSize}px Arial, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const gapY = fSize * 3.8;
-      const gapX = canvas.width * 0.55;
-      for (let row = -1; row * gapY < canvas.height + gapY; row++) {
-        for (let col = -1; col * gapX < canvas.width + gapX; col++) {
-          ctx.save();
-          ctx.translate(
-            col * gapX + (row % 2 === 0 ? 0 : gapX / 2),
-            row * gapY
-          );
-          ctx.rotate(-Math.PI / 6);
-          ctx.fillText('QuickFormsPH', 0, 0);
-          if (isDemoMode) {
+      // Apply tiled watermark — only in Demo mode
+      if (isDemoMode) {
+        const fSize = Math.max(22, Math.round(canvas.width / 11));
+        ctx.save();
+        ctx.globalAlpha = 0.10;
+        ctx.fillStyle = '#1d4ed8';
+        ctx.font = `bold ${fSize}px Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const gapY = fSize * 3.8;
+        const gapX = canvas.width * 0.55;
+        for (let row = -1; row * gapY < canvas.height + gapY; row++) {
+          for (let col = -1; col * gapX < canvas.width + gapX; col++) {
+            ctx.save();
+            ctx.translate(
+              col * gapX + (row % 2 === 0 ? 0 : gapX / 2),
+              row * gapY
+            );
+            ctx.rotate(-Math.PI / 6);
+            ctx.fillText('QuickFormsPH', 0, 0);
             ctx.font = `bold ${Math.round(fSize * 0.65)}px Arial, sans-serif`;
-            ctx.fillText('Demo', 0, fSize * 0.9);
+            ctx.fillText('DEMO', 0, fSize * 0.9);
             ctx.font = `bold ${fSize}px Arial, sans-serif`;
+            ctx.restore();
           }
-          ctx.restore();
         }
+        ctx.restore();
       }
-      ctx.restore();
 
       setPreviewImageUrl(canvas.toDataURL('image/jpeg', 0.92));
       setMode('preview');
@@ -1003,7 +1003,7 @@ export default function FormWizardPage() {
     if (!form) return;
     try {
       const sourceBytes = await fetchFormTemplateBytes(form.pdfPath);
-      const pdfBytes = await generatePDF(form, values, sourceBytes);
+      const pdfBytes = await generatePDF(form, values, sourceBytes, isDemoMode);
       const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(blob);
 

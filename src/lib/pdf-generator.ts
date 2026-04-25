@@ -5,7 +5,7 @@
  * each field value as a text overlay at the pre-configured coordinates.
  */
 
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
 import { FormSchema } from '@/data/forms';
 
 // Node-only modules are loaded lazily inside generatePDF when running on the server.
@@ -2933,7 +2933,8 @@ function toWinAnsi(str: string): string {
 export async function generatePDF(
   form: FormSchema,
   values: Record<string, string>,
-  sourceBytes?: Uint8Array
+  sourceBytes?: Uint8Array,
+  isDemo = false
 ): Promise<Uint8Array> {
   // ── Load source PDF ────────────────────────────────────────────────────────
   let existingPdfBytes: Uint8Array;
@@ -3036,6 +3037,36 @@ export async function generatePDF(
         color: rgb(0, 0, 0),
         maxWidth: coords.maxWidth,
       });
+    }
+  }
+
+  // ── Demo watermark (tiled diagonal overlay on every page) ─────────────────
+  if (isDemo) {
+    const allPages = pdfDoc.getPages();
+    for (const page of allPages) {
+      const { width, height } = page.getSize();
+      const fSize = Math.max(18, Math.round(width / 11));
+      const gapY  = fSize * 3.8;
+      const gapX  = width * 0.55;
+      for (let row = -1; row * gapY < height + gapY; row++) {
+        for (let col = -1; col * gapX < width + gapX; col++) {
+          const x = col * gapX + (row % 2 === 0 ? 0 : gapX / 2);
+          const y = row * gapY;
+          page.drawText('QuickFormsPH', {
+            x, y, size: fSize, font,
+            color: rgb(0.114, 0.306, 0.847),
+            opacity: 0.10,
+            rotate: degrees(-30),
+          });
+          page.drawText('DEMO', {
+            x, y: y + fSize * 1.1,
+            size: Math.round(fSize * 0.65), font,
+            color: rgb(0.114, 0.306, 0.847),
+            opacity: 0.10,
+            rotate: degrees(-30),
+          });
+        }
+      }
     }
   }
 
