@@ -11,6 +11,16 @@ import DonationModal from '@/components/DonationModal';
 const HERO_CATEGORIES = ['Pag-IBIG', 'PhilHealth', 'BIR', 'SSS', 'DFA', 'LTO', 'Government'];
 const HERO_INTERVAL_MS = 3500; // 3.5 seconds
 
+// Intro animation constants
+const BADGE_TYPING_TEXT = 'Runs fully offline — your data never leaves your device';
+const SUBTITLE_CHUNKS   = [
+  'Fill it out',
+  ' and',
+  ' get a print-ready PDF.',
+  ' No erasures',
+  ', no hassle.',
+];
+
 const HERO_ANIMATIONS = ['anim-fade', 'anim-flip', 'anim-slide-up', 'anim-blur', 'anim-scale'] as const;
 type HeroAnim = typeof HERO_ANIMATIONS[number];
 
@@ -57,6 +67,13 @@ export default function HomePage() {
   const [heroAnim, setHeroAnim]               = useState<HeroAnim>('anim-fade');
   const [heroVisible, setHeroVisible]         = useState(true);
 
+  // Intro sequence animation state
+  const [showHeroTitle, setShowHeroTitle]         = useState(false);
+  const [subtitleWordCount, setSubtitleWordCount] = useState(0);
+  const [showBadge, setShowBadge]                 = useState(false);
+  const [badgeTypedText, setBadgeTypedText]       = useState('');
+  const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     const timer = setInterval(() => {
       // Pick random next animation
@@ -69,6 +86,38 @@ export default function HomePage() {
       }, 350);
     }, HERO_INTERVAL_MS);
     return () => clearInterval(timer);
+  }, []);
+
+  // Intro sequence: h1 @ 2.5s → subtitle words @ 5-9s → badge typing @ 11s
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    // 2.5s: reveal h1 title with shock effect
+    timers.push(setTimeout(() => setShowHeroTitle(true), 2500));
+
+    // 5s–9s: reveal subtitle chunks one by one (1s apart)
+    SUBTITLE_CHUNKS.forEach((_, i) => {
+      timers.push(setTimeout(() => setSubtitleWordCount(i + 1), 5000 + i * 1000));
+    });
+
+    // 11s: show badge with typing effect
+    timers.push(setTimeout(() => {
+      setShowBadge(true);
+      let charIdx = 0;
+      typingIntervalRef.current = setInterval(() => {
+        charIdx++;
+        setBadgeTypedText(BADGE_TYPING_TEXT.slice(0, charIdx));
+        if (charIdx >= BADGE_TYPING_TEXT.length) {
+          clearInterval(typingIntervalRef.current!);
+          typingIntervalRef.current = null;
+        }
+      }, 38);
+    }, 11000));
+
+    return () => {
+      timers.forEach(clearTimeout);
+      if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -350,12 +399,24 @@ export default function HomePage() {
         </div>
 
         <div className="relative z-10 mx-auto max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-blue-100 font-medium mb-5">
-            <span className="text-sm">🔒</span>
-            Runs fully offline — your data never leaves your device
+          {/* Badge slot — always reserves space; content fades in at 11s */}
+          <div className="mb-5 min-h-[28px] flex items-center justify-center">
+            <div
+              className={`intro-word-pop inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-blue-100 font-medium ${showBadge ? '' : 'invisible'}`}
+            >
+              <span className="text-sm">🔒</span>
+              <span>
+                {badgeTypedText || BADGE_TYPING_TEXT /* placeholder reserves width */}
+                {showBadge && badgeTypedText.length < BADGE_TYPING_TEXT.length && (
+                  <span className="typing-cursor">|</span>
+                )}
+              </span>
+            </div>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight">
+          <h1
+            className={`intro-shock text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight ${showHeroTitle ? '' : 'invisible'}`}
+          >
             Fill{' '}
             <span
               key={heroCategoryIdx}
@@ -367,8 +428,18 @@ export default function HomePage() {
             <br />
             <span className="text-blue-200">in Minutes</span>
           </h1>
-          <p className="mt-3 text-sm text-blue-200 max-w-md mx-auto leading-relaxed">
-            Fill it out and get a print-ready PDF. No erasures, no hassle.
+
+          {/* Subtitle slot — always reserves space; chunks fade in at 5–9s */}
+          <p className="mt-3 text-sm text-blue-200 max-w-md mx-auto leading-relaxed min-h-[1.25rem]">
+            {SUBTITLE_CHUNKS.map((chunk, i) => (
+              <span
+                key={i}
+                className={i < subtitleWordCount ? 'intro-word-pop' : 'invisible'}
+                style={{ animationFillMode: 'both' }}
+              >
+                {chunk}
+              </span>
+            ))}
           </p>
 
           {/* Search bar */}
