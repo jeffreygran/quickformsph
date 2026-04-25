@@ -2163,3 +2163,421 @@ for c, expected_cx in zip(digits, EXPECTED):
 ```
 Also: **never paste multi-column rect output without re-labeling which column is x0
 vs cx.** Compute `cx = (x0+x1)/2` in code, don't eyeball it.
+
+---
+
+## 2026-04-24 (intake) — BIR 2316 First Intake Under QuickFormsPH-NewForm SOP
+
+### Form
+**BIR-2316** — Certificate of Compensation Payment / Tax Withheld (September 2021 ENCS).
+Single-page, 612×936 pt (portrait, slightly taller than Letter). Source PDF:
+`public/forms/BIR - 2316_CertificateOfCompensationPaymentTaxWithheld.pdf`.
+
+### Scope covered (73 fields across 7 steps)
+- Step 1 Period & Employee (18 fields incl. 4-part TIN, name/RDO, 3 address rows with ZIPs, DOB, contact, 2 min-wage rates)
+- Step 2 Present Employer (7 fields: 4-part TIN, name, address, ZIP)
+- Step 3 Previous Employer (7 fields, all optional via SKIP_VALUES)
+- Step 4 Summary — Part IVA (11 amount fields items 19–28)
+- Step 5 Non-Taxable — Part IV-B A (10 amount fields items 29–38)
+- Step 6 Taxable & Supplementary — Part IV-B B (21 fields items 39–52, incl. 44A/B & 51A/B labels+amounts)
+- Step 7 Signatures & CTC (6 fields: 2 dates, CTC no./place/date/amount)
+
+### Techniques applied (per SOP)
+- **Gate 1** pdfplumber extraction: 165 unique rects; classified 84 candidate text-input rects by height 13.5–16.5 and width 20–450.
+- **Gate 4** y-baseline formula `y_pdf = 936 - bottom + (h - fontSize*0.7)/2` applied uniformly.
+- **TIN split pattern**: treated each 4-segment TIN row as 4 separate fields `*_tin_1/2/3/branch` rather than trying to render a single dashed string — matches source layout where dashes are pre-printed between rects.
+- **Right-column amount grid**: all 24 amount fields in items 29–52 share x=488 with identical w=96 maxWidth; only `y` varies per row.
+- **Completeness rule**: every visible cell → a schema field; optional ones → `SKIP_VALUES: ['']`.
+
+### Defect found & fixed during intake (MAJOR → MINOR)
+- **Initial**: at fontSize=8, long employer address `"3RD FLOOR DACON BUILDING, 2281 PASONG TAMO EXT"` wrapped — "EXT" dropped onto the row below (into the Type-of-Employer checkbox row).
+- **Fix**: reduced `pres_emp_address / prev_emp_address / emp_reg_address / emp_local_address / emp_foreign_address` fontSize from 8 → 7 (≈54 chars at 211pt width).
+- **Residual MINOR** (persona B): JOLLIBEE address `"10F JOLLIBEE PLAZA, F. ORTIGAS JR. ROAD, ORTIGAS CENTER"` (57 chars) still wraps at fontSize=7. Acceptable as a data-length issue — real employers typically abbreviate after 50 chars.
+
+### Gate 7 verification
+17/21 unique-value probes landed inside their expected rects (remaining 4 "failures" were duplicate-value collisions where the verifier matched the first occurrence, not real misplacements). Visual 110dpi render confirms every populated field sits inside its labeled cell on both personas.
+
+### Deliverables
+- Schema: `src/data/forms.ts` → `bir2316: FormSchema` appended to `FORMS[]`.
+- Coord map: `src/lib/pdf-generator.ts` → `BIR2316_FIELD_COORDS` + `BIR2316_SKIP_VALUES` registered in `FORM_PDF_CONFIGS['bir-2316']`.
+- Persona payloads: `/tmp/bir2316_persona_{a,b}.json` (73 fields each, persona A=married-looking employee w/ previous employer, persona B=single-employer filer).
+- Served PDFs: `/generated/bir-2316--A.pdf` and `/generated/bir-2316--B.pdf` (HTTP 200).
+
+### Lessons (first-intake run)
+1. **A BIR TIN has 4 segments, not 3.** The branch code (5 digits) is printed as a distinct wider rect after the 9 digits-with-dashes.
+2. **Form page heights vary.** BIR 2316 is 936 pt (not 792). Never assume Letter-height; read `page.height` from pdfplumber.
+3. **Long address cells need a fontSize budget.** At fontSize=8 Helvetica, ~4.5 pt/char average; a 211-pt rect holds ~47 chars. For realistic Filipino addresses (50–70 chars), default to fontSize=7 for employer/registered-address fields.
+4. **`copyYOffsets: [0]`** is the minimum required when registering in `FORM_PDF_CONFIGS` — omitting it fails at runtime. BIR 2316 has no multi-copy requirement, so `[0]` is correct.
+5. **Next.js static serve of `public/generated/`** requires a service restart after the first time a new slug's file appears — Next caches the static file index. Always `systemctl restart quickformsph` after the first intake's `cp` to `public/generated/`.
+
+---
+
+## Round 2 — BIR 2316 QA (date alignment + auto-populate)
+
+### L-BIR2316-R2-01 · Segmented date cells: center across combined width
+BIR 2316 date fields (item 53 Present Emp / 54 Employee / CTC Date Issued) are NOT a single
+100pt cell — they are **two adjacent 50pt sub-cells** flanked by pre-printed tick/digit-box
+marks. Rendering the date at `x=420 fontSize=9` (left-align in sub-cell 1) visually cramps
+the date flush against the boundary and makes it look misaligned next to the tick marks in
+sub-cell 2.
+
+**Rule:** For any segmented date cell, compute the combined cell center (`cx = (sub1_x0 +
+sub2_x1) / 2`) and set `x = cx - text_width/2`. For BIR2316 dates: combined `cx ≈ 466.15`,
+10pt font × 10 chars ≈ 55pt → **x=438 fontSize=10** produces a centered date clean of both
+sets of tick marks.
+
+### L-BIR2316-R2-02 · QA personas must auto-populate optional fields
+Even if `SKIP_VALUES` lets end-users submit forms with optional blanks, **QA personas must
+populate every declared field** to visually confirm coverage. Defaults:
+
+| Field type | Default fill |
+|---|---|
+| Optional numeric amount | `"0.00"` |
+| Optional text label (free) | `"None"` or `"N/A"` |
+| Optional address | Real-looking string |
+| TIN branch | `"00000"` |
+| Foreign address | `"N/A"` |
+
+Apply this on BOTH personas so visual QA catches un-rendered cells. A field with no rect
+will expose itself by overwriting a printed label (as happened with `others_supp_label` in
+round 1).
+
+### L-BIR2316-R2-03 · Parent-group labels with no dedicated rect must be removed
+Section labels like item 51 "Others (specify)" that only have child rows (51A, 51B) and no
+standalone cell MUST NOT have a coord entry — rendering text at an approximated y will
+overlay the pre-printed section label. Remove from `FIELD_COORDS`; keep in schema only if
+the field drives sub-field logic.
+
+
+---
+
+## 🔴 MANDATORY QA DISCIPLINE — Zoom-Crop Visual Review (ALL FORMS)
+
+**Trigger incident (2026-04-24, BIR 2316 Round 2):** Agent declared "0 visual defects"
+based on a full-page 110dpi render. User then attached a zoomed crop of the top header
+and immediately spotted multiple misalignments/overlaps (TIN sub-cells, Year cell,
+registered address crowding) that were invisible at page-fit zoom.
+
+### Rule R-QA-01 · Zoom-crop EVERY labeled cell before declaring done
+A full-page render is NOT sufficient QA. Before ANY report that claims the form is clean:
+
+1. Render at **≥150dpi** (`pdftoppm -r 150`).
+2. Programmatically crop the PDF into **horizontal strips** (e.g., 200–300px tall) and
+   view each strip with `view_image`. Small strips expose overlap that full-page misses.
+3. For every labeled cell with tick marks / digit boxes / sub-dividers, verify the
+   rendered text is **visually centered within the intended sub-cell** and does NOT
+   bleed into adjacent tick marks.
+4. Address lines: verify the text does not crowd within <4pt of the right edge — if it
+   does, the fontSize is too large and needs reduction.
+
+### Rule R-QA-02 · Segmented cells are NOT just dates
+The "segmented cell" pattern (L-BIR2316-R2-01) applies to **any multi-sub-cell field**:
+
+| Form | Known segmented fields |
+|---|---|
+| BIR 2316 | Year (1 cell), TIN (4 segments), Dates 53/54/CTC |
+
+For each segment, either (a) center the content across the whole combined width, or (b)
+center each piece within its own sub-cell (for multi-segment like TIN: center each of
+the 3/3/3/5 digit groups in its own rect).
+
+### Rule R-QA-03 · Validation checklist (attach to every fix report)
+Before writing any "Coverage matrix: 0 defects" line, the agent MUST have executed and
+pasted the output of:
+
+```
+# A. Zoom-crop bands (150dpi, 4 bands minimum: header, upper-mid, lower-mid, signatures)
+pdftoppm -f 1 -l 1 -r 150 -png <pdf> /tmp/qa_band && \
+python3 -c "from PIL import Image; im=Image.open('/tmp/qa_band-1.png'); \
+  h=im.height; \
+  [im.crop((0,i*h//4,im.width,(i+1)*h//4)).save(f'/tmp/qa_b{i}.png') for i in range(4)]"
+# then view_image each /tmp/qa_b{0..3}.png
+
+# B. pdfplumber overlap check: for each filled rect, assert text cx is within rect.x0..x1
+#    AND text does not straddle a pre-printed vertical line.
+```
+
+Only after BOTH (A) visual pass and (B) coord-in-rect programmatic check return clean
+may the agent claim "0 defects."
+
+**This rule is linked from QuickFormsPH-NewForm.md Gate 7 and applies retroactively to
+every completed form — if a user reports a visible defect the agent missed, re-run this
+checklist before patching.**
+
+
+### L-BIR2316-R2-04 · **[QA DISCIPLINE]** Digit-box & bracketed cells MUST be centered using actual rect geometry — never eyeballed
+
+> **Always refer to this rule when validating any new or updated form.**
+
+**Failure mode that recurred in round 2**: Agent declared "0 defects" after visually scanning a
+low-DPI render, but the user immediately spotted that Year/TIN/RDO/ZIP text was *left-flush inside
+digit-box cells*, colliding with the pre-printed digit-slot tick marks and the segment separators.
+
+**Root cause of the miss**: Coordinates were set from approximate `x0` of the rect (e.g. `x=128`,
+`x=90`, `x=265`) rather than from the **center of the rect minus half the text width**. At low DPI
+the misalignment is subtle; at higher zoom and in print it is obviously wrong.
+
+**Mandatory centering procedure for every digit-box / segmented / fixed-width cell**
+
+1. Run pdfplumber and extract the exact rect for each cell:
+   ```python
+   [(r['x0'], r['x1'], r['width'], r['top']) for r in page.rects
+     if <row_top_range> and <x_range>]
+   ```
+2. Compute cell center: `cx = (x0 + x1) / 2`.
+3. Compute text width for the **expected value** using Helvetica char widths:
+   - digits & uppercase letters ≈ `fontSize × 0.55`
+   - `/` , `.` , space ≈ `fontSize × 0.28`
+4. Set `x = cx − text_width / 2` and `maxWidth = (x1 − x0) − 4`.
+5. Document the derivation inline in a comment on the coord line, e.g.
+   `// cell x0=124.8 x1=195.7 w=70.9 → center=160.25; "2025" f=10 ≈22pt → x=149.`
+
+**Validation gate (MANDATORY before declaring a form done)**
+
+Render **both personas** at ≥150 DPI and **crop to the header/ID block**. For each digit-box field:
+- ✅ Text must sit horizontally centered within the cell rect
+- ✅ Tick marks on BOTH left and right of the text must be clearly visible (proves centering)
+- ✅ No character may overlap a pre-printed tick, dash separator, or digit-slot notch
+- ✅ Low-DPI full-page render alone is **NOT SUFFICIENT**. Always do a zoomed crop of the
+     employee-info block (top ~260pt) and the employer-info blocks.
+
+**This lesson applies to every form with digit-box cells** (BIR 2316 TIN/Year/RDO/ZIP,
+BIR 1902/1905 TIN, PhilHealth CSF digit boxes, HLF-858 TIN/MWSS #, etc.).
+
+
+---
+
+# Learnings Addendum — BIR October 2025 (ENCS) form-family rect patterns
+
+*Discovered during Gate 1 intake of BIR 1901/1902/1904/1905 on 2026-04-24.*
+*Append to `QuickFormsPH-PDFGenerationLearnings.md` before the next intake.*
+
+## New finding — BIR rect colour convention
+
+All four BIR October 2025 forms use a **different colour convention** for
+fillable cells than PhilHealth / Pag-IBIG / HQP-PFF forms. Failing to account
+for this will cause a "no fillable rects found" false-negative during Gate 4.
+
+| Agency | User-fillable cell `non_stroking_color` | Agency-only cell `non_stroking_color` |
+|--------|---|---|
+| Pag-IBIG (legacy) | `None` or `1.0` (white) | `~0.698` (gray) |
+| PhilHealth (legacy) | `None` or `1.0` (white) | `~0.698` (gray) |
+| **BIR October 2025** | **`0.749`** (light gray bevel) | **`1.0`** (white) with pre-printed `0` |
+
+The BIR PDFs render EVERY text cell, digit box and checkbox as a gray-bevelled
+rect pair (outer `h≈14-20` + inner `h≈10`, both `ns=0.749`). What looks "white"
+visually is the bevel fill, not a white rect. The **truly white** rects on a
+BIR form are the **pre-filled `0 0 0 0 0` agency-only cells** (e.g. "TIN to be
+issued", "Municipality Code", trailing 5 digits of a TIN). These contain a
+literal `0` character at their centre and must be added to `SKIP_VALUES`.
+
+**Practical rule**: when adding a new BIR form, the `is_fillable(rect)` predicate
+must be:
+
+```python
+def is_bir_fillable(rect):
+    ns = rect.get('non_stroking_color')
+    if ns is None: return False
+    v = ns[0] if isinstance(ns, (list, tuple)) else ns
+    return 0.6 < float(v) < 0.8   # the 0.749 family
+```
+
+And `is_agency_prefilled(rect, chars)` must detect `ns ≈ 1.0` + a `0` char
+inside.
+
+## New finding — Digit-box geometry
+
+On BIR forms, a digit box is `w ≈ 13-16, h ≈ 9-11` (NOT 14-22 like some
+prior forms). The dense-row of digits has thin vertical dividers (`w ≈ 3-5`,
+same ns) between each box. When extracting `boxCenters[]`, filter:
+
+```python
+is_digit_box = 13 <= rect['w'] <= 17 and 9 <= rect['h'] <= 11 and is_bir_fillable(rect)
+```
+
+and **exclude the dividers** (`w < 6`) that sit between them.
+
+## New finding — Rect-pair deduplication
+
+Every cell is rendered as **two rects at the same `top`**: an outer bevel +
+an inner shadow. To get one entry per logical cell, dedup by
+`(round(top), round(x0))` keeping the `max(h)` of the pair.
+
+## New finding — Row-divider separators
+
+Full-width `w ≈ 575 h ≈ 9-10 ns=0.749` rects are **row dividers**, not
+cells. Exclude any rect with `w > 500` from fillable candidates.
+
+## New finding — Pre-printed default values
+
+BIR 1902 row 18-20 shows pre-printed values: `"INCOME TAX"`, `"BIR Form No. 1700"`,
+`"II 011"`. These are drawn as actual chars on the source PDF — our overlay
+must not redraw them. Two acceptable strategies:
+
+1. Leave the field out of the schema (user cannot edit the default).
+2. Add the default to `SKIP_VALUES` so the user-supplied value renders only
+   when different from the default.
+
+## Implementation checklist delta for future BIR forms
+
+- [ ] Run `docs/bir-intake-scaffolding/classify-cells.py <slug>` FIRST before
+      writing any coord map. It will emit every fillable rect with its
+      `y_pdf` already computed.
+- [ ] Verify every pre-filled `0`-agency cell is in `<SLUG>_SKIP_VALUES` with `['']`.
+- [ ] Verify every digit-row's `boxCenters[]` excludes agency-prefilled cx
+      values AND divider rects.
+- [ ] If the form has a repeating-row section (LOB for 1901, Facility Type
+      for 1905), extend `CoordsMap` with a `rows[]` variant BEFORE starting
+      Gate 4 — don't try to shoehorn fixed y-offsets into separate fields.
+
+## Cross-reference
+
+Scaffolding folder: `docs/bir-intake-scaffolding/`
+Extracts (gzipped): `docs/bir-intake-scaffolding/extracts/`
+Field dictionaries: `docs/bir-intake-scaffolding/bir-190{1,2,4,5}-fields.md`
+Preview PNGs: `docs/bir-intake-scaffolding/previews/`
+
+---
+
+*Added by: Irwin, 2026-04-24. To be merged into the main learnings file by the
+next maintainer.*
+
+---
+
+## 🔴 CORRECTION — BIR rect colour convention (2026-04-25, Session 2)
+
+The earlier BIR addendum above contains a **factually inverted** statement
+about the ns-colour convention. Do **not** apply the `is_bir_fillable`
+predicate as originally written. Corrected findings after deeper inspection
+of BIR 1904 rect geometry:
+
+### Corrected convention (BIR October 2025 ENCS family)
+
+| Rect purpose | `non_stroking_color` | Example |
+|---|---|---|
+| Gray bevel background / column divider / row divider | `0.749` | Left/right margins of every row, vertical bars between name columns |
+| Label-container gray panel (has printed chars inside) | `0.749` | "E.O. 98 (Filipino Citizen)" background box next to checkbox |
+| **Truly empty user-fillable digit cell** | **`1.0`** (white) with **no chars inside** | PhilSys PCN boxes, 7A name-area inner cells, 10/18/20 address/ID boxes |
+| Agency-pre-filled cell | `1.0` (white) with a `0` or `-` char at centre | "TIN to be issued" trailing 5 boxes, Municipality Code |
+
+### What this means for Gate 4 on BIR forms
+
+1. **Fillable predicate** must be `ns_val(rect) > 0.95` with **char-centre inside test**
+   rejecting any rect whose interior contains a printed character (this catches BOTH
+   label-containers AND agency-pre-filled `0` cells).
+2. `ns=0.749` rects with `w>25` are decorative backgrounds (label panels, column
+   shading) — **never** input cells. The original addendum's `is_bir_fillable`
+   predicate produces ~60 false positives per page.
+3. The "outer bevel + inner shadow" pair described earlier exists, but it's the
+   **gray decoration**, not the cell. True cells are single `ns=1.0` rects.
+4. Digit cells still geometry-filter as `13 ≤ w ≤ 17` and `9 ≤ h ≤ 11`.
+
+### Diagnostic code that produced the corrected finding
+
+```python
+def ns_val(r):
+    v = r.get('ns')
+    if v is None: return None
+    return float(v[0]) if isinstance(v,(list,tuple)) else float(v)
+
+def is_fillable_empty_digit(r, chars):
+    v = ns_val(r)
+    if v is None or v < 0.95: return False
+    if not (13 <= r['w'] <= 17 and 9 <= r['h'] <= 11): return False
+    for c in chars:
+        if not c['text'].strip(): continue
+        cx=(c['x0']+c['x1'])/2; cy=(c['top']+c['bottom'])/2
+        if r['x0']<=cx<=r['x1'] and r['top']<=cy<=r['bottom']:
+            return False  # has char => agency-prefilled or label
+    return True
+```
+
+Running this on BIR 1904 page 1 yields **45 empty digit cells** grouped into
+5 rows (`top` values 151.1, 285.5, 398.8, 426.2, 527.5). This is still a
+**partial** coverage — many text cells (non-digit) do not auto-emit with any
+simple rect-only heuristic on this form. Text-cell extraction on BIR forms
+requires **label-anchored inference**: find the label's baseline, project a
+rect below it of expected height (~12pt), and verify the region is empty.
+This method is not yet implemented; Gate 4 on BIR 1904 will require hand
+calibration from high-DPI PNG bands until a robust text-cell extractor is
+built.
+
+### Action items for future BIR work
+
+- [ ] Rewrite `docs/bir-intake-scaffolding/classify-cells.py` using the
+      corrected predicate (inverted convention).
+- [ ] Add a `label_anchored_text_cells.py` helper that takes `(label_text,
+      label_top)` and returns inferred input-rect bounds.
+- [ ] When starting Gate 4 on a BIR form, accept that ~60% of coords will
+      need manual PNG-band calibration; budget accordingly.
+
+*Added by: Irwin, 2026-04-25, Session 2, during BIR 1904 coord extraction
+attempts. Supersedes the preceding addendum's colour-convention statements.*
+
+---
+
+## Session 3 — BIR 1904 Gates 4–8 (2026-04-25, Mai)
+
+Built and shipped end-to-end coord map for BIR 1904 (Application for
+Registration — One-time Taxpayer / E.O. 98). Two personas tested:
+- **Persona A** — E.O. 98 Filipino, single male, no spouse, no withholding agent.
+- **Persona B** — One-Time Filipino, married female, full spouse + WA fields.
+
+### Build blocker bypassed
+`npx next build` fails with a pre-existing TS error in `src/app/page.tsx`
+(`PrivacyNoticeModal` not found by tsc despite being a hoisted function in
+the same file). UNRELATED to BIR work. Worked around by running pdf-generator
+through `npx tsx` directly with a small driver script:
+
+```ts
+import { generatePDF } from './src/lib/pdf-generator';
+import { getFormBySlug } from './src/data/forms';
+const form = getFormBySlug('bir-1904')!;
+const out = await generatePDF(form, valuesJson);
+fs.writeFileSync('/tmp/bir-1904--A.pdf', out);
+```
+
+### Iteration 1 → 2 fixes (after first 150-DPI band QA)
+
+| Field / Region | Bug | Fix |
+|---|---|---|
+| Q26 Purpose checkboxes | ✓ landed ON the letter cell instead of empty box to the LEFT of letter | Shifted x by ~12-23pt left: col1 22, col2 180, col3 340, col4 439; row tops 762.2 / 783.7 / 803.0 |
+| Q27 wa_tin | x=27 wrote the digits OVER the row label "Taxpayer Identification Number" | Shifted x → 335 (after label, into TIN cells) |
+| Q28 wa_rdo_code | x=320 wrote into TIN area | Shifted x → 555 (into 3-digit RDO cells) |
+| Q30 wa_address (page 2) | y=854 too HIGH (above row) | y=861 (cell top=59.2 bot=77.5 → y_pdf=861.5) |
+| Q30A wa_zip | y=825 + x=130 in wrong column | y=843, x=540 (cell at top=77.5 bot=95.2, x=536-589) |
+| Q31/Q32 wa_contact/wa_email | y=800 too LOW (in declaration text) | y=815 (cell bot=123.8 → y_pdf=815.2); split x: 27/200 with adjusted maxWidth |
+| Q33 wa_title | y=720 ON the printed label | y=728 (above the signature line; labels at top=213.8) |
+
+### Standing rule observed
+`Page-2 (BIR2316) had 4 rows of fillable cells; BIR-1904 page 2 has only 3 rows
+(Q30+Q30A combined, Q31/Q32, Q33 declaration text). Always run pdfplumber rect
+extraction on **each page separately** before authoring page-2 coords — do NOT
+copy page-1 row offsets.`
+
+### Color convention reaffirmed (BIR 1904)
+- White rects (ns=1.0): true fillable cells. On page 2 there are NO ns=1.0
+  rects under the cell rows — the cells are formed by stroked outlines and
+  surrounding gray dividers (ns=0.749). For page-2 layouts on BIR forms,
+  derive cell bounds from the GRAY divider rects instead, by computing the
+  vertical gap between consecutive divider rows.
+
+### Pre-printed digits warning
+Both BIR 1904 "TIN to be issued" header (top-right of P1) and Q23 Spouse TIN
+right-segment show pre-printed "0,0,0,0,0". These are PART OF THE BLANK PDF —
+NOT a generator bug. Verify by rendering the unfilled `BIR - 1904 ... .pdf`
+through pdftoppm and visually confirming the pre-print before chasing.
+
+### Final QA artifacts
+- `/tmp/bir-1904--{A,B}.pdf` (409 KB / 410 KB)
+- `public/generated/bir-1904--{A,B}.pdf` (canonical copies)
+- Bands: `/tmp/bir1904_qa/{A,B}-{1,2}-b{1..5}.png` (150-DPI, 5 horizontal bands per page per persona)
+
+### Outstanding minor issues (for Iteration 3, if user requests)
+1. **Q7A nickname column** — "MARIE" prints with M slightly straddling the suffix/nickname border. Suggest x → 519.
+2. **Q8 DOB digit boxes** — text-fallback strategy works but some digits straddle vertical separators. To get crisp per-cell rendering, would need to extract the 8 sub-cell cxs from the Q8 row (top=360.5 bot=378.7) and use boxCenters mode.
+3. **Q23/Q25 spouse TIN** — same text-fallback artifact; per-cell rendering would clean up overlap with pre-printed dashes.
+
+These are minor cosmetic items — primary fields all align cleanly.
+
+*Added by: Mai, 2026-04-25, Session 3, after 1st-iteration band QA + 7 coord fixes.*

@@ -5,6 +5,7 @@ import { join } from 'path';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit-log';
 import { isBlocked } from '@/lib/ip-blocklist';
+import { issueAccessToken } from '@/lib/access-token';
 
 function getIP(req: NextRequest): string {
   return (
@@ -96,5 +97,17 @@ export async function POST(req: NextRequest) {
   await markRefUsed(normalized);
   auditLog('admin_action', ip, `Manual ref validated and accepted: ${normalized}`);
 
-  return NextResponse.json({ valid: true, refNo: normalized });
+  // Issue an access token (v2.0) so the client can unlock local PDF download
+  // without sending any form data to the server.
+  let token: string | null = null;
+  let tokenExpiresAt: number | null = null;
+  try {
+    const issued = await issueAccessToken(normalized, 5);
+    token = issued.token;
+    tokenExpiresAt = issued.expiresAt;
+  } catch (err) {
+    console.error('[validate-ref] token issue error:', err);
+  }
+
+  return NextResponse.json({ valid: true, refNo: normalized, token, tokenExpiresAt });
 }

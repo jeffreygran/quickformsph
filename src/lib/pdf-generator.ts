@@ -6,9 +6,10 @@
  */
 
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import path from 'path';
-import fs from 'fs/promises';
 import { FormSchema } from '@/data/forms';
+
+// Node-only modules are loaded lazily inside generatePDF when running on the server.
+// This file is safe to import from browser code (e.g. Local Mode v2.0).
 
 type CoordEntry = {
   page: number;
@@ -103,7 +104,6 @@ const FIELD_COORDS: CoordsMap = {
 };
 
 const DEFAULT_FONT_SIZE = 9;
-const PUBLIC_FORMS_DIR = path.join(process.cwd(), 'public', 'forms');
 
 // The Pag-IBIG PDF contains two identical copies of the form stacked vertically.
 // Copy 2 starts exactly 449.4 pts below copy 1 (measured from pdfplumber word positions).
@@ -2385,6 +2385,418 @@ const HLF068_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
   },
 };
 
+// ── BIR 2316 — Certificate of Compensation Payment/Tax Withheld (612×936) ────
+// All coordinates derived via pdfplumber rect extraction (QuickFormsPH-NewForm Gate 4).
+// Every y_pdf computed as: y_pdf = 936 - rect.bottom + (rect.h - fontSize*0.7)/2
+// Amount cells: right column x=483.84-585.58 (w=101.74), h=15 → x=488, maxWidth=96.
+// TIN cells: 4 segments per TIN at x=86.24/135.88/185.55/235.22, h=15 → fontSize=9.
+const BIR2316_PAGE_H = 936.0;
+const BIR2316_FIELD_COORDS: CoordsMap = {
+  // Row top=94 y_pdf≈830.9
+  // Year cell: x0=124.8 x1=195.7 w=70.9 → center=160.25; "2025" f=10 ≈22pt → x=149.
+  year:                { page: 0, x: 149, y: 830.99, fontSize: 10, maxWidth: 46 },
+  // Period cells: From x0=386.8 x1=456.7 w=69.9 → center=421.8; "MM/DD" f=10 ≈25pt → x=409.
+  //              To   x0=512.4 x1=582.3 w=69.9 → center=547.4 → x=535.
+  period_from:         { page: 0, x: 409, y: 830.85, fontSize: 10, maxWidth: 46 },
+  period_to:           { page: 0, x: 535, y: 830.85, fontSize: 10, maxWidth: 46 },
+
+  // Row top=123 (Employee TIN) y_pdf≈802.6
+  // TIN seg cells w=37.9: centers 105.15/154.85/204.55; "NNN" f=10 ≈17pt → x=center-8.5.
+  // TIN branch cell w=70.9: center=270.65; "NNNNN" f=10 ≈28pt → x=257.
+  emp_tin_1:           { page: 0, x: 97,  y: 802.28, fontSize: 10, maxWidth: 26 },
+  emp_tin_2:           { page: 0, x: 146, y: 802.61, fontSize: 10, maxWidth: 26 },
+  emp_tin_3:           { page: 0, x: 196, y: 802.61, fontSize: 10, maxWidth: 26 },
+  emp_tin_branch:      { page: 0, x: 257, y: 802.61, fontSize: 10, maxWidth: 48 },
+
+  // Row top=148 y_pdf≈776.9
+  // RDO cell x0=264.5 x1=302.5 w=38 → center=283.5; "NNN" f=9 ≈15pt → x=276.
+  emp_name:            { page: 0, x: 45,  y: 776.87, fontSize: 9, maxWidth: 205 },
+  emp_rdo:             { page: 0, x: 276, y: 776.87, fontSize: 9, maxWidth: 26 },
+
+  // Row top=176 y_pdf≈748.8
+  // ZIP cell x0=261.4 x1=309.4 w=48 → center=285.4; "NNNN" f=9 ≈20pt → x=275.
+  emp_reg_address:     { page: 0, x: 45,  y: 748.83, fontSize: 7, maxWidth: 205 },
+  emp_reg_zip:         { page: 0, x: 275, y: 748.76, fontSize: 9, maxWidth: 34 },
+
+  // Row top=202 y_pdf≈723.6
+  emp_local_address:   { page: 0, x: 45,  y: 723.57, fontSize: 7, maxWidth: 205 },
+  emp_local_zip:       { page: 0, x: 275, y: 723.69, fontSize: 9, maxWidth: 34 },
+
+  // Row top=227 y_pdf≈698.0
+  emp_foreign_address: { page: 0, x: 45,  y: 697.97, fontSize: 7, maxWidth: 260 },
+
+  // Row top=254 y_pdf≈671.4: DOB (50-wide) + second (50-wide) + contact (142-wide)
+  emp_dob:             { page: 0, x: 50,  y: 671.42, fontSize: 9, maxWidth: 95 },
+  emp_contact:         { page: 0, x: 170, y: 671.18, fontSize: 9, maxWidth: 135 },
+
+  // Min wage (row top=272,291 y_pdf≈653/635, x=209.88, w=98.74)
+  min_wage_per_day:    { page: 0, x: 213, y: 653.15, fontSize: 9, maxWidth: 93 },
+  min_wage_per_month:  { page: 0, x: 213, y: 634.70, fontSize: 9, maxWidth: 93 },
+
+  // Present Employer — TIN row top=335 y_pdf≈590.1 (same cell widths as emp TIN)
+  pres_emp_tin_1:      { page: 0, x: 97,  y: 589.76, fontSize: 10, maxWidth: 26 },
+  pres_emp_tin_2:      { page: 0, x: 146, y: 590.09, fontSize: 10, maxWidth: 26 },
+  pres_emp_tin_3:      { page: 0, x: 196, y: 590.09, fontSize: 10, maxWidth: 26 },
+  pres_emp_tin_branch: { page: 0, x: 257, y: 590.09, fontSize: 10, maxWidth: 48 },
+
+  // Row top=361 y_pdf≈564.4: Employer Name (wider single)
+  pres_emp_name:       { page: 0, x: 45,  y: 564.37, fontSize: 9, maxWidth: 260 },
+
+  // Row top=387 y_pdf≈538.2: Registered Address + ZIP (ZIP w=48 center=283.3 → x=273)
+  pres_emp_address:    { page: 0, x: 45,  y: 538.18, fontSize: 7, maxWidth: 205 },
+  pres_emp_zip:        { page: 0, x: 273, y: 537.72, fontSize: 9, maxWidth: 34 },
+
+  // Previous Employer — TIN row top=431 y_pdf≈494.0
+  prev_emp_tin_1:      { page: 0, x: 97,  y: 493.64, fontSize: 10, maxWidth: 26 },
+  prev_emp_tin_2:      { page: 0, x: 146, y: 493.97, fontSize: 10, maxWidth: 26 },
+  prev_emp_tin_3:      { page: 0, x: 196, y: 493.97, fontSize: 10, maxWidth: 26 },
+  prev_emp_tin_branch: { page: 0, x: 257, y: 493.97, fontSize: 10, maxWidth: 48 },
+
+  // Row top=457 y_pdf≈468.3: Employer Name
+  prev_emp_name:       { page: 0, x: 45,  y: 468.25, fontSize: 9, maxWidth: 260 },
+
+  // Row top=484 y_pdf≈441.4: Address + ZIP (ZIP w=47.9 center=283.75 → x=274)
+  prev_emp_address:    { page: 0, x: 46,  y: 441.41, fontSize: 7, maxWidth: 205 },
+  prev_emp_zip:        { page: 0, x: 274, y: 441.34, fontSize: 9, maxWidth: 34 },
+
+  // ── Part IVA Summary — amounts at x=207.45 (w=101.77) ──
+  gross_compensation:       { page: 0, x: 211, y: 412.94, fontSize: 8, maxWidth: 96 },
+  less_non_taxable:         { page: 0, x: 211, y: 393.50, fontSize: 8, maxWidth: 96 },
+  taxable_present:          { page: 0, x: 211, y: 374.06, fontSize: 8, maxWidth: 96 },
+  taxable_previous:         { page: 0, x: 211, y: 354.62, fontSize: 8, maxWidth: 96 },
+  gross_taxable:            { page: 0, x: 211, y: 335.57, fontSize: 8, maxWidth: 96 },
+  tax_due:                  { page: 0, x: 211, y: 316.13, fontSize: 8, maxWidth: 96 },
+  taxes_withheld_present:   { page: 0, x: 211, y: 296.69, fontSize: 8, maxWidth: 96 },
+  taxes_withheld_previous:  { page: 0, x: 211, y: 276.86, fontSize: 8, maxWidth: 96 },
+  total_withheld_adjusted:  { page: 0, x: 211, y: 257.20, fontSize: 8, maxWidth: 96 },
+  tax_credit_pera:          { page: 0, x: 211, y: 237.34, fontSize: 8, maxWidth: 96 },
+  total_taxes_withheld:     { page: 0, x: 211, y: 217.84, fontSize: 8, maxWidth: 96 },
+
+  // ── Part IV-B A (Non-taxable) — right column amounts x=483.84 (w=101.74) ──
+  basic_salary_mwe:     { page: 0, x: 488, y: 783.82, fontSize: 8, maxWidth: 96 },
+  holiday_pay_mwe:      { page: 0, x: 488, y: 764.84, fontSize: 8, maxWidth: 96 },
+  overtime_pay_mwe:     { page: 0, x: 488, y: 744.98, fontSize: 8, maxWidth: 96 },
+  night_shift_mwe:      { page: 0, x: 488, y: 724.84, fontSize: 8, maxWidth: 96 },
+  hazard_pay_mwe:       { page: 0, x: 488, y: 704.74, fontSize: 8, maxWidth: 96 },
+  thirteenth_month:     { page: 0, x: 488, y: 685.35, fontSize: 8, maxWidth: 96 },
+  de_minimis:           { page: 0, x: 488, y: 666.43, fontSize: 8, maxWidth: 96 },
+  sss_gsis_phic_hdmf:   { page: 0, x: 488, y: 647.08, fontSize: 8, maxWidth: 96 },
+  salaries_other:       { page: 0, x: 488, y: 627.75, fontSize: 8, maxWidth: 96 },
+  total_non_taxable:    { page: 0, x: 488, y: 608.58, fontSize: 8, maxWidth: 96 },
+
+  // ── Part IV-B B (Taxable) — right column amounts (continuation) ──
+  basic_salary:         { page: 0, x: 488, y: 570.82, fontSize: 8, maxWidth: 96 },
+  representation:       { page: 0, x: 488, y: 551.43, fontSize: 8, maxWidth: 96 },
+  transportation:       { page: 0, x: 488, y: 532.30, fontSize: 8, maxWidth: 96 },
+  cola:                 { page: 0, x: 488, y: 512.87, fontSize: 8, maxWidth: 96 },
+  fixed_housing:        { page: 0, x: 488, y: 493.73, fontSize: 8, maxWidth: 96 },
+
+  // 44A / 44B: label at x=341.89 (w=133) + amount at x=483.84
+  others_a_label:       { page: 0, x: 345, y: 466.34, fontSize: 8, maxWidth: 127 },
+  others_a_amount:      { page: 0, x: 488, y: 466.34, fontSize: 8, maxWidth: 96 },
+  others_b_label:       { page: 0, x: 346, y: 447.98, fontSize: 8, maxWidth: 127 },
+  others_b_amount:      { page: 0, x: 488, y: 448.37, fontSize: 8, maxWidth: 96 },
+
+  // Supplementary
+  commission:           { page: 0, x: 488, y: 422.36, fontSize: 8, maxWidth: 96 },
+  profit_sharing:       { page: 0, x: 488, y: 403.22, fontSize: 8, maxWidth: 96 },
+  fees_director:        { page: 0, x: 488, y: 383.78, fontSize: 8, maxWidth: 96 },
+  taxable_13th_benefits:{ page: 0, x: 488, y: 364.34, fontSize: 8, maxWidth: 96 },
+  supp_hazard:          { page: 0, x: 488, y: 344.90, fontSize: 8, maxWidth: 96 },
+  supp_overtime:        { page: 0, x: 488, y: 325.46, fontSize: 8, maxWidth: 96 },
+
+  // 51A / 51B: label at x=341.4/342.38 (w=135) + amount at x=483.84
+  others_51a_label:     { page: 0, x: 345, y: 296.30, fontSize: 8, maxWidth: 130 },
+  others_51a_amount:    { page: 0, x: 488, y: 296.30, fontSize: 8, maxWidth: 96 },
+  others_51b_label:     { page: 0, x: 346, y: 276.86, fontSize: 8, maxWidth: 130 },
+  others_51b_amount:    { page: 0, x: 488, y: 276.86, fontSize: 8, maxWidth: 96 },
+  // Note: item 51 "Others (specify)" parent label has NO dedicated cell in the
+  // source PDF — only 51A and 51B do. `others_supp_label` is therefore skipped.
+
+  total_taxable_compensation: { page: 0, x: 488, y: 258.32, fontSize: 8, maxWidth: 96 },
+
+  // ── Signatures / CTC row ──
+  // Date cells are 2 adjacent 50pt sub-cells forming one 100pt date box.
+  // Center the date across both sub-cells: combined cx≈466.15, f=10 → x≈438.
+  present_emp_date_signed: { page: 0, x: 438, y: 168.80, fontSize: 10, maxWidth: 95 },
+  // Date Signed 54 (row top=787)
+  employee_date_signed:    { page: 0, x: 438, y: 138.39, fontSize: 10, maxWidth: 95 },
+  // CTC row top=812: CTC No (97-198 w=101.77), Place (245-347 w=101.76),
+  //   Date Issued (416-517 w=100.88), Amount (540-578 w=37.83)
+  ctc_no:                  { page: 0, x: 100, y: 113.04, fontSize: 9, maxWidth: 96 },
+  ctc_place:               { page: 0, x: 249, y: 113.42, fontSize: 9, maxWidth: 96 },
+  ctc_date_issued:         { page: 0, x: 438, y: 112.68, fontSize: 10, maxWidth: 95 },
+  ctc_amount:              { page: 0, x: 543, y: 112.66, fontSize: 9, maxWidth: 33 },
+};
+
+const BIR2316_SKIP_VALUES: Record<string, string[]> = {
+  // Optional fields render blank when empty
+  emp_tin_branch: [''],
+  emp_local_address: [''],
+  emp_local_zip: [''],
+  emp_foreign_address: [''],
+  min_wage_per_day: [''],
+  min_wage_per_month: [''],
+  pres_emp_tin_branch: [''],
+  prev_emp_tin_1: [''],
+  prev_emp_tin_2: [''],
+  prev_emp_tin_3: [''],
+  prev_emp_tin_branch: [''],
+  prev_emp_name: [''],
+  prev_emp_address: [''],
+  prev_emp_zip: [''],
+  less_non_taxable: [''],
+  taxable_previous: [''],
+  taxes_withheld_previous: [''],
+  tax_credit_pera: [''],
+  basic_salary_mwe: [''],
+  holiday_pay_mwe: [''],
+  overtime_pay_mwe: [''],
+  night_shift_mwe: [''],
+  hazard_pay_mwe: [''],
+  thirteenth_month: [''],
+  de_minimis: [''],
+  sss_gsis_phic_hdmf: [''],
+  salaries_other: [''],
+  total_non_taxable: [''],
+  representation: [''],
+  transportation: [''],
+  cola: [''],
+  fixed_housing: [''],
+  others_a_label: [''],
+  others_a_amount: [''],
+  others_b_label: [''],
+  others_b_amount: [''],
+  commission: [''],
+  profit_sharing: [''],
+  fees_director: [''],
+  taxable_13th_benefits: [''],
+  supp_hazard: [''],
+  supp_overtime: [''],
+  others_supp_label: [''],
+  others_51a_label: [''],
+  others_51a_amount: [''],
+  others_51b_label: [''],
+  others_51b_amount: [''],
+  ctc_no: [''],
+  ctc_place: [''],
+  ctc_date_issued: [''],
+  ctc_amount: [''],
+};
+// suppress unused warning for page-height constant
+void BIR2316_PAGE_H;
+
+// ── BIR 1904 — Application for Registration (One-Time Taxpayer / E.O. 98) ───
+// Page: 612 × 936 (2 pages). Layout extracted via pdfplumber Gate 4 analysis:
+//   • Cell-bottom anchors taken from gray divider rect rows (ns=0.749).
+//   • DOB digit cells: row top=285.5 bot=295.9 — wait, that's 7A names row.
+//     Actual DOB digit cells are inside the Q8/Q9 cell (top=360.5 bot=378.7).
+//   • Checkboxes (h=10.5, w=11.4, ns=1.0): tops 193.5 / 208.3 / 221.7 (taxpayer
+//     type), 530 (gender/civil-status), 657 (spouse employment).
+//   • Page 1 (h=936): Reg Address (top=50), ZIP (top=82), Contact/Email (top=97).
+const BIR1904_PAGE_H = 936.0;
+const bir1904Y = (cellBottom: number) => BIR1904_PAGE_H - cellBottom + 3;
+const bir1904CheckY = (top: number) => BIR1904_PAGE_H - top - 7;
+
+const BIR1904_FIELD_COORDS: CoordsMap = {
+  // ── Q2 PhilSys PCN (16 digits) — text fallback in single wide cell ─────
+  // Cell row top=151.1 bot=161.4 → y = 776.6. PCN cell spans roughly x=255-540
+  // (between Date of Reg cells on left and RDO cells on right).
+  philsys_pcn:        { page: 0, x: 260, y: bir1904Y(161.4), fontSize: 10, maxWidth: 280 },
+
+  // ── Q5 Foreign TIN / Q6 Country of Residence ──────────────────────────
+  // Cell rows: top=246.6 bot=264.3 → y = 674.7
+  foreign_tin:           { page: 0, x:  26, y: bir1904Y(264.3), fontSize: 9, maxWidth: 275 },
+  country_of_residence:  { page: 0, x: 308, y: bir1904Y(264.3), fontSize: 9, maxWidth: 280 },
+
+  // ── Q7A Names row (5 text columns) — cell bot=303.3 → y=635.7 ────────────
+  last_name:    { page: 0, x:  27, y: bir1904Y(303.3), fontSize: 10, maxWidth: 156 },
+  first_name:   { page: 0, x: 187, y: bir1904Y(303.3), fontSize: 10, maxWidth: 156 },
+  middle_name:  { page: 0, x: 347, y: bir1904Y(303.3), fontSize: 10, maxWidth: 100 },
+  name_suffix:  { page: 0, x: 451, y: bir1904Y(303.3), fontSize: 10, maxWidth:  60 },
+  nickname:     { page: 0, x: 515, y: bir1904Y(303.3), fontSize: 10, maxWidth:  73 },
+
+  // ── Q7B Registered Name (non-individual) — cell bot=331.9 → y=607 ───────
+  registered_name:    { page: 0, x:  27, y: bir1904Y(331.9), fontSize: 10, maxWidth: 562 },
+
+  // ── Q7C Estate / Trust name — cell bot=360.5 → y=579 ───────────────────
+  estate_trust_name:  { page: 0, x:  27, y: bir1904Y(360.5), fontSize: 9, maxWidth: 562 },
+
+  // ── Q8 Date of Birth (8 digit boxes inside Q8/Q9 row) ─────────────────
+  // The DOB sub-cells are sub-elements of the Q8/Q9 row (top=360.5 bot=378.7).
+  // Approximate cxs based on image: 8 boxes centered around x=255-360 (estimate).
+  // Since precise rects could not be isolated, render as text fallback in a
+  // single mini cell (8 digits as MM/DD/YYYY string fits ~50pt wide).
+  date_of_birth:   { page: 0, x: 255, y: bir1904Y(378.7) - 4, fontSize: 11, maxWidth: 105 },
+  // ── Q9 Place of Birth (text right of DOB) ─────────────────────────────
+  place_of_birth:  { page: 0, x: 405, y: bir1904Y(378.7) - 4, fontSize: 9, maxWidth: 185 },
+
+  // ── Q10 Local Residence Address — 3 sub-rows ─────────────────────────
+  // Sub-row 1: Unit / Building / Lot / Street (cell bot ≈ 416.6 → y=522.4)
+  local_unit:        { page: 0, x:  27, y: bir1904Y(416.6), fontSize: 8, maxWidth: 110 },
+  local_building:    { page: 0, x: 142, y: bir1904Y(416.6), fontSize: 8, maxWidth: 165 },
+  local_lot:         { page: 0, x: 311, y: bir1904Y(416.6), fontSize: 8, maxWidth: 130 },
+  local_street:      { page: 0, x: 446, y: bir1904Y(416.6), fontSize: 8, maxWidth: 140 },
+  // Sub-row 2: Subdivision / Barangay / Town (cell bot ≈ 443.9 → y=495)
+  local_subdivision: { page: 0, x:  27, y: bir1904Y(443.9), fontSize: 8, maxWidth: 170 },
+  local_barangay:    { page: 0, x: 202, y: bir1904Y(443.9), fontSize: 8, maxWidth: 230 },
+  local_town:        { page: 0, x: 437, y: bir1904Y(443.9), fontSize: 8, maxWidth: 150 },
+  // Sub-row 3: City / Province / ZIP (cell bot ≈ 471.4 → y=467.6)
+  local_city:        { page: 0, x:  27, y: bir1904Y(471.4), fontSize: 8, maxWidth: 280 },
+  local_province:    { page: 0, x: 312, y: bir1904Y(471.4), fontSize: 8, maxWidth: 220 },
+  local_zip:         { page: 0, x: 537, y: bir1904Y(471.4), fontSize: 9, maxWidth:  50 },
+
+  // ── Q11 Foreign Address (cell bot ≈ 508.1 → y=430.9) ─────────────────
+  foreign_address:   { page: 0, x:  27, y: bir1904Y(508.1), fontSize: 8, maxWidth: 380 },
+
+  // ── Q13 Date of Arrival / Q14 Gender / Q15 Civil Status ──────────────
+  // Cell row at top=527.5 bot=540.5 → y=398.5; date_of_arrival is text on left
+  date_of_arrival:   { page: 0, x:  27, y: bir1904Y(540.5), fontSize: 11, maxWidth: 130 },
+
+  // ── Q16 Contact / Q17 Email (cell bot ≈ 574.2 → y=364.8) ─────────────
+  contact_number:    { page: 0, x:  27, y: bir1904Y(574.2), fontSize: 9, maxWidth: 270 },
+  email:             { page: 0, x: 308, y: bir1904Y(574.2), fontSize: 9, maxWidth: 280 },
+
+  // ── Q18 Mother's / Q19 Father's name (cell bot ≈ 602.9 → y=336.1) ────
+  mothers_name:      { page: 0, x:  27, y: bir1904Y(602.9), fontSize: 9, maxWidth: 270 },
+  fathers_name:      { page: 0, x: 308, y: bir1904Y(602.9), fontSize: 9, maxWidth: 280 },
+
+  // ── Q20 Identification (Type / Number / Effectivity / Expiry) ────────
+  // Sub-row at cell bot ≈ 643.4 → y=295.6
+  id_type:           { page: 0, x:  27, y: bir1904Y(643.4), fontSize: 8, maxWidth: 165 },
+  id_number:         { page: 0, x: 195, y: bir1904Y(643.4), fontSize: 8, maxWidth: 155 },
+  id_effectivity:    { page: 0, x: 355, y: bir1904Y(643.4), fontSize: 9, maxWidth: 110 },
+  id_expiry:         { page: 0, x: 470, y: bir1904Y(643.4), fontSize: 9, maxWidth: 120 },
+
+  // ── Q22 Spouse Name / Q23 Spouse TIN ─────────────────────────────────
+  // Spouse name: cell bot ≈ 700.3 → y=238.7 (text)
+  // Spouse TIN: digit cells at top≈682-692 - render as text in right cell
+  spouse_name:       { page: 0, x:  27, y: bir1904Y(700.3), fontSize: 9, maxWidth: 320 },
+  spouse_tin:        { page: 0, x: 355, y: bir1904Y(700.3), fontSize: 10, maxWidth: 200 },
+
+  // ── Q24 Spouse Employer Name / Q25 Spouse Employer TIN ──────────────
+  // Cell bot ≈ 739.5 → y=199.5
+  spouse_employer_name: { page: 0, x:  27, y: bir1904Y(739.5), fontSize: 9, maxWidth: 320 },
+  spouse_employer_tin:  { page: 0, x: 355, y: bir1904Y(739.5), fontSize: 10, maxWidth: 200 },
+
+  // ── Q26-J Other purpose specify (when J selected) ────────────────────
+  // Inline with row I/J at top=805 — write text after "Others (specify)"
+  purpose_other_specify: { page: 0, x: 320, y: bir1904Y(817.6), fontSize: 8, maxWidth: 270 },
+
+  // ── Q27 WA TIN / Q28 RDO Code (cell bot ≈ 847.7 → y=91.3) ────────────
+  wa_tin:            { page: 0, x: 335, y: bir1904Y(847.7), fontSize: 10, maxWidth: 200 },
+  wa_rdo_code:       { page: 0, x: 555, y: bir1904Y(847.7), fontSize: 10, maxWidth: 35 },
+
+  // ── Q29 WA Name (page 0 bottom row, cell bot ≈ 875 → y=64) ───────────
+  wa_name:           { page: 0, x:  27, y: 64, fontSize: 9, maxWidth: 562 },
+
+  // ── PAGE 2 fields (page index 1) ──────────────────────────────────────
+  // Q30 Registered Address (label top=50): fill row top≈63 bot≈82 → y=856.7
+  wa_address:        { page: 1, x:  27, y: 861, fontSize: 8, maxWidth: 440 },
+  // Q30A ZIP (label top=82): fill row bot≈110 → y=828.7
+  wa_zip:            { page: 1, x: 540, y: 843, fontSize: 9, maxWidth: 50 },
+  // Q31 Contact / Q32 Email (label top=97): fill bot≈125 → y=813.7
+  wa_contact:        { page: 1, x:  27, y: 815, fontSize: 9, maxWidth: 160 },
+  wa_email:          { page: 1, x: 200, y: 815, fontSize: 9, maxWidth: 380 },
+  // Q33 Title/Position (signature line top=205, right side)
+  wa_title:          { page: 1, x: 380, y: 728, fontSize: 9, maxWidth: 200 },
+};
+
+const BIR1904_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
+  // ── Q4 Taxpayer Type (3 rows × 2 cols of checkboxes) ─────────────────
+  // Box rects (ns=1.0, w=11.4): cx=38.5 (left col) / cx=326.3 (right col)
+  // Row 1 top=193.5 / Row 2 top=208.3 / Row 3 top=221.7
+  taxpayer_type: {
+    'E.O. 98 — Filipino Citizen':        { page: 0, x: 35, y: bir1904CheckY(193.9) },
+    'One-Time Taxpayer — Foreign National': { page: 0, x: 322, y: bir1904CheckY(193.5) },
+    'E.O. 98 — Foreign National':        { page: 0, x: 35, y: bir1904CheckY(208.3) },
+    'Persons Registering under Passive Income (excluding dividends/interest)': { page: 0, x: 322, y: bir1904CheckY(208.4) },
+    'One-Time Taxpayer — Filipino Citizen': { page: 0, x: 35, y: bir1904CheckY(221.7) },
+    'Estate / Trust':                    { page: 0, x: 322, y: bir1904CheckY(221.8) },
+  },
+  // ── Q14 Gender ─────────────────────────────────────────────────────
+  // Box rects at top=530.1 cx=[182.85 Male, 241.05 Female]
+  gender: {
+    'Male':   { page: 0, x: 179, y: bir1904CheckY(530.1) },
+    'Female': { page: 0, x: 237, y: bir1904CheckY(530.1) },
+  },
+  // ── Q15 Civil Status ───────────────────────────────────────────────
+  // top=530.1 cxs=[313.2, 370.5, 428.05, 499.65]
+  civil_status: {
+    'Single':            { page: 0, x: 309, y: bir1904CheckY(530.1) },
+    'Married':           { page: 0, x: 367, y: bir1904CheckY(530.0) },
+    'Widow/er':          { page: 0, x: 424, y: bir1904CheckY(530.1) },
+    'Legally Separated': { page: 0, x: 496, y: bir1904CheckY(530.3) },
+  },
+  // ── Q21 Spouse Employment Status ───────────────────────────────────
+  // top=657.4-657.6 cxs=[183.6, 270.15, 355.5, 444.7]
+  spouse_employment_status: {
+    'Unemployed':                  { page: 0, x: 180, y: bir1904CheckY(657.6) },
+    'Employed in the Philippines': { page: 0, x: 266, y: bir1904CheckY(657.6) },
+    'Employed Abroad':             { page: 0, x: 352, y: bir1904CheckY(657.4) },
+    'Engaged in Business':         { page: 0, x: 441, y: bir1904CheckY(657.6) },
+  },
+  // ── Q26 Purpose of TIN — 10 options A-J in 4 rows ─────────────────
+  // Row layout from labels:
+  //   Row 1 top=767: A Banks (cx≈25), B Govt (cx≈155), C Tax Treaty (cx≈335), D Shares (cx≈480)
+  //   Row 2 top=793: E Real Capital (cx≈25), F Real Ordinary (cx≈155), G Transfer Succession (cx≈335), H Donation (cx≈480)
+  //   Row 3 top=805: I First-Time Jobseeker (cx≈25), J Others (cx≈155)
+  // All checkbox squares are at ABCDEFGHIJ marker x positions.
+  // From rect data: top=762.2-771.4 has cells at cxs=[25, 60.5, 176.5, 205, 335, 363.7, 450.1, 522.3]
+  // We use a coarse mapping; fine-tune in iteration 2.
+  purpose_of_tin: {
+    'A. Dealings with banks, financial institutions, insurance companies': { page: 0, x:  22, y: bir1904CheckY(762.2) },
+    'B. Dealings with government offices (e.g. LTO, DFA, NBI)': { page: 0, x: 180, y: bir1904CheckY(762.2) },
+    'C. Tax treaty relief applications': { page: 0, x: 340, y: bir1904CheckY(762.2) },
+    'D. Shares of stock / bonds':        { page: 0, x: 439, y: bir1904CheckY(762.2) },
+    'E. Real property — capital asset':  { page: 0, x:  22, y: bir1904CheckY(783.7) },
+    'F. Real property — ordinary asset': { page: 0, x: 180, y: bir1904CheckY(783.7) },
+    'G. Donation of property':           { page: 0, x: 439, y: bir1904CheckY(783.7) },
+    'H. Transfer by succession (estate)': { page: 0, x: 340, y: bir1904CheckY(783.7) },
+    'I. First-time jobseeker (RA 11261)': { page: 0, x:  22, y: bir1904CheckY(803.0) },
+    'J. Other (specify below)':           { page: 0, x: 180, y: bir1904CheckY(803.0) },
+  },
+};
+
+const BIR1904_SKIP_VALUES: Record<string, string[]> = {
+  // Optional / conditional fields — render blank when empty
+  philsys_pcn: [''],
+  foreign_tin: [''],
+  country_of_residence: [''],
+  // Individual vs non-individual: only one of (last/first/middle/suffix/nickname) OR registered_name OR estate_trust_name
+  last_name: [''],
+  first_name: [''],
+  middle_name: [''],
+  name_suffix: ['', 'N/A'],
+  nickname: [''],
+  registered_name: [''],
+  estate_trust_name: [''],
+  // Q11/Q13 — foreign nationals only
+  foreign_address: [''],
+  date_of_arrival: [''],
+  // Q20 ID effectivity/expiry optional
+  id_effectivity: [''],
+  id_expiry: [''],
+  // Q21-Q25 — spouse fields, only when civil_status=Married
+  spouse_employment_status: ['', 'N/A'],
+  spouse_name: [''],
+  spouse_tin: [''],
+  spouse_employer_name: [''],
+  spouse_employer_tin: [''],
+  // Q26-J specifier
+  purpose_other_specify: [''],
+  // Q27-Q33 — withholding agent (rarely used)
+  wa_tin: [''],
+  wa_rdo_code: [''],
+  wa_name: [''],
+  wa_address: [''],
+  wa_zip: [''],
+  wa_contact: [''],
+  wa_email: [''],
+  wa_title: [''],
+};
+void BIR1904_PAGE_H;
+
 export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   'hqp-pff-356': {
     fieldCoords: FIELD_COORDS,
@@ -2484,6 +2896,17 @@ export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
     copyYOffsets: [0],
     checkboxCoords: HLF068_CHECKBOX_COORDS,
   },
+  'bir-2316': {
+    fieldCoords: BIR2316_FIELD_COORDS,
+    skipValues: BIR2316_SKIP_VALUES,
+    copyYOffsets: [0],
+  },
+  'bir-1904': {
+    fieldCoords: BIR1904_FIELD_COORDS,
+    skipValues: BIR1904_SKIP_VALUES,
+    copyYOffsets: [0],
+    checkboxCoords: BIR1904_CHECKBOX_COORDS,
+  },
 };
 
 // Strip characters outside WinAnsi (latin-1 range 0x00–0xFF) so Helvetica never throws.
@@ -2497,20 +2920,42 @@ function toWinAnsi(str: string): string {
     .replace(/[\u0100-\uFFFF]/g, '?'); // everything else outside latin-1
 }
 
+/**
+ * Generate a filled PDF from form values.
+ *
+ * @param form          Form schema (fields, slug, pdfPath, etc.)
+ * @param values        Field id -> value map
+ * @param sourceBytes   OPTIONAL pre-loaded source PDF bytes. When provided
+ *                      (e.g. from a browser fetch in Local Mode), no Node
+ *                      filesystem APIs are touched. When omitted (server flow)
+ *                      the file is read from public/forms via fs/promises.
+ */
 export async function generatePDF(
   form: FormSchema,
-  values: Record<string, string>
+  values: Record<string, string>,
+  sourceBytes?: Uint8Array
 ): Promise<Uint8Array> {
   // ── Load source PDF ────────────────────────────────────────────────────────
-  const pdfPath = path.join(PUBLIC_FORMS_DIR, form.pdfPath);
   let existingPdfBytes: Uint8Array;
 
-  try {
-    const buf = await fs.readFile(pdfPath);
-    existingPdfBytes = new Uint8Array(buf);
-  } catch {
-    // If the source PDF doesn't exist yet, create a blank placeholder PDF
-    existingPdfBytes = await createBlankPdf(form.name, form.code);
+  if (sourceBytes) {
+    // Browser / Local Mode path — bytes already fetched by the caller.
+    existingPdfBytes = sourceBytes;
+  } else {
+    // Server path — lazy-load Node modules so this file stays browser-safe.
+    try {
+      const [{ default: fs }, { default: path }] = await Promise.all([
+        import('fs/promises'),
+        import('path'),
+      ]);
+      const PUBLIC_FORMS_DIR = path.join(process.cwd(), 'public', 'forms');
+      const pdfPath = path.join(PUBLIC_FORMS_DIR, form.pdfPath);
+      const buf = await fs.readFile(pdfPath);
+      existingPdfBytes = new Uint8Array(buf);
+    } catch {
+      // If the source PDF doesn't exist yet, create a blank placeholder PDF
+      existingPdfBytes = await createBlankPdf(form.name, form.code);
+    }
   }
 
   const pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });

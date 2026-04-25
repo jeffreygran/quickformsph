@@ -9,6 +9,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit-log';
 import { isBlocked } from '@/lib/ip-blocklist';
 import { isPdfBuffer, MAX_UPLOAD_BYTES } from '@/lib/sanitize';
+import { issueAccessToken } from '@/lib/access-token';
 
 function getIP(req: NextRequest): string {
   return (
@@ -228,11 +229,27 @@ export async function POST(req: NextRequest) {
     await markRefUsed(refNo);
   }
 
+  // Issue an access token (v2.0) so the client can unlock local PDF download
+  // without sending any form data to the server.
+  let token: string | null = null;
+  let tokenExpiresAt: number | null = null;
+  if (errors.length === 0 && refNo) {
+    try {
+      const issued = await issueAccessToken(refNo, ocrAmount ?? expectedAmount);
+      token = issued.token;
+      tokenExpiresAt = issued.expiresAt;
+    } catch (err) {
+      console.error('[verify-screenshot] token issue error:', err);
+    }
+  }
+
   return NextResponse.json({
     valid: errors.length === 0,
     errors,
     refNo:     errors.length === 0 ? (refNo ?? null)     : null,
     ocrAmount: errors.length === 0 ? (ocrAmount ?? null) : null,
+    token,
+    tokenExpiresAt,
   });
 }
 

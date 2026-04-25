@@ -5,9 +5,20 @@ const nextConfig = {
   output: 'standalone',
   // Keep tesseract.js in Node.js land (not bundled by webpack)
   serverExternalPackages: ['tesseract.js', 'better-sqlite3'],
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     // pdfjs-dist optionally requires 'canvas' for Node.js — not needed in browser
     config.resolve.alias['canvas'] = false;
+    // Local Mode v2.0: pdf-generator.ts uses dynamic imports of fs/path on the
+    // server side only. Stub them in the client bundle so webpack never tries
+    // to bundle Node built-ins for the browser.
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...(config.resolve.fallback ?? {}),
+        fs: false,
+        'fs/promises': false,
+        path: false,
+      };
+    }
     return config;
   },
 
@@ -34,6 +45,7 @@ const nextConfig = {
               "img-src 'self' data: blob:",
               "font-src 'self'",
               "connect-src 'self'",
+              "worker-src 'self' blob:",  // Local Mode v2.0: service worker for offline cache
               "frame-ancestors 'none'",
               "object-src 'none'",
               "base-uri 'self'",
