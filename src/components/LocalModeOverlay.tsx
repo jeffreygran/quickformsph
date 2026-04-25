@@ -13,7 +13,7 @@
  *                   (the parent toggles `phase` to drive the transition)
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   ensureServiceWorker,
   precacheFormTemplate,
@@ -326,6 +326,17 @@ function ReadyState({
   checkAttempt: number;
   onStart: () => void;
 }) {
+  const [nudgeKey, setNudgeKey] = useState(0);
+  const prevOnlineError = useRef(false);
+
+  // When onlineError fires while it was already showing, bump nudgeKey to retrigger shake
+  useEffect(() => {
+    if (onlineError && prevOnlineError.current) {
+      setNudgeKey((k) => k + 1);
+    }
+    prevOnlineError.current = onlineError;
+  }, [onlineError]);
+
   return (
     <>
       <div className="text-center">
@@ -400,7 +411,10 @@ function ReadyState({
       )}
 
       {onlineError && !checking && (
-        <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
+        <div
+          key={nudgeKey}
+          className="shake mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3"
+        >
           <p className="text-xs text-red-700 leading-relaxed">
             <strong>You appear to be online.</strong> Please disconnect from the internet before filling this form in offline mode. If you want to continue online anyway, uncheck &ldquo;Verify internet connection&rdquo; above.
           </p>
