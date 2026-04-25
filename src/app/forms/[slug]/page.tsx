@@ -1110,6 +1110,7 @@ export default function FormWizardPage() {
       <PaymentGate
         formName={form.name}
         formCode={form.code}
+        pdfPath={form.pdfPath}
         onAccessGranted={(isDemo) => setIsDemoMode(isDemo)}
         renderPaymentModal={({ onSuccess, onClose }) => (
           <PaymentModal
@@ -1895,7 +1896,7 @@ function PrivacyConsentModal({
             onClick={onAck}
             className="flex-1 rounded-xl bg-blue-700 py-3 text-sm text-white font-semibold hover:bg-blue-800"
           >
-            I Understand &amp; Agree
+            I Agree
           </button>
         </div>
       </div>

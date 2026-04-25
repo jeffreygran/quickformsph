@@ -24,6 +24,7 @@ type Mode = 'choice' | 'pay' | 'key';
 interface Props {
   formName: string;
   formCode: string;
+  pdfPath: string;
   /** Called when the user selects an access method. isDemo=true when Demo is chosen. */
   onAccessGranted?: (isDemo: boolean) => void;
   /** Render PaymentModal — keeps PaymentGate decoupled from its concrete UI. */
@@ -38,6 +39,7 @@ interface Props {
 export default function PaymentGate({
   formName,
   formCode,
+  pdfPath,
   onAccessGranted,
   renderPaymentModal,
   children,
@@ -99,12 +101,20 @@ export default function PaymentGate({
               )}
             </div>
 
-            <div className="mt-5 text-center">
+            <div className="mt-5 text-center space-y-3">
               <a
                 href="/"
                 className="text-xs text-gray-500 hover:text-gray-700 underline-offset-4 hover:underline"
               >
                 ← Browse other forms
+              </a>
+              <div className="border-t border-gray-100 mx-2" />
+              <a
+                href={`/forms/${pdfPath}`}
+                download
+                className="text-xs text-blue-500 hover:text-blue-700 underline-offset-4 hover:underline inline-flex items-center gap-1"
+              >
+                <span aria-hidden>📥</span> Download PDF Form
               </a>
             </div>
           </div>
@@ -134,6 +144,7 @@ function ChoiceScreen({
   onDemo: () => void;
   onPay: () => void;
   onKey: () => void;
+  // pdfPath used by parent for download link
 }) {
   return (
     <>
@@ -181,11 +192,6 @@ function ChoiceScreen({
         </button>
       </div>
 
-      <div className="mt-5 bg-gray-50 border border-gray-100 rounded-2xl p-4 space-y-2">
-        <FeatureRow icon="🔒" text="Form data never leaves your device" />
-        <FeatureRow icon="📱" text="Works offline after setup" />
-        <FeatureRow icon="🚫" text="No account, no email, no tracking" />
-      </div>
     </>
   );
 }
