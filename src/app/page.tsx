@@ -460,7 +460,7 @@ export default function HomePage() {
         <div ref={sentinelRef} className="h-1" />
 
         {/* ── Coming Soon ── */}
-        <div className="mt-6 px-4 py-4 flex flex-col items-center justify-center gap-1 text-center">
+        {search.trim() && <div className="mt-6 px-4 py-4 flex flex-col items-center justify-center gap-1 text-center">
           <p className="text-sm font-medium text-gray-500">More forms coming soon …</p>
           <button
             onClick={() => setShowSuggestion(true)}
@@ -468,7 +468,7 @@ export default function HomePage() {
           >
             Suggest a form &amp; feedback
           </button>
-        </div>
+        </div>}
       </main>
 
       {/* ── Suggestion Modal ── */}
