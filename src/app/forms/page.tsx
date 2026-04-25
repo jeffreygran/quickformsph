@@ -58,9 +58,6 @@ export default function FormsPage() {
           <h1 className="text-2xl font-black text-gray-900 leading-tight mb-2">
             Available Forms
           </h1>
-          <p className="text-sm text-gray-500 leading-relaxed">
-            Browse all Philippine government forms available on QuickFormsPH. Fill them out on your phone and download a print-ready PDF.
-          </p>
         </div>
 
         {/* Form cards */}
