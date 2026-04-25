@@ -25,7 +25,7 @@ export default function DevSection() {
 
         {/* Heading — slide + fade */}
         <h2
-          className={`text-2xl font-black text-gray-900 mb-8 transition-all duration-700 ease-out
+          className={`text-2xl font-black text-gray-900 mb-8 transition-all duration-[1500ms] ease-out
             ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
         >
           Built by a Filipino
@@ -34,13 +34,13 @@ export default function DevSection() {
         {/* Card — scale up + fade in with a slight bounce */}
         <div
           className={`mx-auto max-w-md w-full rounded-2xl border border-gray-200 bg-white p-8 shadow-sm text-center
-            transition-all duration-700 ease-out delay-150
+            transition-all duration-[1500ms] ease-out delay-[800ms]
             ${visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-10'}`}
         >
           {/* Avatar — spins in */}
           <div
             className={`mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-800 text-white font-black text-base mb-5 shadow-sm select-none tracking-tight
-              transition-all duration-700 ease-out delay-300
+              transition-all duration-[1200ms] ease-out delay-[1500ms]
               ${visible ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-180 scale-50'}`}
           >
             J.Gran
@@ -49,7 +49,7 @@ export default function DevSection() {
           {/* Name — slides up */}
           <h3
             className={`text-lg font-black text-gray-900 tracking-tight
-              transition-all duration-500 ease-out delay-[450ms]
+              transition-all duration-[800ms] ease-out delay-[2500ms]
               ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
           >
             Jeffrey John Gran
@@ -58,7 +58,7 @@ export default function DevSection() {
           {/* Title */}
           <p
             className={`text-sm font-semibold text-blue-700 mt-1
-              transition-all duration-500 ease-out delay-500
+              transition-all duration-[800ms] ease-out delay-[3000ms]
               ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
           >
             Cloud Solutions Architect · Microsoft
@@ -67,7 +67,7 @@ export default function DevSection() {
           {/* Quote */}
           <p
             className={`text-xs text-gray-500 mt-4 italic leading-relaxed max-w-xs mx-auto
-              transition-all duration-500 ease-out delay-[600ms]
+              transition-all duration-[800ms] ease-out delay-[3500ms]
               ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
           >
             &ldquo;Empowering organizations to accelerate frontier transformation with cloud and AI.&rdquo;
@@ -76,7 +76,7 @@ export default function DevSection() {
           {/* CTA */}
           <div
             className={`mt-7 pt-6 border-t border-gray-100
-              transition-all duration-500 ease-out delay-700
+              transition-all duration-[800ms] ease-out delay-[4200ms]
               ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
           >
             <button

@@ -35,9 +35,6 @@ export default function AboutPage() {
       {/* ── Hero ── */}
       <section className="bg-slate-900 text-white">
         <div className="mx-auto max-w-5xl px-6 py-20 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-blue-300 mb-7">
-            Independent · Philippines-based · No Government Affiliation
-          </div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl mb-5">
             QuickFormsPH
           </h1>
@@ -67,45 +64,51 @@ export default function AboutPage() {
         <div className="grid sm:grid-cols-3 gap-6">
 
           {/* Privacy */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-7 shadow-sm">
+          <div className="group rounded-2xl border border-gray-100 bg-white p-7 shadow-sm cursor-default">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 mb-5">
               <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
               </svg>
             </div>
             <h3 className="font-bold text-gray-900 mb-2">Private by Design</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              All form data is processed entirely within your browser. No information is ever sent to,
-              stored on, or processed by any external server.
-            </p>
+            <div className="overflow-hidden max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100 transition-all duration-400 ease-in-out">
+              <p className="text-sm text-gray-500 leading-relaxed">
+                All form data is processed entirely within your browser. No information is ever sent to,
+                stored on, or processed by any external server.
+              </p>
+            </div>
           </div>
 
           {/* Official Forms */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-7 shadow-sm">
+          <div className="group rounded-2xl border border-gray-100 bg-white p-7 shadow-sm cursor-default">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 mb-5">
               <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
               </svg>
             </div>
             <h3 className="font-bold text-gray-900 mb-2">Official Templates</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              Forms are sourced directly from publicly available templates published by Philippine
-              government agencies — accurately reproduced for correctness.
-            </p>
+            <div className="overflow-hidden max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100 transition-all duration-400 ease-in-out">
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Forms are sourced directly from publicly available templates published by Philippine
+                government agencies — accurately reproduced for correctness.
+              </p>
+            </div>
           </div>
 
           {/* Instant PDF */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-7 shadow-sm">
+          <div className="group rounded-2xl border border-gray-100 bg-white p-7 shadow-sm cursor-default">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 mb-5">
               <svg className="h-5 w-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
             </div>
             <h3 className="font-bold text-gray-900 mb-2">Instant PDF Download</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              PDFs are generated offline on your device and downloaded instantly. No waiting, no cloud
-              processing — just a clean, ready-to-print file.
-            </p>
+            <div className="overflow-hidden max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100 transition-all duration-400 ease-in-out">
+              <p className="text-sm text-gray-500 leading-relaxed">
+                PDFs are generated offline on your device and downloaded instantly. No waiting, no cloud
+                processing — just a clean, ready-to-print file.
+              </p>
+            </div>
           </div>
 
         </div>
@@ -124,12 +127,14 @@ export default function AboutPage() {
               { step: '03', title: 'Generate PDF', body: 'Hit "Generate PDF" — everything is processed locally on your device.' },
               { step: '04', title: 'Print & Submit', body: 'Download your print-ready PDF and submit to the relevant agency.' },
             ].map(({ step, title, body }) => (
-              <div key={step} className="flex flex-col items-center">
+              <div key={step} className="group flex flex-col items-center cursor-default">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white font-black text-sm mb-4 shadow-sm">
                   {step}
                 </div>
                 <h3 className="font-bold text-gray-900 mb-1.5">{title}</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">{body}</p>
+                <div className="overflow-hidden max-h-0 opacity-0 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-400 ease-in-out">
+                  <p className="text-xs text-gray-500 leading-relaxed">{body}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -138,7 +143,7 @@ export default function AboutPage() {
 
       {/* ── Fee Note ── */}
       <section className="mx-auto max-w-5xl px-6 py-14">
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 flex flex-col sm:flex-row gap-6 items-start shadow-sm">
+        <div className="group rounded-2xl border border-gray-200 bg-white p-8 flex flex-col sm:flex-row gap-6 items-start shadow-sm cursor-default">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 border border-amber-100">
             <svg className="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -146,23 +151,14 @@ export default function AboutPage() {
           </div>
           <div>
             <h3 className="font-bold text-gray-900 mb-1.5">A Minimal Fee</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              QuickFormsPH charges a small <strong>₱5 fee</strong> to support maintenance, new form additions,
-              and ongoing improvements. Every peso goes directly into making the service better for all Filipinos.{' '}
-              <strong>Salamat po!</strong>
-            </p>
+            <div className="overflow-hidden max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100 transition-all duration-400 ease-in-out">
+              <p className="text-sm text-gray-600 leading-relaxed">
+                QuickFormsPH charges a small <strong>₱5 fee</strong> to support maintenance, new form additions,
+                and ongoing improvements. Every peso goes directly into making the service better for all Filipinos.{' '}
+                <strong>Salamat po!</strong>
+              </p>
+            </div>
           </div>
-        </div>
-      </section>
-
-      {/* ── Disclaimer ── */}
-      <section className="mx-auto max-w-5xl px-6 pb-10">
-        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-5 py-4">
-          <p className="text-xs text-yellow-800 leading-relaxed">
-            <strong>Disclaimer:</strong> QuickFormsPH is a private, independent tool and is{' '}
-            <strong>not affiliated with, endorsed by, or connected to any Philippine government agency</strong>.
-            Forms are reproduced from publicly available official templates solely to help users complete them accurately.
-          </p>
         </div>
       </section>
 
