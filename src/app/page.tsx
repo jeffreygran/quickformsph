@@ -379,7 +379,7 @@ export default function HomePage() {
             <span className="text-blue-200">in Minutes</span>
           </h1>
           <p className="mt-3 text-sm text-blue-200 max-w-md mx-auto leading-relaxed">
-            Fill it out and Print-ready PDF. No erasures, no hassle.
+            Fill it out and get a print-ready PDF. No erasures, no hassle.
           </p>
 
           {/* Search bar */}
@@ -400,7 +400,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Agency Filters + Count ── */}
-      <div className="mx-auto max-w-5xl px-4 py-3">
+      {search.trim() && <div className="mx-auto max-w-5xl px-4 py-3">
         <div className="flex items-center gap-2 overflow-x-auto">
           {AGENCY_FILTERS.map((a) => (
             <button
@@ -419,18 +419,23 @@ export default function HomePage() {
             {filtered.length} form{filtered.length !== 1 ? 's' : ''}
           </span>
         </div>
-      </div>
+      </div>}
 
       {/* ── Form Cards ── */}
       <main className="mx-auto max-w-5xl px-4 pb-12">
-        {filtered.length === 0 ? (
+        {!search.trim() ? (
+          <div className="mt-12 text-center text-gray-400">
+            <div className="text-4xl mb-3">🔍</div>
+            <p className="text-sm">Type above to search for a form.</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="mt-12 text-center text-gray-400">
             <div className="text-4xl mb-3">📋</div>
             <p className="text-sm">No forms match your search.</p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {visibleForms.map((form) => (
+            {search.trim() && visibleForms.map((form) => (
               <FormCard key={form.slug} form={form} />
             ))}
             {/* Skeleton cards while loading more */}
