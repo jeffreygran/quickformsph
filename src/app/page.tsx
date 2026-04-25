@@ -476,9 +476,6 @@ export default function HomePage() {
       )}
 
       <footer className="border-t border-gray-200 py-4 px-6 text-center text-xs text-gray-400">
-        <div className="mb-1.5 text-[11px] text-gray-400">
-          QuickFormsPH is a private tool and is <strong className="text-gray-500">not affiliated with any Philippine government agency</strong>.
-        </div>
         <Link href="/about" className="text-gray-500 hover:text-blue-700 transition-colors">About</Link>
         <span className="mx-2 text-gray-300">·</span>
         <Link href="/forms" className="inline-flex items-center gap-1 text-gray-500 hover:text-blue-700 transition-colors">

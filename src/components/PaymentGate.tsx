@@ -139,7 +139,7 @@ function ChoiceScreen({
         >
           <span className="text-2xl" aria-hidden>🧪</span>
           <span className="text-sm font-bold text-gray-800">Demo</span>
-          <span className="text-[10px] text-gray-500 text-center leading-tight">Try it out for free</span>
+          <span className="text-[10px] text-gray-500 text-center leading-tight">Try it out, first</span>
         </button>
 
         {/* Pay ₱5 */}
