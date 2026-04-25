@@ -1869,20 +1869,6 @@ function PrivacyConsentModal({
             name, address, and other form details — <strong>solely to pre-fill the official government
             form template</strong>.
           </p>
-          <ul className="text-xs text-gray-600 space-y-1.5">
-            <li className="flex items-start gap-2">
-              <span className="text-green-600 font-bold mt-0.5">✓</span>
-              Processed securely over HTTPS — your form data is only retained for up to 48 hours to allow PDF re-downloads, then permanently deleted once your download code expires.
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-600 font-bold mt-0.5">✓</span>
-              Draft data stays in your browser (localStorage) only.
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-600 font-bold mt-0.5">✓</span>
-              Your data is never sold or shared with third parties.
-            </li>
-          </ul>
           <Link
             href="/privacy"
             target="_blank"
