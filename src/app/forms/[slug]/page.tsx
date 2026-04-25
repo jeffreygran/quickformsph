@@ -1204,13 +1204,6 @@ export default function FormWizardPage() {
       {/* Top nav */}
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
-          <button
-            onClick={() => currentStep > 0 ? setCurrentStep((s) => (s - 1) as StepIndex) : router.push('/')}
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
-            aria-label="Back"
-          >
-            ←
-          </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {AGENCY_LOGO[form.agency] && (
               <Image
@@ -1231,7 +1224,10 @@ export default function FormWizardPage() {
             className="rounded-lg border border-gray-200 bg-white py-2 px-3 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap"
             title="View blank PDF form"
           >
-            📄 View
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+            </svg>
+            PDF
           </button>
           <button
             onClick={() => setMode('review')}
