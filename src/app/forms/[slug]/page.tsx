@@ -1189,7 +1189,7 @@ export default function FormWizardPage() {
           <SuccessCodeModal
             onDownloadAgain={handleLocalDownload}
             onClose={() => setShowSuccessModal(false)}
-            onCloseSession={() => { setShowSuccessModal(false); setShowCloseConfirm(true); }}
+            onCloseSession={() => { clearDraft(form.slug); router.push('/'); }}
           />
         )}
       </>
@@ -2600,6 +2600,36 @@ function SuccessCodeModal({
   onClose: () => void;
   onCloseSession: () => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
+
+  if (confirming) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5">
+        <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+          <h3 className="text-base font-bold text-gray-900 mb-2">Close Session?</h3>
+          <p className="text-sm text-gray-600 leading-relaxed mb-5">
+            This will clear all your entered data, the current draft, and the PDF preview.
+            <strong className="text-gray-900"> This cannot be undone.</strong>
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setConfirming(false)}
+              className="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onCloseSession}
+              className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+            >
+              Clear &amp; Exit
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
@@ -2618,7 +2648,7 @@ function SuccessCodeModal({
             OK
           </button>
           <button
-            onClick={onCloseSession}
+            onClick={() => setConfirming(true)}
             className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
           >
             Close Session
