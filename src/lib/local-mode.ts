@@ -72,15 +72,28 @@ export async function ensureServiceWorker(): Promise<ServiceWorkerRegistration |
 /** Pre-cache a specific form template PDF via the service worker. */
 export async function precacheFormTemplate(pdfPath: string): Promise<boolean> {
   const url = `/forms/${pdfPath}`;
-  // Best-effort fetch (browser cache or SW) so the PDF lands in cache regardless
-  // of whether the SW is fully ready (e.g. first visit).
+
+  // Directly write into the Cache API so it's available offline regardless
+  // of whether the SW is controlling the page yet.
   try {
-    const res = await fetch(url, { cache: 'reload' });
-    if (!res.ok) return false;
-    // Buffer it once so the SW intercepts and stores it.
-    await res.arrayBuffer();
+    const cacheVersion = 'qfph-v2-3';
+    const cache = await caches.open('qfph-forms-' + cacheVersion);
+    const existing = await cache.match(url);
+    if (!existing) {
+      const res = await fetch(url);
+      if (!res.ok) return false;
+      await cache.put(url, res.clone());
+      await res.arrayBuffer(); // drain
+    }
   } catch {
-    return false;
+    // caches API may not be available (e.g. insecure context); fall through to SW path
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return false;
+      await res.arrayBuffer();
+    } catch {
+      return false;
+    }
   }
 
   // Also send an explicit message so the SW pre-caches even if the fetch
@@ -94,13 +107,33 @@ export async function precacheFormTemplate(pdfPath: string): Promise<boolean> {
 /**
  * Fetch a form template's bytes from cache (or network if not cached yet).
  * Used by the browser-side PDF generator in Local Mode.
+ *
+ * Strategy:
+ *   1. Try Cache API directly (works offline, no SW needed).
+ *   2. Try fetch with cache: 'force-cache' (let SW/browser cache serve it).
+ *   3. Fall back to network with 15s timeout.
  */
 export async function fetchFormTemplateBytes(pdfPath: string): Promise<Uint8Array> {
   const url = `/forms/${pdfPath}`;
+
+  // 1. Direct Cache API lookup — fastest and works fully offline.
+  try {
+    const cacheVersion = 'qfph-v2-3';
+    const cache = await caches.open('qfph-forms-' + cacheVersion);
+    const cached = await cache.match(url);
+    if (cached) {
+      const buf = await cached.arrayBuffer();
+      return new Uint8Array(buf);
+    }
+  } catch {
+    // caches API unavailable; continue to fetch
+  }
+
+  // 2. fetch with force-cache so browser/SW cache is preferred.
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15_000); // 15 s timeout
   try {
-    const res = await fetch(url, { signal: controller.signal });
+    const res = await fetch(url, { cache: 'force-cache', signal: controller.signal });
     if (!res.ok) throw new Error(`Failed to load form template: ${pdfPath}`);
     const buf = await res.arrayBuffer();
     return new Uint8Array(buf);
