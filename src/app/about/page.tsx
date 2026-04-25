@@ -115,7 +115,6 @@ export default function AboutPage() {
       <section className="border-y border-gray-100 bg-gray-50">
         <div className="mx-auto max-w-5xl px-6 py-16">
           <div className="text-center mb-12">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-blue-600 mb-2">Process</p>
             <h2 className="text-2xl font-black text-gray-900">How It Works</h2>
           </div>
           <div className="grid sm:grid-cols-4 gap-8 text-center">
