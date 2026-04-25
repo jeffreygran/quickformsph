@@ -43,6 +43,22 @@ export default function HomePage() {
   // Donation modal state
   const [showDonation, setShowDonation] = useState(false);
 
+  // Privacy notice — show only on first visit
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem('qfph_privacy_ack')) {
+        setShowPrivacyModal(true);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const handlePrivacyAck = () => {
+    try { localStorage.setItem('qfph_privacy_ack', '1'); } catch { /* ignore */ }
+    setShowPrivacyModal(false);
+  };
+
   // Infinite scroll
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loadingMore, setLoadingMore]   = useState(false);
@@ -429,6 +445,50 @@ export default function HomePage() {
       {showDonation && (
         <DonationModal onClose={() => setShowDonation(false)} />
       )}
+
+      {/* ── Privacy Notice (first visit only) ── */}
+      {showPrivacyModal && (
+        <PrivacyNoticeModal onAck={handlePrivacyAck} />
+      )}
+    </div>
+  );
+}
+
+// ─── PrivacyNoticeModal ───────────────────────────────────────────────────────
+function PrivacyNoticeModal({ onAck }: { onAck: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
+        <div className="bg-gradient-to-r from-blue-700 to-blue-900 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🔒</span>
+            <div>
+              <div className="text-white font-bold text-sm">Privacy Notice</div>
+              <div className="text-blue-200 text-[11px]">Republic Act No. 10173 — Data Privacy Act of 2012</div>
+            </div>
+          </div>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-sm text-gray-700 leading-relaxed">
+            Your details are used only to prefill the official form and create your PDF, and the process runs offline so you can safely disconnect from the internet.
+          </p>
+          <Link
+            href="/privacy"
+            target="_blank"
+            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+          >
+            Read full Privacy Policy ↗
+          </Link>
+        </div>
+        <div className="px-5 pb-5">
+          <button
+            onClick={onAck}
+            className="w-full rounded-xl bg-blue-700 py-3 text-sm text-white font-semibold hover:bg-blue-800"
+          >
+            I Agree
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

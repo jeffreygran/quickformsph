@@ -50,7 +50,6 @@ export default function FormWizardPage() {
   const [previewImageUrl, setPreviewImageUrl] = useState('');
 
   // Privacy & payment modal state
-  const [showPrivacyModal, setShowPrivacyModal] = useState(true); // always show on form entry
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [downloadCode, setDownloadCode]         = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -1462,14 +1461,6 @@ export default function FormWizardPage() {
         </div>
       )}
 
-      {/* Privacy consent — shown once on page entry */}
-      {showPrivacyModal && (
-        <PrivacyConsentModal
-          onAck={() => setShowPrivacyModal(false)}
-          onClose={() => router.push('/')}
-        />
-      )}
-
     </div>
   );
 }
@@ -1845,60 +1836,6 @@ function PreviewScreen({
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-// ─── PrivacyConsentModal ──────────────────────────────────────────────────────
-function PrivacyConsentModal({
-  onAck,
-  onClose,
-}: {
-  onAck: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-700 to-blue-900 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🔒</span>
-            <div>
-              <div className="text-white font-bold text-sm">Privacy Notice</div>
-              <div className="text-blue-200 text-[11px]">Republic Act No. 10173 — Data Privacy Act of 2012</div>
-            </div>
-          </div>
-        </div>
-        {/* Body */}
-        <div className="p-5 space-y-3">
-          <p className="text-sm text-gray-700 leading-relaxed">
-            Your details are used only to prefill the official form and create your PDF, and the process runs offline so you can safely disconnect from the internet.
-          </p>
-          <Link
-            href="/privacy"
-            target="_blank"
-            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
-          >
-            Read full Privacy Policy ↗
-          </Link>
-        </div>
-        {/* Actions */}
-        <div className="px-5 pb-5 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-xl border border-gray-300 py-3 text-sm text-gray-600 hover:bg-gray-50 font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onAck}
-            className="flex-1 rounded-xl bg-blue-700 py-3 text-sm text-white font-semibold hover:bg-blue-800"
-          >
-            I Agree
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
