@@ -195,7 +195,6 @@ function DownloadingState({
         <h2 id="local-mode-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
           Preparing Local Mode
         </h2>
-        <p className="text-xs text-gray-500 mb-1">{formName}</p>
         <p className="text-[11px] uppercase tracking-wider font-semibold text-blue-700 mb-4">
           {formCode}
         </p>
@@ -250,7 +249,6 @@ function ReadyState({
         <h2 id="local-mode-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
           Ready to Go Offline
         </h2>
-        <p className="text-xs text-gray-500 mb-1">{formName}</p>
         <p className="text-[11px] uppercase tracking-wider font-semibold text-green-700 mb-4">
           {formCode}
         </p>
