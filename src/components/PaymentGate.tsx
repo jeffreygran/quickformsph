@@ -15,7 +15,9 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  readAccessToken,
   writeAccessToken,
+  formatTimeLeft,
   type StoredAccessToken,
 } from '@/lib/access-token-client';
 
@@ -42,12 +44,14 @@ export default function PaymentGate({
   renderPaymentModal,
   children,
 }: Props) {
-  const [hydrated, setHydrated] = useState(false);
-  const [demoMode, setDemoMode] = useState(false);
-  const [mode, setMode]         = useState<Mode>('choice');
+  const [hydrated, setHydrated]           = useState(false);
+  const [demoMode, setDemoMode]             = useState(false);
+  const [mode, setMode]                     = useState<Mode>('choice');
+  const [existingToken, setExistingToken]   = useState<StoredAccessToken | null>(null);
 
   useEffect(() => {
     setHydrated(true);
+    setExistingToken(readAccessToken());
   }, []);
 
   // Avoid SSR/hydration flash.
@@ -78,9 +82,11 @@ export default function PaymentGate({
                 <ChoiceScreen
                   formName={formName}
                   formCode={formCode}
+                  existingToken={existingToken}
                   onDemo={() => { onAccessGranted?.(true); setDemoMode(true); }}
                   onPay={() => setMode('pay')}
                   onKey={() => setMode('key')}
+                  onProceed={() => { onAccessGranted?.(false); setDemoMode(true); }}
                 />
               )}
               {mode === 'key' && (
@@ -109,16 +115,32 @@ export default function PaymentGate({
 function ChoiceScreen({
   formName,
   formCode,
+  existingToken,
   onDemo,
   onPay,
   onKey,
+  onProceed,
 }: {
   formName: string;
   formCode: string;
+  existingToken: StoredAccessToken | null;
   onDemo: () => void;
   onPay: () => void;
   onKey: () => void;
+  onProceed: () => void;
 }) {
+  const [timeLeft, setTimeLeft] = useState(() =>
+    existingToken ? formatTimeLeft(existingToken.expiresAt) : ''
+  );
+
+  useEffect(() => {
+    if (!existingToken) return;
+    const id = setInterval(() => {
+      setTimeLeft(formatTimeLeft(existingToken.expiresAt));
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [existingToken]);
+
   return (
     <>
       <div className="text-center mb-6">
@@ -142,25 +164,40 @@ function ChoiceScreen({
           <span className="text-[10px] text-gray-500 text-center leading-tight">Try it out, first</span>
         </button>
 
-        {/* Pay ₱5 */}
-        <button
-          type="button"
-          onClick={onPay}
-          className="flex flex-col items-center gap-2 rounded-2xl border-2 border-blue-500 hover:border-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-4 active:scale-[.97] transition-all"
-        >
-          <span className="text-2xl" aria-hidden>💚</span>
-          <span className="text-sm font-bold text-blue-700">Pay ₱5</span>
-          <span className="text-[10px] text-blue-500 text-center leading-tight">48-hr full access</span>
-        </button>
+        {/* Proceed (paid) OR Pay ₱5 */}
+        {existingToken ? (
+          <button
+            type="button"
+            onClick={onProceed}
+            className="flex flex-col items-center gap-2 rounded-2xl border-2 border-green-500 hover:border-green-700 bg-green-50 hover:bg-green-100 px-3 py-4 active:scale-[.97] transition-all"
+          >
+            <span className="text-2xl" aria-hidden>✅</span>
+            <span className="text-sm font-bold text-green-700">Proceed</span>
+            <span className="text-[10px] text-green-600 text-center leading-tight">{timeLeft}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onPay}
+            className="flex flex-col items-center gap-2 rounded-2xl border-2 border-blue-500 hover:border-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-4 active:scale-[.97] transition-all"
+          >
+            <span className="text-2xl" aria-hidden>💚</span>
+            <span className="text-sm font-bold text-blue-700">Pay ₱5</span>
+            <span className="text-[10px] text-blue-500 text-center leading-tight">24-hr full access</span>
+          </button>
+        )}
       </div>
 
       <div className="mt-3 text-center">
         <button
           type="button"
           onClick={onKey}
-          className="text-xs text-gray-400 hover:text-gray-600 underline-offset-4 hover:underline transition-colors"
+          className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 underline-offset-4 hover:underline transition-colors"
         >
-          🔑 Have a license key?
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
+          </svg>
+          Have a promo code?
         </button>
       </div>
 
