@@ -1662,12 +1662,6 @@ function ReviewScreen({
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white shadow-sm">
         <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
-          <button
-            onClick={() => onEdit(2)}
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
-          >
-            ←
-          </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {AGENCY_LOGO[form.agency] && (
               <Image
