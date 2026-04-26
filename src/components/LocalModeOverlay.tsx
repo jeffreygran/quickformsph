@@ -245,10 +245,16 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
                     alt="Program runs locally"
                     className="w-full object-cover object-top"
                     style={{ maxHeight: '180px' }}
+                    onLoad={() => {
+                      const title = document.getElementById('local-mode-title');
+                      if (title) title.style.display = 'none';
+                    }}
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.display = 'none';
                       const fallback = e.currentTarget.nextElementSibling as HTMLElement | null;
                       if (fallback) fallback.style.display = 'flex';
+                      const title = document.getElementById('local-mode-title');
+                      if (title) title.style.display = '';
                     }}
                   />
                   {/* Fallback icon — hidden unless image fails */}
@@ -374,9 +380,9 @@ function ReadyState({
 
   return (
     <>
-      {/* Header */}
+      {/* Header — only shown when banner image fails to load */}
       <div className="text-center mb-5">
-        <h2 id="local-mode-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
+        <h2 id="local-mode-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-1" style={{ display: 'none' }}>
           Program now runs locally
         </h2>
       </div>
