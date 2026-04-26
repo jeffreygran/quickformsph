@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import os from 'os';
 import { randomUUID } from 'crypto';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { isBlocked } from '@/lib/ip-blocklist';
@@ -9,11 +6,7 @@ import { auditLog } from '@/lib/audit-log';
 import { isPdfBuffer, MAX_UPLOAD_BYTES } from '@/lib/sanitize';
 import { issueAccessToken } from '@/lib/access-token';
 import { readGCashSettings } from '@/lib/gcash-settings';
-
-const SCREENSHOT_DIR = join(
-  process.env.DATA_DIR ?? join(os.tmpdir(), 'qfph'),
-  'paymentscreenshot',
-);
+import { uploadScreenshot } from '@/lib/screenshot-storage';
 
 const ALLOWED_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const EXT_MAP: Record<string, string> = {
@@ -78,11 +71,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Invalid file type' }, { status: 400 });
   }
 
-  // Save to paymentscreenshot folder
+  // Save screenshot (local filesystem or Azure Blob depending on storage config)
   const ext = EXT_MAP[file.type] ?? '.jpg';
   const filename = `${Date.now()}-${randomUUID().slice(0, 8)}${ext}`;
-  await mkdir(SCREENSHOT_DIR, { recursive: true });
-  await writeFile(join(SCREENSHOT_DIR, filename), buffer);
+  await uploadScreenshot(filename, buffer, file.type);
 
   auditLog('upload_attempt', ip, `Screenshot saved: ${filename}`);
 
