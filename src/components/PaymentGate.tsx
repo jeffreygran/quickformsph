@@ -212,43 +212,52 @@ function ChoiceScreen({
 
         <p className="text-[20px] font-semibold text-gray-500 mb-5">How would you like to access?</p>
 
-        <div className="grid grid-cols-2 gap-3">
-        {/* Demo */}
+        {/* Layout C — Horizontal Pill Stack */}
+
+        {/* Demo pill */}
         <button
           type="button"
           onClick={onDemo}
-          className="flex flex-col items-center gap-2 rounded-2xl border border-gray-200 hover:border-gray-300 bg-gray-50/60 hover:bg-gray-100/70 px-3 py-4 active:scale-[.97] transition-all"
+          className="flex items-center gap-3 w-full rounded-full px-5 py-3 mb-2 border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 active:scale-[.98] transition-all text-left"
         >
-          <span className="text-2xl" aria-hidden>🧪</span>
-          <span className="text-sm font-bold text-gray-800">Demo</span>
-          <span className="text-[10px] text-gray-500 text-center leading-tight">Try it out, first</span>
+          <span className="text-[22px] flex-shrink-0" aria-hidden>🧪</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] font-bold text-gray-800 leading-tight">Demo</div>
+            <div className="text-[10px] text-gray-400 leading-tight">Try it out, first</div>
+          </div>
+          <span className="text-gray-300 text-base">›</span>
         </button>
 
-        {/* Proceed (paid) OR Pay ₱5 */}
+        {/* Pay / Proceed pill */}
         {existingToken ? (
           <button
             type="button"
             onClick={onProceed}
-            className="flex flex-col items-center gap-2 rounded-2xl border-2 border-green-500 hover:border-green-700 bg-green-50 hover:bg-green-100 px-3 py-4 active:scale-[.97] transition-all"
+            className="flex items-center gap-3 w-full rounded-full px-5 py-3 mb-2 bg-gradient-to-r from-green-500 to-emerald-600 shadow-[0_4px_20px_rgba(34,197,94,0.35)] hover:shadow-[0_6px_28px_rgba(34,197,94,0.45)] hover:-translate-y-0.5 active:scale-[.98] transition-all text-left border-0"
           >
-            <span className="text-2xl" aria-hidden>✅</span>
-            <span className="text-sm font-bold text-green-700">Proceed</span>
-            <span className="text-[10px] text-green-600 text-center leading-tight">{timeLeft}</span>
+            <span className="text-[22px] flex-shrink-0" aria-hidden>✅</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-bold text-white leading-tight">Proceed</div>
+              <div className="text-[10px] text-white/70 leading-tight">{timeLeft}</div>
+            </div>
+            <span className="text-white/40 text-base">›</span>
           </button>
         ) : (
           <button
             type="button"
             onClick={onPay}
-            className="flex flex-col items-center gap-2 rounded-2xl border border-blue-200 hover:border-blue-300 bg-blue-50/60 hover:bg-blue-100/70 px-3 py-4 active:scale-[.97] transition-all"
+            className="flex items-center gap-3 w-full rounded-full px-5 py-3 mb-2 bg-gradient-to-r from-blue-500 to-blue-600 shadow-[0_4px_20px_rgba(59,130,246,0.35)] hover:shadow-[0_6px_28px_rgba(59,130,246,0.45)] hover:-translate-y-0.5 active:scale-[.98] transition-all text-left border-0"
           >
-            <span className="text-2xl" aria-hidden>💚</span>
-            <span className="text-sm font-bold text-blue-700">Donate ₱5</span>
-            <span className="text-[10px] text-blue-500 text-center leading-tight">24-hr full access</span>
+            <span className="text-[22px] flex-shrink-0" aria-hidden>💚</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-bold text-white leading-tight">Donate ₱5 — Full Access</div>
+              <div className="text-[10px] text-white/70 leading-tight">24-hr access · Instant unlock</div>
+            </div>
+            <span className="text-white/40 text-base">›</span>
           </button>
         )}
-        </div>
 
-        <div className="mt-3 text-center">
+        <div className="mt-1 text-center">
           <button
             type="button"
             onClick={onKey}
