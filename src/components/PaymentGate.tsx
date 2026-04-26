@@ -196,7 +196,7 @@ function ChoiceScreen({
             aria-label="Close"
           >×</button>
         )}
-        <div className="relative z-10 flex flex-col items-center">
+        <div className="relative z-10 flex flex-col items-center" style={{ marginBottom: '40px' }}>
           <div className="w-16 h-16 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center mb-3">
             {logo ? (
               <Image src={logo.src} alt={agency} width={logo.w} height={logo.h} className="object-contain" />
