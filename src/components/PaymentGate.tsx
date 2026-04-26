@@ -36,6 +36,8 @@ interface Props {
     onSuccess: (token: StoredAccessToken) => void;
     onClose: () => void;
   }) => React.ReactNode;
+  /** Called when user dismisses the gate (e.g. navigates back). */
+  onClose?: () => void;
   /** Children render only when a valid token or demo mode is active. */
   children: React.ReactNode;
 }
@@ -45,6 +47,7 @@ export default function PaymentGate({
   formCode,
   agency,
   onAccessGranted,
+  onClose,
   renderPaymentModal,
   children,
 }: Props) {
@@ -87,7 +90,14 @@ export default function PaymentGate({
       <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
         <main className="flex-1 flex items-center justify-center px-4 py-6 overflow-hidden">
           <div className="w-full max-w-md">
-            <div className={`${isExiting ? 'carousel-exit' : 'carousel-enter'} bg-white rounded-3xl shadow-xl border border-gray-100 px-6 py-7 sm:px-8 sm:py-9`}>
+            <div className={`relative ${isExiting ? 'carousel-exit' : 'carousel-enter'} bg-white rounded-3xl shadow-xl border border-gray-100 px-6 py-7 sm:px-8 sm:py-9`}>
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 text-lg leading-none transition-colors"
+                  aria-label="Close"
+                >×</button>
+              )}
               <ChoiceScreen
                 formName={formName}
                 formCode={formCode}

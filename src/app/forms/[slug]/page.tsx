@@ -1787,6 +1787,7 @@ export default function FormWizardPage() {
         formCode={form.code}
         agency={form.agency}
         onAccessGranted={(isDemo) => setIsDemoMode(isDemo)}
+        onClose={() => window.history.back()}
         renderPaymentModal={({ onSuccess, onClose }) => (
           <PaymentModal
             gcashNumber={GCASH_NUMBER}
@@ -2935,14 +2936,6 @@ function PaymentModal({
 
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
       <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
-        {/* Close button — upper right */}
-        {step !== 'generating' && (
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/20 hover:bg-black/30 text-white text-lg leading-none transition-colors"
-            aria-label="Close"
-          >×</button>
-        )}
         {/* Header */}
         <div className="bg-gradient-to-r from-[#0b7c3e] to-[#00a651] px-5 py-4">
           <div className="flex items-center justify-between">
@@ -2964,7 +2957,7 @@ function PaymentModal({
             {/* Heartfelt note */}
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
               <p className="text-xs text-blue-800 leading-relaxed">
-                Made to make government forms easier for Filipinos. Your ₱5 or any extra helps cover maintenance and future improvements. Maraming salamat po.
+                Made to make government forms easier for Filipinos. Your ₱5 or any extra helps cover maintenance and future improvements. Maraming salamat po. 🙏💚
               </p>
             </div>
 
