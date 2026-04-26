@@ -212,7 +212,7 @@ function ChoiceScreen({
       </div>
 
       {/* Body — always below banner, never overlapping */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center px-6 py-6 sm:px-8">
+      <div className="relative z-10 px-6 pt-5 pb-6 sm:px-8">
         <p className="text-[20px] font-semibold text-gray-500 text-center mb-5">How would you like to access?</p>
 
         <div className="grid grid-cols-2 gap-3">
