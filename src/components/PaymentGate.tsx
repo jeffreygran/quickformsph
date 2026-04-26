@@ -90,14 +90,7 @@ export default function PaymentGate({
       <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
         <main className="flex-1 flex items-center justify-center px-4 py-6 overflow-hidden">
           <div className="w-full max-w-md">
-            <div className={`relative ${isExiting ? 'carousel-exit' : 'carousel-enter'} bg-white rounded-3xl shadow-xl border border-gray-100 px-6 py-7 sm:px-8 sm:py-9`}>
-              {onClose && (
-                <button
-                  onClick={onClose}
-                  className="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 text-lg leading-none transition-colors"
-                  aria-label="Close"
-                >×</button>
-              )}
+            <div className={`relative ${isExiting ? 'carousel-exit' : 'carousel-enter'} bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden`}>
               <ChoiceScreen
                 formName={formName}
                 formCode={formCode}
@@ -106,6 +99,7 @@ export default function PaymentGate({
                 onDemo={() => { trackEvent('demo_click', formCode); onAccessGranted?.(true); triggerExit(() => setDemoMode(true)); }}
                 onPay={() => setMode('pay')}
                 onKey={() => setMode('key')}
+                onClose={onClose}
                 onProceed={() => { onAccessGranted?.(false); triggerExit(() => setDemoMode(true)); }}
               />
             </div>
@@ -153,6 +147,7 @@ function ChoiceScreen({
   onPay,
   onKey,
   onProceed,
+  onClose,
 }: {
   formName: string;
   formCode: string;
@@ -162,6 +157,7 @@ function ChoiceScreen({
   onPay: () => void;
   onKey: () => void;
   onProceed: () => void;
+  onClose?: () => void;
 }) {
   const logo = AGENCY_LOGO[agency];
 
@@ -179,21 +175,45 @@ function ChoiceScreen({
 
   return (
     <>
-      {/* Agency logo + form identity — visually dominant */}
-      <div className="text-center mb-5">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center mb-3">
-          {logo ? (
-            <Image src={logo.src} alt={agency} width={logo.w} height={logo.h} className="object-contain" />
-          ) : (
-            <span className="text-3xl" aria-hidden>📄</span>
-          )}
+      {/* Banner header — standard-banner.png as background, logo + agency on top */}
+      <div
+        className="relative w-full flex flex-col items-center justify-end pt-10 pb-5 px-6"
+        style={{
+          backgroundImage: `url('/standard-banner.png')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'top center',
+          minHeight: '160px',
+        }}
+        onError={undefined}
+      >
+        {/* Gradient overlay so text stays readable */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-white/80 rounded-t-3xl pointer-events-none" />
+        {/* Close button inside banner */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/20 hover:bg-black/30 text-white text-lg leading-none transition-colors"
+            aria-label="Close"
+          >×</button>
+        )}
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-16 h-16 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center mb-3">
+            {logo ? (
+              <Image src={logo.src} alt={agency} width={logo.w} height={logo.h} className="object-contain" />
+            ) : (
+              <span className="text-3xl" aria-hidden>📄</span>
+            )}
+          </div>
+          <p className="text-[11px] uppercase tracking-widest font-bold text-blue-600 mb-1">{formCode}</p>
+          <h2 className="text-base font-bold text-gray-900 leading-snug text-center">{formName}</h2>
         </div>
-        <p className="text-[11px] uppercase tracking-widest font-bold text-blue-500 mb-1">{formCode}</p>
-        <h2 className="text-base font-bold text-gray-900 leading-snug mb-4">{formName}</h2>
-        <p className="text-base font-semibold text-gray-500">How would you like to access?</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* Body */}
+      <div className="px-6 pt-4 pb-7 sm:px-8">
+        <p className="text-base font-semibold text-gray-500 text-center mb-5">How would you like to access?</p>
+
+        <div className="grid grid-cols-2 gap-3">
         {/* Demo */}
         <button
           type="button"
@@ -227,16 +247,17 @@ function ChoiceScreen({
             <span className="text-[10px] text-blue-500 text-center leading-tight">24-hr full access</span>
           </button>
         )}
-      </div>
+        </div>
 
-      <div className="mt-3 text-center">
-        <button
-          type="button"
-          onClick={onKey}
-          className="text-xs text-gray-400 hover:text-gray-600 underline-offset-4 hover:underline transition-colors"
-        >
-          I have a promo code.
-        </button>
+        <div className="mt-3 text-center">
+          <button
+            type="button"
+            onClick={onKey}
+            className="text-xs text-gray-400 hover:text-gray-600 underline-offset-4 hover:underline transition-colors"
+          >
+            I have a promo code.
+          </button>
+        </div>
       </div>
 
     </>
