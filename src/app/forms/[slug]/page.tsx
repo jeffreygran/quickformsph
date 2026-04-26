@@ -1850,6 +1850,7 @@ export default function FormWizardPage() {
           isDemoMode={isDemoMode}
           onDownload={handleLocalDownload}
           onBack={() => setMode('review')}
+          onSaveAndClose={() => { saveDraft(form.slug, values); router.push('/'); }}
           onCloseSession={() => {
             clearDraft(form.slug);
             router.push('/');
@@ -1859,6 +1860,7 @@ export default function FormWizardPage() {
           <SuccessCodeModal
             onDownloadAgain={handleLocalDownload}
             onClose={() => setShowSuccessModal(false)}
+            onSaveAndClose={() => { saveDraft(form.slug, values); router.push('/'); }}
             onCloseSession={() => { clearDraft(form.slug); router.push('/'); }}
           />
         )}
@@ -2545,6 +2547,7 @@ function PreviewScreen({
   isDemoMode,
   onDownload,
   onBack,
+  onSaveAndClose,
   onCloseSession,
 }: {
   form: FormSchema;
@@ -2552,6 +2555,7 @@ function PreviewScreen({
   isDemoMode: boolean;
   onDownload: () => void;
   onBack: () => void;
+  onSaveAndClose: () => void;
   onCloseSession: () => void;
 }) {
   const [lightbox, setLightbox] = useState(false);
@@ -2575,7 +2579,7 @@ function PreviewScreen({
           ? 'text-[10px] text-orange-400 bg-orange-400/10 border border-orange-400/30 px-2 py-1 rounded'
           : 'text-[10px] text-green-400 bg-green-400/10 border border-green-400/30 px-2 py-1 rounded'
         }>
-          {isDemoMode ? '[ Demo Mode ]' : '[ Paid Version ]'}
+          {isDemoMode ? '[ Demo Mode ]' : '[ Full Version ]'}
         </div>
       </header>
 
@@ -2643,6 +2647,14 @@ function PreviewScreen({
                 className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
               >
                 Clear &amp; Exit
+              </button>
+            </div>
+            <div className="mt-4 text-center">
+              <button
+                onClick={onSaveAndClose}
+                className="text-xs text-gray-400 hover:text-gray-600 underline-offset-4 hover:underline transition-colors"
+              >
+                Save as draft
               </button>
             </div>
           </div>
@@ -3350,10 +3362,12 @@ function VerifyingScreen({ screenshotUrl }: { screenshotUrl: string }) {
 function SuccessCodeModal({
   onDownloadAgain,
   onClose,
+  onSaveAndClose,
   onCloseSession,
 }: {
   onDownloadAgain: () => void;
   onClose: () => void;
+  onSaveAndClose: () => void;
   onCloseSession: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -3379,6 +3393,14 @@ function SuccessCodeModal({
               className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
             >
               Clear &amp; Exit
+            </button>
+          </div>
+          <div className="mt-4 text-center">
+            <button
+              onClick={onSaveAndClose}
+              className="text-xs text-gray-400 hover:text-gray-600 underline-offset-4 hover:underline transition-colors"
+            >
+              Save as draft
             </button>
           </div>
         </div>
