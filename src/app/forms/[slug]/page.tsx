@@ -2948,16 +2948,16 @@ function PaymentModal({
 
     // Upload Only mode — skip OCR, just save screenshot and get access token
     if (paymentMode === 'upload_only') {
-      try {
-        const res  = await fetch('/api/payment/upload-screenshot', { method: 'POST', body: fd });
-        const data = await res.json() as {
-          ok: boolean;
-          token?: string | null;
-          tokenExpiresAt?: number | null;
-          refNo?: string | null;
-          amount?: number | null;
-          error?: string;
-        };
+      type UploadResult = {
+        ok: boolean;
+        token?: string | null;
+        tokenExpiresAt?: number | null;
+        refNo?: string | null;
+        amount?: number | null;
+        error?: string;
+      };
+
+      const handleUploadResult = (data: UploadResult) => {
         if (data.ok && data.token && data.tokenExpiresAt && data.refNo) {
           setVerifiedMeta({
             token: data.token,
@@ -2970,6 +2970,57 @@ function PaymentModal({
           setVerifyErrors([data.error ?? 'Upload failed']);
           setFailCount(c => c + 1);
           setStep('failed');
+        }
+      };
+
+      try {
+        // Step 1: request a SAS URL (or detect local backend)
+        const sasRes = await fetch(
+          `/api/payment/upload-screenshot/sas?mimeType=${encodeURIComponent(file.type)}`,
+        );
+        const sasData = await sasRes.json() as {
+          ok: boolean;
+          backend?: 'azure' | 'local';
+          sasUrl?: string;
+          filename?: string;
+          error?: string;
+        };
+
+        if (!sasData.ok) {
+          setVerifyErrors([sasData.error ?? 'Upload failed']);
+          setFailCount(c => c + 1);
+          setStep('failed');
+          return;
+        }
+
+        if (sasData.backend === 'azure' && sasData.sasUrl && sasData.filename) {
+          // Step 2: upload directly to Azure Blob (bypasses App Service compute)
+          const putRes = await fetch(sasData.sasUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+              'Content-Type': file.type,
+              'x-ms-blob-type': 'BlockBlob',
+            },
+          });
+          if (!putRes.ok) {
+            setVerifyErrors(['Upload to storage failed. Please try again.']);
+            setFailCount(c => c + 1);
+            setStep('failed');
+            return;
+          }
+
+          // Step 3: confirm upload and get access token
+          const confirmRes = await fetch('/api/payment/confirm-upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: sasData.filename, amount: Math.max(amount, 5) }),
+          });
+          handleUploadResult(await confirmRes.json() as UploadResult);
+        } else {
+          // Local filesystem backend — fall back to proxy upload
+          const res = await fetch('/api/payment/upload-screenshot', { method: 'POST', body: fd });
+          handleUploadResult(await res.json() as UploadResult);
         }
       } catch {
         setVerifyErrors(['Could not reach server. Please try again.']);

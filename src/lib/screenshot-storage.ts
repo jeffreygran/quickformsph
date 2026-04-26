@@ -135,3 +135,61 @@ export async function deleteScreenshot(filename: string): Promise<boolean> {
   fs.unlinkSync(fullPath);
   return true;
 }
+
+/**
+ * Generate a short-lived write-only SAS URL for direct browser → Azure Blob upload.
+ * Returns null if storage backend is not Azure.
+ * Valid for 5 minutes, scoped to one blob.
+ */
+export function generateSasUrl(filename: string, mimeType: string): string | null {
+  const cfg = readStorageConfig();
+  if (cfg.backend !== 'azure' || !cfg.connectionString) return null;
+
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const {
+    generateBlobSASQueryParameters,
+    BlobSASPermissions,
+    StorageSharedKeyCredential,
+  } = require('@azure/storage-blob') as typeof import('@azure/storage-blob');
+
+  // Parse AccountName and AccountKey from connection string
+  const parts: Record<string, string> = {};
+  for (const segment of cfg.connectionString.split(';')) {
+    const eq = segment.indexOf('=');
+    if (eq > -1) parts[segment.slice(0, eq)] = segment.slice(eq + 1);
+  }
+  const accountName = parts['AccountName'];
+  const accountKey = parts['AccountKey'];
+  if (!accountName || !accountKey) return null;
+
+  const containerName = cfg.containerName ?? 'quickformsph';
+  const blobName = `${CONTAINER_SUBDIR}/${filename}`;
+  const expiresOn = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+  const credential = new StorageSharedKeyCredential(accountName, accountKey);
+  const sasToken = generateBlobSASQueryParameters(
+    {
+      containerName,
+      blobName,
+      permissions: BlobSASPermissions.parse('cw'), // create + write
+      expiresOn,
+      contentType: mimeType,
+    },
+    credential,
+  ).toString();
+
+  return `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}?${sasToken}`;
+}
+
+/** Verify a blob exists in Azure (used after SAS direct upload to confirm before issuing token). */
+export async function verifyBlobExists(filename: string): Promise<boolean> {
+  const azure = getAzureClient();
+  if (!azure) return false;
+  try {
+    const blobName = `${CONTAINER_SUBDIR}/${path.basename(filename)}`;
+    await azure.containerClient.getBlockBlobClient(blobName).getProperties();
+    return true;
+  } catch {
+    return false;
+  }
+}
