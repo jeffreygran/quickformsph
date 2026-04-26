@@ -90,7 +90,7 @@ export default function PaymentGate({
       <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
         <main className="flex-1 flex items-center justify-center px-4 py-6 overflow-hidden">
           <div className="w-full max-w-md">
-            <div className={`relative ${isExiting ? 'carousel-exit' : 'carousel-enter'} bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden`}>
+            <div className={`relative ${isExiting ? 'carousel-exit' : 'carousel-enter'} bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden flex flex-col`}>
               <ChoiceScreen
                 formName={formName}
                 formCode={formCode}
@@ -182,9 +182,9 @@ function ChoiceScreen({
           backgroundImage: `url('/standard-banner.png')`,
           backgroundSize: 'cover',
           backgroundPosition: 'top center',
-          minHeight: '200px',
+          minHeight: '250px',
           paddingTop: '28px',
-          paddingBottom: '20px',
+          paddingBottom: '24px',
         }}
       >
         {/* Gradient overlay — fades out before bottom so body text is never obscured */}
@@ -212,7 +212,7 @@ function ChoiceScreen({
       </div>
 
       {/* Body — always below banner, never overlapping */}
-      <div className="relative z-10 px-6 pt-3 pb-7 sm:px-8">
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-6 py-6 sm:px-8">
         <p className="text-[20px] font-semibold text-gray-500 text-center mb-5">How would you like to access?</p>
 
         <div className="grid grid-cols-2 gap-3">
