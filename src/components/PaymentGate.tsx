@@ -175,21 +175,19 @@ function ChoiceScreen({
 
   return (
     <>
-      {/* Banner header — standard-banner.png as background, logo + agency on top */}
+      {/* Banner — only logo inside the wave image */}
       <div
-        className="relative w-full flex flex-col items-center justify-center px-6"
+        className="relative w-full flex flex-col items-center justify-center"
         style={{
           backgroundImage: `url('/standard-banner.png')`,
           backgroundSize: 'cover',
           backgroundPosition: 'top center',
-          minHeight: '250px',
-          paddingTop: '28px',
-          paddingBottom: '24px',
+          minHeight: '160px',
+          paddingTop: '20px',
+          paddingBottom: '20px',
         }}
       >
-        {/* Gradient overlay — fades out before bottom so body text is never obscured */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/60 rounded-t-3xl pointer-events-none" />
-        {/* Close button */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-transparent rounded-t-3xl pointer-events-none" />
         {onClose && (
           <button
             onClick={onClose}
@@ -197,22 +195,25 @@ function ChoiceScreen({
             aria-label="Close"
           >×</button>
         )}
-        {/* Logo + form identity */}
-        <div className="relative z-10 flex flex-col items-center">
-          <div className="w-16 h-16 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center mb-3">
+        <div className="relative z-10">
+          <div className="w-16 h-16 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center">
             {logo ? (
               <Image src={logo.src} alt={agency} width={logo.w} height={logo.h} className="object-contain" />
             ) : (
               <span className="text-3xl" aria-hidden>📄</span>
             )}
           </div>
-          <p className="text-[11px] uppercase tracking-widest font-bold text-blue-600 mb-1">{formCode}</p>
-          <h2 className="text-base font-bold text-gray-900 leading-snug text-center">{formName}</h2>
         </div>
       </div>
 
-      {/* Body — always below banner, never overlapping */}
-      <div className="relative z-10 px-6 pt-5 pb-6 sm:px-8">
+      {/* Form identity — in white area, tight below banner */}
+      <div className="px-6 pt-3 pb-0 text-center">
+        <p className="text-[11px] uppercase tracking-widest font-bold text-blue-600 mb-0.5">{formCode}</p>
+        <h2 className="text-sm font-bold text-gray-900 leading-snug">{formName}</h2>
+      </div>
+
+      {/* Body */}
+      <div className="relative z-10 px-6 pt-4 pb-6 sm:px-8">
         <p className="text-[20px] font-semibold text-gray-500 text-center mb-5">How would you like to access?</p>
 
         <div className="grid grid-cols-2 gap-3">
