@@ -7,7 +7,7 @@ import { FORMS } from '@/data/forms';
 
 const IS_DEV = process.env.NEXT_PUBLIC_APP_ENV === 'dev';
 
-type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions' | 'refs' | 'security' | 'keys' | 'docs';
+type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions' | 'refs' | 'security' | 'keys' | 'docs' | 'referral';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('dashboard');
@@ -33,10 +33,11 @@ export default function AdminPage() {
     { id: 'upload',      icon: '⬆️', label: 'Upload PDF' },
     { id: 'storage',     icon: '💾', label: 'Storage Config' },
     { id: 'suggestions', icon: '💡', label: 'Suggestions' },
-    { id: 'refs',        icon: '🧾', label: 'Payment Refs' },
+    { id: 'refs',        icon: '🧾', label: 'Payments' },
     { id: 'settings',    icon: '⚙️', label: 'Settings' },
     { id: 'security',    icon: '🛡️', label: 'Security' },
     { id: 'keys',        icon: '🏷️', label: 'Promo Codes' },
+    { id: 'referral',    icon: '🤝', label: 'Referral Program' },
     { id: 'docs',        icon: '📚', label: 'Docs' },
   ];
 
@@ -134,6 +135,7 @@ export default function AdminPage() {
           {tab === 'settings'    && <SettingsTab />}
           {tab === 'security'    && <SecurityTab />}
           {tab === 'keys'        && <LicenseKeysTab />}
+          {tab === 'referral'    && <ReferralProgramTab />}
           {tab === 'docs'        && <DocsTab />}
         </main>
       </div>
@@ -598,7 +600,7 @@ function SettingsTab() {
   useEffect(() => {
     fetch('/api/admin/gcash-settings')
       .then(r => r.json())
-      .then((d: { gcash_number: string; gcash_name: string; qr_url: string | null }) => {
+      .then((d: { gcash_number: string; gcash_name: string; qr_url: string | null; payment_mode: 'process' | 'upload_only' }) => {
         setGcashNumber(d.gcash_number ?? '');
         setGcashName(d.gcash_name ?? '');
         setQrUrl(d.qr_url ?? null);
@@ -1001,117 +1003,276 @@ function SuggestionsTab() {
 
 // ─── PaymentRefsTab ───────────────────────────────────────────────────────────
 type RefEntry = { ref: string; usedAt: string | null };
+type Screenshot = { filename: string; size: number; uploadedAt: string; url: string };
 
 function PaymentRefsTab() {
-  const [refs, setRefs]       = useState<RefEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [flushing, setFlushing] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [mode, setMode]           = useState<'process' | 'upload_only'>('process');
+  const [modeLoading, setModeLoading] = useState(true);
+  const [modeSaving, setModeSaving]   = useState(false);
+
+  // Process Payment state
+  const [refs, setRefs]           = useState<RefEntry[]>([]);
+  const [loading, setLoading]     = useState(false);
+  const [flushing, setFlushing]   = useState(false);
+  const [deleting, setDeleting]   = useState<string | null>(null);
   const [storageDir, setStorageDir] = useState('');
 
-  async function load() {
+  // Upload Only state
+  const [screenshots, setScreenshots]   = useState<Screenshot[]>([]);
+  const [ssLoading, setSsLoading]       = useState(false);
+  const [deletingSs, setDeletingSs]     = useState<string | null>(null);
+  const [lightbox, setLightbox]         = useState<string | null>(null);
+
+  async function loadMode() {
+    setModeLoading(true);
+    const res = await fetch('/api/admin/payment-mode');
+    if (res.ok) {
+      const d = await res.json() as { payment_mode: 'process' | 'upload_only' };
+      setMode(d.payment_mode);
+      if (d.payment_mode === 'upload_only') loadScreenshots();
+      else loadRefs();
+    }
+    setModeLoading(false);
+  }
+
+  async function saveMode(newMode: 'process' | 'upload_only') {
+    setModeSaving(true);
+    await fetch('/api/admin/payment-mode', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_mode: newMode }),
+    });
+    setMode(newMode);
+    setModeSaving(false);
+    if (newMode === 'upload_only') loadScreenshots(); else loadRefs();
+  }
+
+  async function loadRefs() {
     setLoading(true);
     const res = await fetch('/api/admin/payment-refs');
     if (res.ok) {
       const data = await res.json() as { refs: RefEntry[]; dir: string };
-      setRefs(data.refs);
-      setStorageDir(data.dir);
+      setRefs(data.refs); setStorageDir(data.dir);
     }
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  async function loadScreenshots() {
+    setSsLoading(true);
+    const res = await fetch('/api/admin/payment-screenshots');
+    if (res.ok) {
+      const data = await res.json() as { screenshots: Screenshot[] };
+      setScreenshots(data.screenshots);
+    }
+    setSsLoading(false);
+  }
+
+  useEffect(() => { loadMode(); }, []);
 
   async function handleDelete(ref: string) {
     if (!confirm(`Delete ref ${ref}?`)) return;
     setDeleting(ref);
     await fetch('/api/admin/payment-refs', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ref }),
     });
-    setDeleting(null);
-    load();
+    setDeleting(null); loadRefs();
   }
 
   async function handleFlushAll() {
     if (!confirm(`Delete ALL ${refs.length} reference numbers? This allows them to be reused.`)) return;
     setFlushing(true);
     await fetch('/api/admin/payment-refs', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ all: true }),
     });
-    setFlushing(false);
-    load();
+    setFlushing(false); loadRefs();
   }
+
+  async function handleDeleteSs(filename: string) {
+    if (!confirm(`Delete screenshot ${filename}?`)) return;
+    setDeletingSs(filename);
+    await fetch('/api/admin/payment-screenshots', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename }),
+    });
+    setDeletingSs(null); loadScreenshots();
+  }
+
+  function fmtSize(bytes: number) {
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  }
+
+  if (modeLoading) return <div className="text-sm text-gray-400 py-10 text-center">Loading…</div>;
 
   return (
     <div className="space-y-5">
+      {/* Header + mode toggle */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Payment Ref Numbers</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Used GCash Ref No. records — {refs.length} stored</p>
-          {storageDir && <p className="text-[10px] text-gray-400 font-mono mt-0.5">{storageDir}</p>}
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={load}
-            disabled={loading}
-            className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-40"
-          >
-            🔄 Refresh
-          </button>
-          {refs.length > 0 && (
-            <button
-              onClick={handleFlushAll}
-              disabled={flushing}
-              className="text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-40"
-            >
-              {flushing ? 'Flushing…' : `🗑 Flush All (${refs.length})`}
-            </button>
-          )}
+          <h2 className="text-lg font-bold text-gray-900">💳 Payments</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Manage payment mode and records</p>
         </div>
       </div>
 
-      {loading ? (
-        <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>
-      ) : refs.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">
-          No used reference numbers yet.
+      {/* Mode toggle */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="text-xs font-semibold text-gray-600 mb-3">Payment Mode</div>
+        <div className="flex gap-3 flex-wrap">
+          {(['process', 'upload_only'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => saveMode(m)}
+              disabled={modeSaving}
+              className={`flex-1 min-w-[140px] rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-all ${
+                mode === m
+                  ? 'border-blue-600 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+              } disabled:opacity-50`}
+            >
+              {m === 'process' ? '🔍 Process Payment' : '📤 Upload Only'}
+              {mode === m && <span className="ml-2 text-[10px] font-bold bg-blue-600 text-white rounded-full px-1.5 py-0.5">ACTIVE</span>}
+            </button>
+          ))}
         </div>
-      ) : (
-        <div className="rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-xs">
-            <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider">
-              <tr>
-                <th className="px-4 py-2.5 text-left">Ref No.</th>
-                <th className="px-4 py-2.5 text-left">Used At</th>
-                <th className="px-4 py-2.5 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {refs.map((r) => (
-                <tr key={r.ref} className="hover:bg-gray-50">
-                  <td className="px-4 py-2.5 font-mono font-semibold text-gray-800">{r.ref}</td>
-                  <td className="px-4 py-2.5 text-gray-500">
-                    {r.usedAt
-                      ? new Date(r.usedAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <button
-                      onClick={() => handleDelete(r.ref)}
-                      disabled={deleting === r.ref}
-                      className="text-red-500 hover:text-red-700 border border-red-200 rounded-lg px-2.5 py-1 hover:bg-red-50 disabled:opacity-40"
-                    >
-                      {deleting === r.ref ? '…' : 'Delete'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+        <p className="text-[11px] text-gray-400 mt-2">
+          {mode === 'process'
+            ? 'GCash screenshot is verified via OCR — ref no., amount, and mobile number are validated.'
+            : 'Screenshot is saved without validation. User is granted access immediately after upload.'}
+        </p>
+      </div>
+
+      {/* Process Payment: Refs list */}
+      {mode === 'process' && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <div className="text-xs font-semibold text-gray-700">Used Ref Numbers <span className="text-gray-400 font-normal">— {refs.length} stored</span></div>
+              {storageDir && <p className="text-[10px] text-gray-400 font-mono mt-0.5">{storageDir}</p>}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={loadRefs} disabled={loading}
+                className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-40">
+                🔄 Refresh
+              </button>
+              {refs.length > 0 && (
+                <button onClick={handleFlushAll} disabled={flushing}
+                  className="text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 font-semibold disabled:opacity-40">
+                  {flushing ? 'Flushing…' : `🗑 Flush All (${refs.length})`}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>
+          ) : refs.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">
+              No used reference numbers yet.
+            </div>
+          ) : (
+            <div className="rounded-xl border border-gray-200 overflow-hidden">
+              <table className="w-full text-xs">
+                <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="px-4 py-2.5 text-left">Ref No.</th>
+                    <th className="px-4 py-2.5 text-left">Used At</th>
+                    <th className="px-4 py-2.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {refs.map((r) => (
+                    <tr key={r.ref} className="hover:bg-gray-50">
+                      <td className="px-4 py-2.5 font-mono font-semibold text-gray-800">{r.ref}</td>
+                      <td className="px-4 py-2.5 text-gray-500">
+                        {r.usedAt
+                          ? new Date(r.usedAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <button onClick={() => handleDelete(r.ref)} disabled={deleting === r.ref}
+                          className="text-red-500 hover:text-red-700 border border-red-200 rounded-lg px-2.5 py-1 hover:bg-red-50 disabled:opacity-40">
+                          {deleting === r.ref ? '…' : 'Delete'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
           </table>
+        </div>
+      )}
+        </div>
+      )}
+
+      {/* Upload Only: Screenshots list */}
+      {mode === 'upload_only' && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="text-xs font-semibold text-gray-700">
+              Payment Screenshots <span className="text-gray-400 font-normal">— {screenshots.length} uploaded</span>
+            </div>
+            <button onClick={loadScreenshots} disabled={ssLoading}
+              className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 disabled:opacity-40">
+              🔄 Refresh
+            </button>
+          </div>
+
+          {ssLoading ? (
+            <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>
+          ) : screenshots.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">
+              No screenshots uploaded yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {screenshots.map((s) => (
+                <div key={s.filename} className="rounded-xl border border-gray-200 overflow-hidden bg-white group relative">
+                  {/* Thumbnail */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={s.url}
+                    alt={s.filename}
+                    className="w-full aspect-[3/4] object-cover cursor-zoom-in bg-gray-100"
+                    onClick={() => setLightbox(s.url)}
+                  />
+                  <div className="p-2">
+                    <div className="text-[10px] text-gray-500 truncate">{s.filename}</div>
+                    <div className="text-[10px] text-gray-400 flex items-center justify-between gap-1 mt-0.5">
+                      <span>{fmtSize(s.size)}</span>
+                      <span>{new Date(s.uploadedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteSs(s.filename)}
+                    disabled={deletingSs === s.filename}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-600 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center disabled:opacity-40"
+                    title="Delete"
+                  >✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightbox(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox}
+            alt="Payment screenshot"
+            className="max-w-full max-h-full rounded-xl shadow-2xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 text-white text-lg font-bold hover:bg-white/20 flex items-center justify-center"
+            onClick={() => setLightbox(null)}
+          >✕</button>
         </div>
       )}
     </div>
@@ -1757,6 +1918,7 @@ function LicenseKeysTab() {
   const [loading, setLoading] = useState(true);
   const [count, setCount]     = useState(1);
   const [label, setLabel]     = useState('');
+  const [expiryHours, setExpiryHours] = useState<number | ''>('');
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [copied, setCopied]   = useState<string | null>(null);
@@ -1776,7 +1938,7 @@ function LicenseKeysTab() {
     await fetch('/api/admin/license-keys', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ count, label }),
+      body: JSON.stringify({ count, label, expiry_hours: expiryHours === '' ? null : expiryHours }),
     });
     setLabel('');
     setCount(1);
@@ -1835,6 +1997,17 @@ function LicenseKeysTab() {
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] text-gray-500">Expiry (hours, blank = never)</label>
+            <input
+              type="number"
+              min={1}
+              value={expiryHours}
+              onChange={(e) => setExpiryHours(e.target.value === '' ? '' : Math.max(1, Number(e.target.value)))}
+              placeholder="24"
+              className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
           <div className="flex flex-col justify-end">
             <button
               onClick={handleCreate}
@@ -1870,6 +2043,7 @@ function LicenseKeysTab() {
                 <th className="px-4 py-3 text-left">Key</th>
                 <th className="px-4 py-3 text-left">Label</th>
                 <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Expires</th>
                 <th className="px-4 py-3 text-left">Created</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -1885,6 +2059,11 @@ function LicenseKeysTab() {
                     ) : (
                       <span className="text-green-600 font-semibold">Available</span>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-gray-400">
+                    {(k as LicenseKeyRow & { expires_at?: number | null }).expires_at
+                      ? (() => { const diff = ((k as LicenseKeyRow & { expires_at?: number | null }).expires_at as number) - Date.now(); return diff <= 0 ? <span className="text-red-500">Expired</span> : <span>{Math.ceil(diff / 3600000)}h left</span>; })()
+                      : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-400">
                     {new Date(k.created_at).toLocaleDateString()}
@@ -1914,6 +2093,126 @@ function LicenseKeysTab() {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Referral Program Tab ─────────────────────────────────────────────────────
+function ReferralProgramTab() {
+  const [config, setConfig]       = useState<{ required_referrals: number; promo_expiry_hours: number } | null>(null);
+  const [stats, setStats]         = useState<{ email: string; count: number; earned_codes: number }[]>([]);
+  const [saving, setSaving]       = useState(false);
+  const [saveMsg, setSaveMsg]     = useState('');
+  const [reqVal, setReqVal]       = useState('');
+  const [expVal, setExpVal]       = useState('');
+
+  const load = () => {
+    fetch('/api/admin/referral-config').then((r) => r.json()).then((d) => {
+      setConfig(d);
+      setReqVal(String(d.required_referrals ?? 5));
+      setExpVal(String(d.promo_expiry_hours ?? 24));
+    });
+    fetch('/api/admin/referral-stats').then((r) => r.json()).then((d) => {
+      if (Array.isArray(d)) setStats(d);
+    });
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveMsg('');
+    const res = await fetch('/api/admin/referral-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ required_referrals: Number(reqVal), promo_expiry_hours: Number(expVal) }),
+    });
+    setSaving(false);
+    if (res.ok) { setSaveMsg('Saved!'); load(); setTimeout(() => setSaveMsg(''), 2000); }
+    else { setSaveMsg('Error saving.'); }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-bold text-gray-900">🤝 Referral Program</h2>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Configure how the referral program works and view referral stats.
+        </p>
+      </div>
+
+      {/* Config */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-gray-700">Program Settings</h3>
+        {!config ? (
+          <p className="text-sm text-gray-400">Loading…</p>
+        ) : (
+          <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-gray-500">Referrals needed for 1 promo code</label>
+              <input
+                type="number"
+                min={1}
+                value={reqVal}
+                onChange={(e) => setReqVal(e.target.value)}
+                className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-gray-500">Promo code expiry (hours)</label>
+              <input
+                type="number"
+                min={1}
+                value={expVal}
+                onChange={(e) => setExpVal(e.target.value)}
+                className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="flex flex-col justify-end">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="rounded-lg bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-bold text-sm px-5 py-2"
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+            {saveMsg && <div className="self-end text-xs text-green-600 font-semibold">{saveMsg}</div>}
+          </div>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-gray-700">Referrer Stats</h3>
+          <button onClick={load} className="text-xs text-blue-600 hover:underline">Refresh</button>
+        </div>
+        {stats.length === 0 ? (
+          <p className="text-sm text-gray-400">No referrals yet.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-gray-100">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 text-gray-500 uppercase tracking-wide">
+                <tr>
+                  <th className="px-4 py-3 text-left">Email</th>
+                  <th className="px-4 py-3 text-center">Referrals</th>
+                  <th className="px-4 py-3 text-center">Promo Codes Earned</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {stats.map((s) => (
+                  <tr key={s.email}>
+                    <td className="px-4 py-3 text-gray-700 font-medium">{s.email}</td>
+                    <td className="px-4 py-3 text-center font-bold text-blue-700">{s.count}</td>
+                    <td className="px-4 py-3 text-center font-bold text-green-700">{s.earned_codes}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
