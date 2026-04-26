@@ -184,7 +184,7 @@ function ChoiceScreen({
           backgroundPosition: 'top center',
           minHeight: '160px',
           paddingTop: '20px',
-          paddingBottom: '20px',
+          paddingBottom: '8px',
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-transparent rounded-t-3xl pointer-events-none" />
@@ -213,7 +213,7 @@ function ChoiceScreen({
       </div>
 
       {/* Body */}
-      <div className="relative z-10 px-6 pt-4 pb-6 sm:px-8">
+      <div className="relative z-10 px-6 pt-3 pb-6 sm:px-8">
         <p className="text-[20px] font-semibold text-gray-500 text-center mb-5">How would you like to access?</p>
 
         <div className="grid grid-cols-2 gap-3">
