@@ -220,30 +220,62 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
         <div className="w-full max-w-md mx-auto my-auto px-5 py-6">
           <div
             key={error ? 'error' : phase}
-            className="carousel-enter bg-white rounded-3xl shadow-xl border border-gray-100 px-6 py-7 sm:px-8 sm:py-9"
+            className="carousel-enter bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden"
           >
             {error ? (
-              <ErrorState message={error} onRetry={handleRetry} />
+              <div className="px-6 py-7 sm:px-8 sm:py-9">
+                <ErrorState message={error} onRetry={handleRetry} />
+              </div>
             ) : phase === 'downloading' ? (
-              <DownloadingState
-                formName={formName}
-                formCode={formCode}
-                progress={progress}
-                percent={percent}
-              />
+              <div className="px-6 py-7 sm:px-8 sm:py-9">
+                <DownloadingState
+                  formName={formName}
+                  formCode={formCode}
+                  progress={progress}
+                  percent={percent}
+                />
+              </div>
             ) : (
-              <ReadyState
-                formName={formName}
-                formCode={formCode}
-                consentChecked={consentChecked}
-                onConsentChange={setConsentChecked}
-                verifyOffline={verifyOffline}
-                onVerifyOfflineChange={setVerifyOffline}
-                onlineError={onlineError}
-                checking={checking}
-                checkAttempt={checkAttempt}
-                onStart={handleStart}
-              />
+              <>
+                {/* Banner image — top edge, full width */}
+                <div className="w-full">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/logos/programlocally-banner.png"
+                    alt="Program runs locally"
+                    className="w-full object-cover object-top"
+                    style={{ maxHeight: '180px' }}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      const fallback = e.currentTarget.nextElementSibling as HTMLElement | null;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                  {/* Fallback icon — hidden unless image fails */}
+                  <div className="hidden items-center justify-center py-6 bg-indigo-50">
+                    <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center shadow-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-9 h-9 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" />
+                        <path d="M8 21h8M12 17v4" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="px-6 py-6 sm:px-8">
+                  <ReadyState
+                    formName={formName}
+                    formCode={formCode}
+                    consentChecked={consentChecked}
+                    onConsentChange={setConsentChecked}
+                    verifyOffline={verifyOffline}
+                    onVerifyOfflineChange={setVerifyOffline}
+                    onlineError={onlineError}
+                    checking={checking}
+                    checkAttempt={checkAttempt}
+                    onStart={handleStart}
+                  />
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -344,13 +376,6 @@ function ReadyState({
     <>
       {/* Header */}
       <div className="text-center mb-5">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mb-3 shadow-sm">
-          {/* Computer / local device icon */}
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-9 h-9 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2" />
-            <path d="M8 21h8M12 17v4" />
-          </svg>
-        </div>
         <h2 id="local-mode-title" className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
           Program now runs locally
         </h2>
