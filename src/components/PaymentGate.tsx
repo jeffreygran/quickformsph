@@ -197,7 +197,7 @@ function ChoiceScreen({
           >×</button>
         )}
         {/* [A] Logo+Agency nudge-up: marginBottom lifts content toward top of banner */}
-        <div className="relative z-10 flex flex-col items-center" style={{ marginBottom: '90px' }}>
+        <div className="relative z-10 flex flex-col items-center" style={{ marginBottom: '16px' }}>
           <div className="w-16 h-16 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center mb-3">
             {logo ? (
               <Image src={logo.src} alt={agency} width={logo.w} height={logo.h} className="object-contain" />
@@ -211,13 +211,11 @@ function ChoiceScreen({
       </div>
 
       {/* Body */}
-      {/* [B] Body block nudge-up: marginTop pulls entire body up */}
-      <div className="px-6 pb-7 sm:px-8" style={{ marginTop: '-100px' }}>
-        {/* [B1] Title: text-lg = ~18px, was text-base ~16px */}
-        <p className="text-lg font-semibold text-gray-500 text-center mb-5">How would you like to access?</p>
+      {/* [B] Body nudge-up: pulls content up over banner bottom edge. Tune this single value. */}
+      <div className="px-6 pb-7 sm:px-8" style={{ marginTop: '-24px' }}>
+        {/* [B1] Title */}
+        <p className="text-lg font-semibold text-gray-700 text-center mb-5">How would you like to access?</p>
 
-        {/* [C] Buttons+promo nudge-up: negative marginTop */}
-        <div style={{ marginTop: '-70px' }}>
         <div className="grid grid-cols-2 gap-3">
         {/* Demo */}
         <button
@@ -263,7 +261,6 @@ function ChoiceScreen({
             I have a promo code.
           </button>
         </div>
-        </div>{/* end [C] buttons wrapper */}
       </div>
 
     </>
