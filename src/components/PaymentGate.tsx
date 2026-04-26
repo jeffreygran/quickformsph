@@ -207,7 +207,7 @@ function ChoiceScreen({
       </div>
 
       {/* Form identity — in white area, tight below banner */}
-      <div className="px-6 pt-3 pb-0 text-center">
+      <div className="px-6 pt-2 pb-0 text-center">
         <p className="text-[11px] uppercase tracking-widest font-bold text-blue-600 mb-0.5">{formCode}</p>
         <h2 className="text-sm font-bold text-gray-900 leading-snug">{formName}</h2>
       </div>
