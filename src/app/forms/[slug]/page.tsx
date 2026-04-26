@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getFormBySlug, FormField, FormSchema } from '@/data/forms';
+import { AUTOCOMPLETE_SOURCES, AutocompleteSource } from '@/data/autocomplete-sources';
 import LocalModeOverlay, { LocalModeBanner } from '@/components/LocalModeOverlay';
 import PaymentGate from '@/components/PaymentGate';
 import { fetchFormTemplateBytes } from '@/lib/local-mode';
@@ -195,7 +196,7 @@ export default function FormWizardPage() {
         perm_province: 'Metro Manila (NCR)', perm_zip: '1126',
         mail_same_as_above: '',
         mail_unit: 'Room 2', mail_building: 'MNL Suites', mail_lot: 'Lot 3',
-        mail_street: 'Taft Avenue', mail_subdivision: '',
+        mail_street: 'Taft Avenue', mail_subdivision: 'Ermita Heights',
         mail_barangay: 'Brgy. Ermita', mail_city: 'Manila',
         mail_province: 'Metro Manila (NCR)', mail_zip: '1000',
         mobile: '09171234567', home_phone: '028123-4567', email: 'juan.delacruz@gmail.com',
@@ -208,11 +209,13 @@ export default function FormWizardPage() {
         dep2_middle_name: 'REYES', dep2_relationship: 'Sister',
         dep2_dob: '09-14-1993', dep2_citizenship: 'Filipino',
         dep2_no_middle_name: '', dep2_mononym: '', dep2_disability: '',
-        dep3_last_name: '', dep3_first_name: '', dep3_name_ext: '',
-        dep3_middle_name: '', dep3_relationship: '', dep3_dob: '', dep3_citizenship: '',
+        dep3_last_name: 'DELA CRUZ', dep3_first_name: 'PEDRO', dep3_name_ext: 'Sr.',
+        dep3_middle_name: 'GARCIA', dep3_relationship: 'Father',
+        dep3_dob: '06-08-1960', dep3_citizenship: 'Filipino',
         dep3_no_middle_name: '', dep3_mononym: '', dep3_disability: '',
-        dep4_last_name: '', dep4_first_name: '', dep4_name_ext: '',
-        dep4_middle_name: '', dep4_relationship: '', dep4_dob: '', dep4_citizenship: '',
+        dep4_last_name: 'REYES', dep4_first_name: 'MARIA', dep4_name_ext: '',
+        dep4_middle_name: 'SANTOS', dep4_relationship: 'Mother',
+        dep4_dob: '12-20-1962', dep4_citizenship: 'Filipino',
         dep4_no_middle_name: '', dep4_mononym: '', dep4_disability: '',
         // ── Step 5: Member Type ──
         member_type: 'Employed Private', indirect_contributor: '',
@@ -233,15 +236,18 @@ export default function FormWizardPage() {
         mother_last_name: 'GARCIA', mother_first_name: 'LUCIA', mother_middle_name: 'VIDAL',
         spouse_last_name: 'SANTOS', spouse_first_name: 'PEDRO', spouse_middle_name: 'LIM',
         // ── Step 3: Address & Contact ──
+        // Sample B uses mail_same_as_above='true'. Because autoPopulate sets values
+        // directly (bypassing the handleChange auto-copy), we mirror perm_* into
+        // mail_* explicitly so every Step 3 field shows a value in the UI.
         perm_unit: 'Unit 3A', perm_building: 'Greenfield Residences', perm_lot: 'Blk 5 Lot 7',
         perm_street: 'Mabini Street', perm_subdivision: 'Greenfield Village',
         perm_barangay: 'Brgy. Poblacion', perm_city: 'Makati City',
         perm_province: 'Metro Manila (NCR)', perm_zip: '1210',
         mail_same_as_above: 'true',
-        mail_unit: '', mail_building: '', mail_lot: '',
-        mail_street: '', mail_subdivision: '',
-        mail_barangay: '', mail_city: '',
-        mail_province: '', mail_zip: '',
+        mail_unit: 'Unit 3A', mail_building: 'Greenfield Residences', mail_lot: 'Blk 5 Lot 7',
+        mail_street: 'Mabini Street', mail_subdivision: 'Greenfield Village',
+        mail_barangay: 'Brgy. Poblacion', mail_city: 'Makati City',
+        mail_province: 'Metro Manila (NCR)', mail_zip: '1210',
         mobile: '09281234567', home_phone: '028765-4321', email: 'anna.santos@gmail.com',
         // ── Step 4: Dependents ──
         dep1_last_name: 'SANTOS', dep1_first_name: 'PEDRO', dep1_name_ext: '',
@@ -256,8 +262,9 @@ export default function FormWizardPage() {
         dep3_middle_name: 'LIM', dep3_relationship: 'Child',
         dep3_dob: '03-18-2013', dep3_citizenship: 'Filipino',
         dep3_no_middle_name: '', dep3_mononym: '', dep3_disability: '',
-        dep4_last_name: '', dep4_first_name: '', dep4_name_ext: '',
-        dep4_middle_name: '', dep4_relationship: '', dep4_dob: '', dep4_citizenship: '',
+        dep4_last_name: 'GARCIA', dep4_first_name: 'LUCIA', dep4_name_ext: '',
+        dep4_middle_name: 'VIDAL', dep4_relationship: 'Mother',
+        dep4_dob: '08-10-1958', dep4_citizenship: 'Filipino',
         dep4_no_middle_name: '', dep4_mononym: '', dep4_disability: '',
         // ── Step 5: Member Type ──
         member_type: 'Self-Earning Individual', indirect_contributor: '',
@@ -284,11 +291,15 @@ export default function FormWizardPage() {
         contact_landline: '(02) 8123-4567', contact_mobile: '09171234567',
         contact_email: 'juan.delacruz@gmail.com',
         patient_is_member: 'Yes — I am the Patient',
-        // Step 4: Dependent (blank — patient is the member)
-        patient_pin: '', patient_last_name: '', patient_first_name: '',
-        patient_name_ext: '', patient_middle_name: '',
-        patient_dob_month: '', patient_dob_day: '', patient_dob_year: '',
-        patient_relationship: '', patient_sex: '',
+        // Step 4: Dependent Info — populated with the member's on-file registered
+        // dependent (his son). Even though the current claim's patient IS the member,
+        // the dependent block on the printed form shows the household's first
+        // registered dependent so QA can validate every field's alignment.
+        patient_pin: '345678901234',
+        patient_last_name: 'DELA CRUZ', patient_first_name: 'CARLO MIGUEL',
+        patient_name_ext: 'N/A', patient_middle_name: 'SANTOS',
+        patient_dob_month: '06', patient_dob_day: '12', patient_dob_year: '2018',
+        patient_relationship: 'Child', patient_sex: 'Male',
         // Step 5: Employer Certification
         employer_pen: '17-123456789-0', employer_contact: '(02) 8888-9999',
         employer_business_name: 'ABC COMPANY INC',
@@ -302,12 +313,12 @@ export default function FormWizardPage() {
         member_dob_month: '07', member_dob_day: '22', member_dob_year: '1985',
         member_sex: 'Female',
         // Step 2: Mailing Address
-        addr_unit: '', addr_building: 'Greenfield Residences', addr_lot: 'Blk 5 Lot 7',
+        addr_unit: 'Unit 3A', addr_building: 'Greenfield Residences', addr_lot: 'Blk 5 Lot 7',
         addr_street: 'Mabini Street', addr_subdivision: 'Greenfield Village',
         addr_barangay: 'Brgy. Poblacion', addr_city: 'Makati City',
         addr_province: 'Metro Manila (NCR)', addr_country: 'Philippines', addr_zip: '1210',
         // Step 3: Contact & Patient Type
-        contact_landline: '', contact_mobile: '09281234567',
+        contact_landline: '(02) 8765-4321', contact_mobile: '09281234567',
         contact_email: 'anna.santos@gmail.com',
         patient_is_member: 'No — Patient is a Dependent',
         // Step 4: Dependent (child)
@@ -316,8 +327,10 @@ export default function FormWizardPage() {
         patient_name_ext: 'N/A', patient_middle_name: 'GARCIA',
         patient_dob_month: '11', patient_dob_day: '02', patient_dob_year: '2010',
         patient_relationship: 'Child', patient_sex: 'Female',
-        // Step 5: Employer (blank — self-employed)
-        employer_pen: '', employer_contact: '', employer_business_name: '',
+        // Step 5: Employer Certification (self-employed \u2014 use her own DTI-registered
+        // single proprietorship details so every field has a value for QA)
+        employer_pen: '17-987654321-0', employer_contact: '(02) 8123-9876',
+        employer_business_name: 'ANNA M. SANTOS DESIGN STUDIO',
       },
     ];
 
@@ -345,25 +358,26 @@ export default function FormWizardPage() {
           transferred_hci_name: '', transferred_hci_bldg_street: '', transferred_hci_city: '', transferred_hci_province: '', transferred_hci_zip: '',
           reason_for_referral: '',
           accommodation_type: 'Non-Private (Charity/Service)',
-          admission_diagnosis_1: 'Acute Appendicitis', admission_diagnosis_2: '',
+          admission_diagnosis_1: 'Acute Appendicitis', admission_diagnosis_2: 'GENERALIZED ABDOMINAL PAIN',
           discharge_diagnosis_1: 'Appendicitis', discharge_icd10_1: 'K37', discharge_procedure_1: 'Appendectomy', discharge_rvs_1: '10060', discharge_procedure_date_1: '04/11/2026', discharge_laterality_1: 'N/A',
           discharge_diagnosis_2: '', discharge_icd10_2: '', discharge_procedure_2: '', discharge_rvs_2: '', discharge_procedure_date_2: '', discharge_laterality_2: 'N/A',
           discharge_diagnosis_3: '', discharge_icd10_3: '', discharge_procedure_3: '', discharge_rvs_3: '', discharge_procedure_date_3: '', discharge_laterality_3: 'N/A',
           discharge_diagnosis_4: '', discharge_icd10_4: '', discharge_procedure_4: '', discharge_rvs_4: '', discharge_procedure_date_4: '', discharge_laterality_4: 'N/A',
           discharge_diagnosis_5: '', discharge_icd10_5: '', discharge_procedure_5: '', discharge_rvs_5: '', discharge_procedure_date_5: '', discharge_laterality_5: 'N/A',
           discharge_diagnosis_6: '', discharge_icd10_6: '', discharge_procedure_6: '', discharge_rvs_6: '', discharge_procedure_date_6: '', discharge_laterality_6: 'N/A',
-          special_hemodialysis: '', special_peritoneal_dialysis: '', special_radiotherapy_linac: '', special_radiotherapy_cobalt: '', special_blood_transfusion: '', special_brachytherapy: '', special_chemotherapy: '', special_simple_debridement: '',
+          // Special Considerations — none applied for simple appendicitis; set all 8 dropdowns to 'No' so no field is left empty.
+          special_hemodialysis: 'No', special_peritoneal_dialysis: 'No', special_radiotherapy_linac: 'No', special_radiotherapy_cobalt: 'No', special_blood_transfusion: 'No', special_brachytherapy: 'No', special_chemotherapy: 'No', special_simple_debridement: 'No',
           zbenefit_package_code: '', mcp_dates: '', tbdots_intensive_phase: '', tbdots_maintenance_phase: '',
           animal_bite_arv_day1: '', animal_bite_arv_day2: '', animal_bite_arv_day3: '', animal_bite_rig: '', animal_bite_others: '',
           newborn_essential_care: '', newborn_hearing_screening: '', newborn_screening_test: '', hiv_lab_number: '',
           philhealth_benefit_first_case_rate: 'Appendectomy', philhealth_benefit_second_case_rate: '', philhealth_benefit_icd_rvs_code: 'K37 / 10060',
-          hcp1_accreditation_no: 'DR-2025-01234 — DR. RICARDO GOMEZ', hcp1_date_signed_month: '04', hcp1_date_signed_day: '15', hcp1_date_signed_year: '2026', hcp1_copay: '',
+          hcp1_accreditation_no: 'DR-2025-01234 — DR. RICARDO GOMEZ', hcp1_date_signed_month: '04', hcp1_date_signed_day: '15', hcp1_date_signed_year: '2026', hcp1_copay: '0',
           hcp2_accreditation_no: '', hcp2_date_signed_month: '', hcp2_date_signed_day: '', hcp2_date_signed_year: '', hcp2_copay: '',
           hcp3_accreditation_no: '', hcp3_date_signed_month: '', hcp3_date_signed_day: '', hcp3_date_signed_year: '', hcp3_copay: '',
           total_hci_fees: '35000', total_professional_fees: '8000', grand_total: '43000',
           total_actual_charges: '43000', discount_amount: '0', philhealth_benefit_amount: '18000', amount_after_philhealth: '25000',
-          hci_amount_paid_by: '25000', hci_paid_member_patient: '', hci_paid_hmo: '', hci_paid_others: '',
-          pf_amount_paid_by: '8000', pf_paid_member_patient: '', pf_paid_hmo: '', pf_paid_others: '',
+          hci_amount_paid_by: '25000', hci_paid_member_patient: '25000', hci_paid_hmo: '0', hci_paid_others: '0',
+          pf_amount_paid_by: '8000', pf_paid_member_patient: '8000', pf_paid_hmo: '0', pf_paid_others: '0',
           drug_purchase_none: '', drug_purchase_total_amount: '2500',
           diagnostic_purchase_none: '', diagnostic_purchase_total_amount: '3500',
         },
@@ -390,18 +404,19 @@ export default function FormWizardPage() {
           discharge_diagnosis_4: '', discharge_icd10_4: '', discharge_procedure_4: '', discharge_rvs_4: '', discharge_procedure_date_4: '', discharge_laterality_4: 'N/A',
           discharge_diagnosis_5: '', discharge_icd10_5: '', discharge_procedure_5: '', discharge_rvs_5: '', discharge_procedure_date_5: '', discharge_laterality_5: 'N/A',
           discharge_diagnosis_6: '', discharge_icd10_6: '', discharge_procedure_6: '', discharge_rvs_6: '', discharge_procedure_date_6: '', discharge_laterality_6: 'N/A',
-          special_hemodialysis: '', special_peritoneal_dialysis: '', special_radiotherapy_linac: '', special_radiotherapy_cobalt: '', special_blood_transfusion: '', special_brachytherapy: '', special_chemotherapy: '', special_simple_debridement: '',
+          // Special Considerations — not applicable to CAP; set all 8 dropdowns to 'No' (Z-Benefit covered separately).
+          special_hemodialysis: 'No', special_peritoneal_dialysis: 'No', special_radiotherapy_linac: 'No', special_radiotherapy_cobalt: 'No', special_blood_transfusion: 'No', special_brachytherapy: 'No', special_chemotherapy: 'No', special_simple_debridement: 'No',
           zbenefit_package_code: 'CAP-MR', mcp_dates: '', tbdots_intensive_phase: '', tbdots_maintenance_phase: '',
           animal_bite_arv_day1: '', animal_bite_arv_day2: '', animal_bite_arv_day3: '', animal_bite_rig: '', animal_bite_others: '',
           newborn_essential_care: '', newborn_hearing_screening: '', newborn_screening_test: '', hiv_lab_number: '',
-          philhealth_benefit_first_case_rate: 'CAP-MR', philhealth_benefit_second_case_rate: '', philhealth_benefit_icd_rvs_code: 'J18.9',
-          hcp1_accreditation_no: 'DR-2024-98765 — DR. ELENA REYES', hcp1_date_signed_month: '03', hcp1_date_signed_day: '28', hcp1_date_signed_year: '2026', hcp1_copay: '',
+          philhealth_benefit_first_case_rate: 'CAP-MR', philhealth_benefit_second_case_rate: 'Hypertension Stage 2', philhealth_benefit_icd_rvs_code: 'J18.9 / I10',
+          hcp1_accreditation_no: 'DR-2024-98765 — DR. ELENA REYES', hcp1_date_signed_month: '03', hcp1_date_signed_day: '28', hcp1_date_signed_year: '2026', hcp1_copay: '0',
           hcp2_accreditation_no: '', hcp2_date_signed_month: '', hcp2_date_signed_day: '', hcp2_date_signed_year: '', hcp2_copay: '',
           hcp3_accreditation_no: '', hcp3_date_signed_month: '', hcp3_date_signed_day: '', hcp3_date_signed_year: '', hcp3_copay: '',
           total_hci_fees: '28000', total_professional_fees: '6000', grand_total: '34000',
           total_actual_charges: '34000', discount_amount: '0', philhealth_benefit_amount: '16000', amount_after_philhealth: '18000',
-          hci_amount_paid_by: '18000', hci_paid_member_patient: '', hci_paid_hmo: '', hci_paid_others: '',
-          pf_amount_paid_by: '6000', pf_paid_member_patient: '', pf_paid_hmo: '', pf_paid_others: '',
+          hci_amount_paid_by: '18000', hci_paid_member_patient: '18000', hci_paid_hmo: '0', hci_paid_others: '0',
+          pf_amount_paid_by: '6000', pf_paid_member_patient: '6000', pf_paid_hmo: '0', pf_paid_others: '0',
           drug_purchase_none: '', drug_purchase_total_amount: '4500',
           diagnostic_purchase_none: '', diagnostic_purchase_total_amount: '2200',
         },
@@ -428,18 +443,20 @@ export default function FormWizardPage() {
           discharge_diagnosis_4: 'Anemia of CKD', discharge_icd10_4: 'D63.1', discharge_procedure_4: 'Blood Transfusion', discharge_rvs_4: '86950', discharge_procedure_date_4: '02/18/2026', discharge_laterality_4: 'N/A',
           discharge_diagnosis_5: '', discharge_icd10_5: '', discharge_procedure_5: '', discharge_rvs_5: '', discharge_procedure_date_5: '', discharge_laterality_5: 'N/A',
           discharge_diagnosis_6: '', discharge_icd10_6: '', discharge_procedure_6: '', discharge_rvs_6: '', discharge_procedure_date_6: '', discharge_laterality_6: 'N/A',
-          special_hemodialysis: '3', special_peritoneal_dialysis: '', special_radiotherapy_linac: '', special_radiotherapy_cobalt: '', special_blood_transfusion: '2', special_brachytherapy: '', special_chemotherapy: '', special_simple_debridement: '',
+          // Special Considerations — ESRD/HD applies + Blood Transfusion (anemia of CKD); all 8 dropdowns explicitly set.
+          // FIX 2026-04-26: previous values '3' and '2' were invalid for the No/Yes dropdown.
+          special_hemodialysis: 'Yes', special_peritoneal_dialysis: 'No', special_radiotherapy_linac: 'No', special_radiotherapy_cobalt: 'No', special_blood_transfusion: 'Yes', special_brachytherapy: 'No', special_chemotherapy: 'No', special_simple_debridement: 'No',
           zbenefit_package_code: 'ESRD-HD', mcp_dates: '', tbdots_intensive_phase: '', tbdots_maintenance_phase: '',
           animal_bite_arv_day1: '', animal_bite_arv_day2: '', animal_bite_arv_day3: '', animal_bite_rig: '', animal_bite_others: '',
           newborn_essential_care: '', newborn_hearing_screening: '', newborn_screening_test: '', hiv_lab_number: '',
           philhealth_benefit_first_case_rate: 'ESRD (HD)', philhealth_benefit_second_case_rate: 'Anemia of CKD', philhealth_benefit_icd_rvs_code: 'N18.6 / 90935',
-          hcp1_accreditation_no: 'DR-2025-11111 — DR. JOSE MENDOZA (Nephrologist)', hcp1_date_signed_month: '02', hcp1_date_signed_day: '28', hcp1_date_signed_year: '2026', hcp1_copay: '',
-          hcp2_accreditation_no: 'DR-2025-22222 — DR. LINDA TAN (Endocrinologist)', hcp2_date_signed_month: '02', hcp2_date_signed_day: '28', hcp2_date_signed_year: '2026', hcp2_copay: '',
-          hcp3_accreditation_no: 'DR-2025-33333 — DR. ROBERTO CRUZ (Hematologist)', hcp3_date_signed_month: '02', hcp3_date_signed_day: '28', hcp3_date_signed_year: '2026', hcp3_copay: '',
+          hcp1_accreditation_no: 'DR-2025-11111 — DR. JOSE MENDOZA (Nephrologist)', hcp1_date_signed_month: '02', hcp1_date_signed_day: '28', hcp1_date_signed_year: '2026', hcp1_copay: '5000',
+          hcp2_accreditation_no: 'DR-2025-22222 — DR. LINDA TAN (Endocrinologist)', hcp2_date_signed_month: '02', hcp2_date_signed_day: '28', hcp2_date_signed_year: '2026', hcp2_copay: '3000',
+          hcp3_accreditation_no: 'DR-2025-33333 — DR. ROBERTO CRUZ (Hematologist)', hcp3_date_signed_month: '02', hcp3_date_signed_day: '28', hcp3_date_signed_year: '2026', hcp3_copay: '2500',
           total_hci_fees: '95000', total_professional_fees: '18000', grand_total: '113000',
           total_actual_charges: '113000', discount_amount: '5000', philhealth_benefit_amount: '45000', amount_after_philhealth: '63000',
-          hci_amount_paid_by: '63000', hci_paid_member_patient: '', hci_paid_hmo: '', hci_paid_others: '',
-          pf_amount_paid_by: '18000', pf_paid_member_patient: '', pf_paid_hmo: '', pf_paid_others: '',
+          hci_amount_paid_by: '63000', hci_paid_member_patient: '40000', hci_paid_hmo: '20000', hci_paid_others: '3000',
+          pf_amount_paid_by: '18000', pf_paid_member_patient: '12000', pf_paid_hmo: '6000', pf_paid_others: '0',
           drug_purchase_none: '', drug_purchase_total_amount: '12500',
           diagnostic_purchase_none: '', diagnostic_purchase_total_amount: '8700',
         },
@@ -448,34 +465,69 @@ export default function FormWizardPage() {
       // ── PhilHealth PMRF (Foreign National) ───────────────────────────────
       'philhealth-pmrf-foreign-natl': [
         {
+          // ── Sample 1: American expat on work visa (ACR I-card),
+          // Married with spouse + 1 child as dependents. SRRV blank
+          // because not a retiree (ACR and SRRV are mutually exclusive
+          // visa bases — same logic as BIR-1904 foreign vs Filipino). ──
           philhealth_number: '22-0000001234', acr_icard_number: 'A12345678', pra_srrv_number: '',
           last_name: 'SMITH', first_name: 'JOHN WILLIAM', middle_name: 'ANDERSON',
-          sex: 'Male', nationality: 'American', dob_month: '09', dob_day: '14', dob_year: '1982',
+          sex: 'Male', nationality: 'AMERICAN', dob_month: '09', dob_day: '14', dob_year: '1982',
           civil_status: 'Married',
-          philippine_address_line1: '88 Legaspi St, Legaspi Village',
-          philippine_address_line2: 'Makati City, Metro Manila 1229',
-          contact_phone: '09171002020', email: 'j.smith@company.com.ph',
+          philippine_address_line1: '88 LEGASPI ST, LEGASPI VILLAGE',
+          philippine_address_line2: 'MAKATI CITY, METRO MANILA 1229',
+          contact_phone: '+63 917 100 2020', email: 'j.smith@company.com.ph',
+          // Step 3: 2 dependents filled (spouse + child) per ZERO-blanks rule.
+          dep1_last: 'SMITH', dep1_first: 'EMILY ROSE', dep1_middle: 'JOHNSON',
+          dep1_sex: 'F', dep1_relationship: 'Spouse', dep1_dob: '11/22/1985', dep1_nationality: 'AMERICAN',
+          dep2_last: 'SMITH', dep2_first: 'NATHAN JAMES', dep2_middle: 'ANDERSON',
+          dep2_sex: 'M', dep2_relationship: 'Child', dep2_dob: '05/18/2015', dep2_nationality: 'AMERICAN',
+          // dep3_*: blank — only 1 child in this persona.
+          dep3_last: '', dep3_first: '', dep3_middle: '',
+          dep3_sex: '', dep3_relationship: '', dep3_dob: '', dep3_nationality: '',
           signature_printed_name: 'JOHN WILLIAM ANDERSON SMITH', signature_date: new Date().toISOString().split('T')[0],
         },
         {
-          philhealth_number: '', acr_icard_number: 'B98765432', pra_srrv_number: 'SRRV-2022-00123',
+          // ── Sample 2: Japanese SRRV retiree, existing PhilHealth member
+          // renewing/updating. Married — spouse as sole dependent. middle_name
+          // blank because Japanese naming convention has no middle name. ──
+          philhealth_number: '22-1122334455',
+          acr_icard_number: 'B98765432', pra_srrv_number: 'SRRV-2022-00123',
           last_name: 'TANAKA', first_name: 'HIROSHI', middle_name: '',
-          sex: 'Male', nationality: 'Japanese', dob_month: '03', dob_day: '22', dob_year: '1975',
+          sex: 'Male', nationality: 'JAPANESE', dob_month: '03', dob_day: '22', dob_year: '1975',
           civil_status: 'Married',
-          philippine_address_line1: 'Unit 12F, One Bonifacio High Street',
-          philippine_address_line2: 'BGC, Taguig, Metro Manila 1634',
-          contact_phone: '09281112233', email: 'h.tanaka@jp-corp.ph',
+          philippine_address_line1: 'UNIT 12F, ONE BONIFACIO HIGH STREET',
+          philippine_address_line2: 'BGC, TAGUIG, METRO MANILA 1634',
+          contact_phone: '+63 928 111 2233', email: 'h.tanaka@jp-corp.ph',
+          // Step 3: 1 dependent (Japanese spouse, no PH-resident children).
+          dep1_last: 'TANAKA', dep1_first: 'AYUMI', dep1_middle: '',
+          dep1_sex: 'F', dep1_relationship: 'Spouse', dep1_dob: '07/14/1978', dep1_nationality: 'JAPANESE',
+          dep2_last: '', dep2_first: '', dep2_middle: '',
+          dep2_sex: '', dep2_relationship: '', dep2_dob: '', dep2_nationality: '',
+          dep3_last: '', dep3_first: '', dep3_middle: '',
+          dep3_sex: '', dep3_relationship: '', dep3_dob: '', dep3_nationality: '',
           signature_printed_name: 'HIROSHI TANAKA', signature_date: new Date().toISOString().split('T')[0],
         },
         {
-          // Full — all fields
+          // ── Sample 3: FULL — Spanish national, BOTH ACR I-card and SRRV
+          // (rare but valid: foreign retiree who also works), Single with all
+          // 3 dependent rows filled (parents + sibling) to exercise the full
+          // Step 3 dependent grid. ──
           philhealth_number: '22-9999888777', acr_icard_number: 'C11223344', pra_srrv_number: 'SRRV-2023-00456',
           last_name: 'GARCIA', first_name: 'MARIA ELENA', middle_name: 'RODRIGUEZ',
-          sex: 'Female', nationality: 'Spanish', dob_month: '06', dob_day: '15', dob_year: '1988',
+          sex: 'Female', nationality: 'SPANISH', dob_month: '06', dob_day: '15', dob_year: '1988',
           civil_status: 'Single',
-          philippine_address_line1: '32 Escolta Street, Binondo',
-          philippine_address_line2: 'Manila, Metro Manila 1006',
-          contact_phone: '09171234567', email: 'maria.garcia@eu-company.ph',
+          philippine_address_line1: '32 ESCOLTA STREET, BINONDO',
+          philippine_address_line2: 'MANILA, METRO MANILA 1006',
+          contact_phone: '+63 917 123 4567', email: 'maria.garcia@eu-company.ph',
+          // Step 3: 3 dependents filled (parents + sibling) — Single with no
+          // spouse/child, so qualified dependents are immediate family per
+          // PhilHealth Foreign National rules.
+          dep1_last: 'GARCIA', dep1_first: 'CARLOS ANTONIO', dep1_middle: 'MARTINEZ',
+          dep1_sex: 'M', dep1_relationship: 'Parent', dep1_dob: '02/10/1955', dep1_nationality: 'SPANISH',
+          dep2_last: 'RODRIGUEZ', dep2_first: 'ISABEL CARMEN', dep2_middle: 'LOPEZ',
+          dep2_sex: 'F', dep2_relationship: 'Parent', dep2_dob: '08/25/1958', dep2_nationality: 'SPANISH',
+          dep3_last: 'GARCIA', dep3_first: 'JAVIER LUIS', dep3_middle: 'RODRIGUEZ',
+          dep3_sex: 'M', dep3_relationship: 'Sibling', dep3_dob: '12/03/1990', dep3_nationality: 'SPANISH',
           signature_printed_name: 'MARIA ELENA RODRIGUEZ GARCIA', signature_date: new Date().toISOString().split('T')[0],
         },
       ],
@@ -487,7 +539,10 @@ export default function FormWizardPage() {
           member_pin: '123456789012', member_last_name: 'DELA CRUZ', member_first_name: 'JUAN ANDRES',
           member_ext_name: 'Jr.', member_middle_name: 'SANTOS',
           member_dob_month: '03', member_dob_day: '15', member_dob_year: '1990',
-          dependent_pin: '', patient_last_name: 'DELA CRUZ', patient_first_name: 'JUAN ANDRES',
+          // Patient is the member — "dependent_pin" prints the member's own PIN
+          // here so the cell is never blank. (Field is gated as "if applicable"
+          // but sits in the always-rendered Patient block.)
+          dependent_pin: '123456789012', patient_last_name: 'DELA CRUZ', patient_first_name: 'JUAN ANDRES',
           patient_ext_name: 'Jr.', patient_middle_name: 'SANTOS',
           relationship_to_member: 'Self',
           date_admitted_month: '04', date_admitted_day: '10', date_admitted_year: '2026',
@@ -509,8 +564,10 @@ export default function FormWizardPage() {
           date_admitted_month: '03', date_admitted_day: '22', date_admitted_year: '2026',
           date_discharged_month: '03', date_discharged_day: '28', date_discharged_year: '2026',
           patient_dob_month: '11', patient_dob_day: '02', patient_dob_year: '2010',
-          employer_pen: '', employer_contact_no: '', business_name: '',
-          employer_date_signed_month: '', employer_date_signed_day: '', employer_date_signed_year: '',
+          // Self-employed scenario — use member's own DTI-registered single
+          // proprietorship in the Employer block so every field is populated.
+          employer_pen: '17-987654321-0', employer_contact_no: '0281239876', business_name: 'ANNA M. SANTOS DESIGN STUDIO',
+          employer_date_signed_month: '03', employer_date_signed_day: '28', employer_date_signed_year: '2026',
           consent_date_signed_month: '03', consent_date_signed_day: '28', consent_date_signed_year: '2026',
         },
         {
@@ -533,18 +590,31 @@ export default function FormWizardPage() {
       ],
 
       // ── Pag-IBIG PFF-049 (MCIF) ──────────────────────────────────────────
+      // 3 samples × 38 fields × 5 steps. NOTE: PFF-049 is a "delta /
+      // change-of-information" form whose sections are MUTUALLY OPTIONAL by
+      // design ("Leave both blank if no category change", etc.). The
+      // ZERO-blanks rule does NOT apply at sample-level — filling every
+      // section in every sample would misrepresent the persona. Instead we
+      // ensure the FIELD UNIVERSE is covered across the 3 samples:
+      //   • Sample 1: marital change (Single → Married) + address change.
+      //   • Sample 2: marital change (Married → Widowed) + address change.
+      //   • Sample 3 (FULL): comprehensive-update persona — name change
+      //     (post-marriage), category change, DOB correction, marital
+      //     change, address change, AND others update (Place of Birth).
+      // Sections deliberately blank in 1/2 are documented in the doc.
       'pagibig-pff-049': [
         {
           mid_no: '1234-5678-9012', housing_account_no: '',
           loyalty_card_holder: 'No', loyalty_partner_bank: '',
           current_last_name: 'DELA CRUZ', current_first_name: 'JUAN ANDRES', current_ext_name: 'Jr.', current_middle_name: 'SANTOS',
+          // Category, name, DOB, others changes: not applicable for this persona.
           category_from: '', category_to: '',
-          name_from_last: '', name_from_first: '', name_from_ext: 'N/A', name_from_middle: '',
-          name_to_last: '', name_to_first: '', name_to_ext: 'N/A', name_to_middle: '',
+          name_from_last: '', name_from_first: '', name_from_ext: '', name_from_middle: '',
+          name_to_last: '', name_to_first: '', name_to_ext: '', name_to_middle: '',
           dob_from: '', dob_to: '',
           marital_from: 'Single', marital_to: 'Married',
           spouse_last_name: 'REYES', spouse_first_name: 'MARIA', spouse_ext_name: 'N/A', spouse_middle_name: 'GARCIA',
-          new_address_line: '123 Rizal St, Sampaloc', new_barangay: 'Brgy. 101', new_city: 'Manila', new_province: 'Metro Manila (NCR)', new_zip: '1008',
+          new_address_line: '123 RIZAL ST, SAMPALOC', new_barangay: 'BRGY. 101', new_city: 'MANILA', new_province: 'METRO MANILA (NCR)', new_zip: '1008',
           new_cell_phone: '09171234567', new_email: 'juan.delacruz@gmail.com',
           preferred_mailing: 'Present Home Address',
           others_from: '', others_to: '',
@@ -552,35 +622,53 @@ export default function FormWizardPage() {
         },
         {
           mid_no: '9876-5432-1098', housing_account_no: 'HL-2024-001234',
-          loyalty_card_holder: 'Yes', loyalty_partner_bank: 'BDO Unibank',
+          loyalty_card_holder: 'Yes', loyalty_partner_bank: 'BDO UNIBANK',
           current_last_name: 'SANTOS', current_first_name: 'ANNA MARIE', current_ext_name: 'N/A', current_middle_name: 'GARCIA',
           category_from: '', category_to: '',
-          name_from_last: '', name_from_first: '', name_from_ext: 'N/A', name_from_middle: '',
-          name_to_last: '', name_to_first: '', name_to_ext: 'N/A', name_to_middle: '',
+          name_from_last: '', name_from_first: '', name_from_ext: '', name_from_middle: '',
+          name_to_last: '', name_to_first: '', name_to_ext: '', name_to_middle: '',
           dob_from: '', dob_to: '',
           marital_from: 'Married', marital_to: 'Widowed',
+          // Spouse block intentionally blank — Widowed status (no current spouse to record).
           spouse_last_name: '', spouse_first_name: '', spouse_ext_name: 'N/A', spouse_middle_name: '',
-          new_address_line: 'Blk 5 Lot 7, Greenfield Village, Mabini St', new_barangay: 'Brgy. Poblacion', new_city: 'Makati City', new_province: 'Metro Manila (NCR)', new_zip: '1210',
+          new_address_line: 'BLK 5 LOT 7, GREENFIELD VILLAGE, MABINI ST', new_barangay: 'BRGY. POBLACION', new_city: 'MAKATI CITY', new_province: 'METRO MANILA (NCR)', new_zip: '1210',
           new_cell_phone: '09281234567', new_email: 'anna.santos@gmail.com',
           preferred_mailing: 'Permanent Home Address',
           others_from: '', others_to: '',
           signature_date: new Date().toISOString().split('T')[0],
         },
         {
-          // Full — name change + all categories
-          mid_no: '5555-6666-7777', housing_account_no: 'HL-2023-009876',
-          loyalty_card_holder: 'Yes', loyalty_partner_bank: 'BPI Family Savings Bank',
-          current_last_name: 'REYES', current_first_name: 'MARIA ELENA', current_ext_name: 'N/A', current_middle_name: 'GARCIA',
-          category_from: 'Employed', category_to: 'Self-Employed',
-          name_from_last: 'GARCIA', name_from_first: 'MARIA ELENA', name_from_ext: 'N/A', name_from_middle: 'VILLANUEVA',
-          name_to_last: 'REYES', name_to_first: 'MARIA ELENA', name_to_ext: 'N/A', name_to_middle: 'GARCIA',
-          dob_from: '06/15/1988', dob_to: '06/15/1988',
+          // ── Sample 3: FULL — comprehensive update post-marriage. Member is
+          // a married woman submitting a multi-section MCIF that includes:
+          //   • Category change (Employed Local → Self-Employed) — opened a
+          //     freelance graphic design business.
+          //   • Name change (post-marriage: REYES → CRUZ-REYES, retaining
+          //     maiden surname per RA 8525 hyphenation pattern).
+          //   • DOB correction (NSO/PSA recently issued corrected birth cert
+          //     fixing a typo: 1991 → 1990).
+          //   • Marital change (Single → Married — this is the trigger event).
+          //   • Address change (moved from Cebu to Quezon City after wedding).
+          //   • Others update (Place of Birth correction: Cebu → Cebu City).
+          // Exercises every Step 1-5 field family.
+          mid_no: '5678-9012-3456', housing_account_no: 'HL-2025-009876',
+          loyalty_card_holder: 'Yes', loyalty_partner_bank: 'BPI / METROBANK',
+          current_last_name: 'REYES', current_first_name: 'CARMELA NICOLE', current_ext_name: 'N/A', current_middle_name: 'BAUTISTA',
+          // Category change
+          category_from: 'Employed Local', category_to: 'Self-Employed',
+          // Name change (post-marriage hyphenation)
+          name_from_last: 'REYES', name_from_first: 'CARMELA NICOLE', name_from_ext: 'N/A', name_from_middle: 'BAUTISTA',
+          name_to_last: 'CRUZ-REYES', name_to_first: 'CARMELA NICOLE', name_to_ext: 'N/A', name_to_middle: 'BAUTISTA',
+          // DOB correction (PSA-issued corrected birth certificate)
+          dob_from: '08/14/1991', dob_to: '08/14/1990',
+          // Marital change (the triggering event)
           marital_from: 'Single', marital_to: 'Married',
-          spouse_last_name: 'REYES', spouse_first_name: 'CARLOS', spouse_ext_name: 'N/A', spouse_middle_name: 'SANTOS',
-          new_address_line: '32 Escolta St, Binondo', new_barangay: 'Brgy. 292', new_city: 'Manila', new_province: 'Metro Manila (NCR)', new_zip: '1006',
-          new_cell_phone: '09171112233', new_email: 'maria.reyes@biz.ph',
-          preferred_mailing: 'Employer/Business Address',
-          others_from: 'Government Employed', others_to: 'Private Self-Employed',
+          spouse_last_name: 'CRUZ', spouse_first_name: 'MIGUEL ANGELO', spouse_ext_name: 'III', spouse_middle_name: 'ALCANTARA',
+          // Address change (relocated to QC after wedding)
+          new_address_line: 'UNIT 12B, ONE EASTWOOD AVENUE TOWER 2, EASTWOOD CITY', new_barangay: 'BRGY. BAGUMBAYAN', new_city: 'QUEZON CITY', new_province: 'METRO MANILA (NCR)', new_zip: '1110',
+          new_cell_phone: '09175552020', new_email: 'carmela.cruz@designstudio.ph',
+          preferred_mailing: 'Present Home Address',
+          // Others update — Place of Birth correction (administrative/PSA)
+          others_from: 'Place of Birth: CEBU', others_to: 'Place of Birth: CEBU CITY, CEBU',
           signature_date: new Date().toISOString().split('T')[0],
         },
       ],
@@ -588,176 +676,236 @@ export default function FormWizardPage() {
       // ── Pag-IBIG SLF-089 (HELPs) ────────────────────────────────────────
       'pagibig-slf-089': [
         {
-          mid_no: '9876543210 98', application_no: '',
+          // ── Sample 1: Roberto Mendoza · Manila Electric Company senior
+          // engineer · educational loan for daughter's college tuition.
+          // Married male; permanent regular employee. Has 2 previous employers
+          // in his career history. ──
+          mid_no: '9876-5432-1098', application_no: '',
           last_name: 'MENDOZA', first_name: 'ROBERTO', ext_name: 'N/A', middle_name: 'LINDO', no_maiden_middle_name: '',
-          dob: '07/04/1980', place_of_birth: 'Manila, Metro Manila', mothers_maiden_name: 'LINDO, CECILIA SANTOS',
-          sex: 'Male', marital_status: 'Married', citizenship: 'Filipino', nationality: 'Filipino',
-          perm_unit: '', perm_street: '789 Tindalo St', perm_cell_phone: '09203334444', perm_home_tel: '028234-5678',
-          perm_subdivision: 'Sta. Mesa Heights', perm_barangay: 'Brgy. Sta. Mesa', perm_city: 'Manila', perm_province: 'Metro Manila (NCR)', perm_zip: '1016',
-          perm_email: 'roberto.mendoza@yahoo.com', perm_tin: '456-789-012',
-          pres_unit: 'Unit 3B', pres_street: 'Ortigas Ave', pres_employee_id: 'EMP-2022-001', pres_nature_of_work: 'Permanent',
-          pres_subdivision: 'Wack-Wack Village', pres_barangay: 'Brgy. Wack-Wack', pres_city: 'Mandaluyong', pres_province: 'Metro Manila (NCR)', pres_zip: '1550',
+          dob: '07/04/1980', place_of_birth: 'MANILA, METRO MANILA', mothers_maiden_name: 'LINDO, CECILIA SANTOS',
+          sex: 'Male', marital_status: 'Married', citizenship: 'FILIPINO', nationality: 'FILIPINO',
+          perm_unit: 'Lot 12 Block 3 House No. 789', perm_street: 'TINDALO ST', perm_cell_phone: '09203334444', perm_home_tel: '028234-5678',
+          perm_subdivision: 'STA. MESA HEIGHTS', perm_barangay: 'BRGY. STA. MESA', perm_city: 'MANILA', perm_province: 'METRO MANILA (NCR)', perm_zip: '1016',
+          perm_email: 'roberto.mendoza@yahoo.com', perm_tin: '456789012000',
+          pres_unit: 'Unit 3B', pres_street: 'ORTIGAS AVE', pres_employee_id: 'EMP-2022-001', pres_nature_of_work: 'Senior Electrical Engineer',
+          pres_subdivision: 'WACK-WACK VILLAGE', pres_barangay: 'BRGY. WACK-WACK', pres_city: 'MANDALUYONG', pres_province: 'METRO MANILA (NCR)', pres_zip: '1550',
           pres_sss_gsis: '34-5678901-2', pres_business_tel: '026321-9999',
-          employer_name: 'Manila Electric Company', date_of_employment: '06/01/2015',
+          employer_name: 'MANILA ELECTRIC COMPANY', date_of_employment: '06/01/2015',
           desired_loan_amount: '50000', loan_amount_type: 'Others (specify in Desired Amount)',
-          employer_address_line: 'Ortigas Ave', source_of_fund: 'Provident Fund',
-          employer_subdivision: 'Wack-Wack', employer_barangay: 'Brgy. Wack-Wack', employer_city: 'Mandaluyong', employer_province: 'Metro Manila (NCR)', employer_zip: '1550',
+          employer_address_line: 'MERALCO BUILDING, ORTIGAS AVE', source_of_fund: 'Provident Fund',
+          employer_subdivision: 'WACK-WACK', employer_barangay: 'BRGY. WACK-WACK', employer_city: 'MANDALUYONG', employer_province: 'METRO MANILA (NCR)', employer_zip: '1550',
           loan_purpose: 'Educational Expenses',
           beneficiary_last: 'MENDOZA', beneficiary_first: 'LORNA', beneficiary_ext: 'N/A', beneficiary_middle: 'SANTOS',
-          student_id_no: '2024-STU-001234', loan_term: '24 months',
+          student_id_no: '2024-STU-001234', loan_term: 'Twenty-four (24) Months',
           signature_date: new Date().toISOString().split('T')[0],
+          // Step 6 Previous Employment (2 of 3 rows filled per ZERO-blanks rule)
+          prev_emp1_name: 'PHILIPPINE LONG DISTANCE TELEPHONE COMPANY',
+          prev_emp1_address: 'RAMON COJUANGCO BUILDING, MAKATI AVENUE, MAKATI CITY',
+          prev_emp1_from: '06/05', prev_emp1_to: '05/15',
+          prev_emp2_name: 'NATIONAL POWER CORPORATION',
+          prev_emp2_address: 'NPC COMPLEX, AGHAM ROAD, BRGY. CENTRAL, QUEZON CITY',
+          prev_emp2_from: '06/02', prev_emp2_to: '05/05',
+          // Row 3 blank — only 2 prior employers in this persona's career history.
+          prev_emp3_name: '', prev_emp3_address: '', prev_emp3_from: '', prev_emp3_to: '',
         },
         {
-          mid_no: '1111222233 34', application_no: 'APP-2026-003456',
+          // ── Sample 2: Patricia Ann Garcia · BDO bank manager · medical loan
+          // for her own surgery. Single female. 1 previous employer. ──
+          mid_no: '1111-2222-3334', application_no: 'APP-2026-003456',
           last_name: 'GARCIA', first_name: 'PATRICIA ANN', ext_name: 'N/A', middle_name: 'REYES', no_maiden_middle_name: '',
-          dob: '03/18/1992', place_of_birth: 'Cebu City, Cebu', mothers_maiden_name: 'REYES, LINDA SANTOS',
-          sex: 'Female', marital_status: 'Single/Unmarried', citizenship: 'Filipino', nationality: 'Filipino',
-          perm_unit: 'Unit 2A', perm_street: 'Aurora Blvd', perm_cell_phone: '09162223333', perm_home_tel: '',
-          perm_subdivision: '', perm_barangay: 'Brgy. Cubao', perm_city: 'Quezon City', perm_province: 'Metro Manila (NCR)', perm_zip: '1109',
-          perm_email: 'p.garcia@work.com', perm_tin: '789-012-345',
-          pres_unit: '', pres_street: 'Ortigas Center', pres_employee_id: 'BD-2023-9876', pres_nature_of_work: 'Regular',
-          pres_subdivision: '', pres_barangay: 'Ortigas', pres_city: 'Pasig', pres_province: 'Metro Manila (NCR)', pres_zip: '1605',
+          dob: '03/18/1992', place_of_birth: 'CEBU CITY, CEBU', mothers_maiden_name: 'REYES, LINDA SANTOS',
+          sex: 'Female', marital_status: 'Single/Unmarried', citizenship: 'FILIPINO', nationality: 'FILIPINO',
+          perm_unit: 'Unit 2A', perm_street: 'AURORA BLVD', perm_cell_phone: '09162223333', perm_home_tel: '028123-4567',
+          perm_subdivision: 'CUBAO COMMERCIAL CENTER', perm_barangay: 'BRGY. CUBAO', perm_city: 'QUEZON CITY', perm_province: 'METRO MANILA (NCR)', perm_zip: '1109',
+          perm_email: 'p.garcia@work.com', perm_tin: '789012345000',
+          pres_unit: '15F BDO Corporate Center', pres_street: 'ORTIGAS CENTER', pres_employee_id: 'BD-2023-9876', pres_nature_of_work: 'Branch Manager — Retail Banking',
+          pres_subdivision: 'ORTIGAS BUSINESS DISTRICT', pres_barangay: 'BRGY. SAN ANTONIO', pres_city: 'PASIG', pres_province: 'METRO MANILA (NCR)', pres_zip: '1605',
           pres_sss_gsis: '11-2345678-9', pres_business_tel: '028840-7000',
-          employer_name: 'BDO Unibank Inc', date_of_employment: '01/15/2019',
+          employer_name: 'BDO UNIBANK INC.', date_of_employment: '01/15/2019',
           desired_loan_amount: '30000', loan_amount_type: 'Others (specify in Desired Amount)',
-          employer_address_line: 'BDO Corporate Center, Ortigas', source_of_fund: 'Provident Fund',
-          employer_subdivision: '', employer_barangay: 'Ortigas', employer_city: 'Pasig', employer_province: 'Metro Manila (NCR)', employer_zip: '1605',
+          employer_address_line: 'BDO CORPORATE CENTER, ORTIGAS', source_of_fund: 'Provident Fund',
+          employer_subdivision: 'ORTIGAS CENTER', employer_barangay: 'BRGY. SAN ANTONIO', employer_city: 'PASIG', employer_province: 'METRO MANILA (NCR)', employer_zip: '1605',
           loan_purpose: 'Medical Expenses',
           beneficiary_last: 'GARCIA', beneficiary_first: 'ELENA', beneficiary_ext: 'N/A', beneficiary_middle: 'REYES',
-          student_id_no: '', loan_term: '12 months',
+          // student_id_no blank — Medical loan, not Educational.
+          student_id_no: '', loan_term: 'Twelve (12) Months',
           signature_date: new Date().toISOString().split('T')[0],
+          // Step 6 Previous Employment (1 of 3 rows filled — early-career job)
+          prev_emp1_name: 'METROPOLITAN BANK & TRUST CO.',
+          prev_emp1_address: 'METROBANK PLAZA, GIL PUYAT AVE, MAKATI CITY',
+          prev_emp1_from: '06/14', prev_emp1_to: '12/18',
+          prev_emp2_name: '', prev_emp2_address: '', prev_emp2_from: '', prev_emp2_to: '',
+          prev_emp3_name: '', prev_emp3_address: '', prev_emp3_from: '', prev_emp3_to: '',
         },
         {
-          // Full — all fields
-          mid_no: '3333444455 56', application_no: 'APP-2026-007890',
+          // ── Sample 3: FULL — Carlo Miguel Villanueva Jr. · Davao bank
+          // executive · HMO loan for spouse + family. Married male with all
+          // 3 previous employer rows filled to fully exercise Step 6. ──
+          mid_no: '3333-4444-5556', application_no: 'APP-2026-007890',
           last_name: 'VILLANUEVA', first_name: 'CARLO MIGUEL', ext_name: 'Jr.', middle_name: 'NAVARRO', no_maiden_middle_name: '',
-          dob: '11/25/1987', place_of_birth: 'Davao City, Davao del Sur', mothers_maiden_name: 'NAVARRO, ROSA DELA CRUZ',
-          sex: 'Male', marital_status: 'Married', citizenship: 'Filipino', nationality: 'Filipino',
-          perm_unit: 'House 12', perm_street: 'Sampaguita St', perm_cell_phone: '09177778888', perm_home_tel: '0822234567',
-          perm_subdivision: 'Greenfield Subdivision', perm_barangay: 'Brgy. Mintal', perm_city: 'Davao City', perm_province: 'Davao del Sur', perm_zip: '8023',
-          perm_email: 'carlo.villanueva@corp.ph', perm_tin: '321-654-987',
-          pres_unit: '', pres_street: 'Torres St', pres_employee_id: 'EMP-CORP-0001', pres_nature_of_work: 'Permanent',
-          pres_subdivision: 'Bajada Commercial', pres_barangay: 'Brgy. Bajada', pres_city: 'Davao City', pres_province: 'Davao del Sur', pres_zip: '8000',
+          dob: '11/25/1987', place_of_birth: 'DAVAO CITY, DAVAO DEL SUR', mothers_maiden_name: 'NAVARRO, ROSA DELA CRUZ',
+          sex: 'Male', marital_status: 'Married', citizenship: 'FILIPINO', nationality: 'FILIPINO',
+          perm_unit: 'House 12 Block 4', perm_street: 'SAMPAGUITA ST', perm_cell_phone: '09177778888', perm_home_tel: '0822234567',
+          perm_subdivision: 'GREENFIELD SUBDIVISION', perm_barangay: 'BRGY. MINTAL', perm_city: 'DAVAO CITY', perm_province: 'DAVAO DEL SUR', perm_zip: '8023',
+          perm_email: 'carlo.villanueva@corp.ph', perm_tin: '321654987000',
+          pres_unit: '5F SPB Tower', pres_street: 'TORRES ST', pres_employee_id: 'EMP-CORP-0001', pres_nature_of_work: 'Vice President — Operations',
+          pres_subdivision: 'BAJADA COMMERCIAL', pres_barangay: 'BRGY. BAJADA', pres_city: 'DAVAO CITY', pres_province: 'DAVAO DEL SUR', pres_zip: '8000',
           pres_sss_gsis: '34-1122334-5', pres_business_tel: '0822345678',
-          employer_name: 'Southern Philippine Bank', date_of_employment: '03/01/2012',
-          desired_loan_amount: '80000', loan_amount_type: 'Others (specify in Desired Amount)',
-          employer_address_line: 'Magsaysay Ave', source_of_fund: 'Savings',
-          employer_subdivision: 'Poblacion District', employer_barangay: 'Brgy. Poblacion', employer_city: 'Davao City', employer_province: 'Davao del Sur', employer_zip: '8000',
+          employer_name: 'SOUTHERN PHILIPPINE BANK',
+          date_of_employment: '03/01/2012',
+          desired_loan_amount: '80000', loan_amount_type: 'Maximum Loan Amount',
+          employer_address_line: 'SPB TOWER, MAGSAYSAY AVE', source_of_fund: 'Savings',
+          employer_subdivision: 'POBLACION DISTRICT', employer_barangay: 'BRGY. POBLACION', employer_city: 'DAVAO CITY', employer_province: 'DAVAO DEL SUR', employer_zip: '8000',
           loan_purpose: 'Healthcare Plan from accredited HMO',
           beneficiary_last: 'VILLANUEVA', beneficiary_first: 'DIANA ROSE', beneficiary_ext: 'N/A', beneficiary_middle: 'NAVARRO',
-          student_id_no: '', loan_term: '36 months',
+          student_id_no: '', // HMO loan, not Educational
+          loan_term: 'Thirty-six (36) Months',
           signature_date: new Date().toISOString().split('T')[0],
+          // Step 6 Previous Employment (ALL 3 rows filled per FULL persona)
+          prev_emp1_name: 'BANK OF THE PHILIPPINE ISLANDS',
+          prev_emp1_address: 'BPI HEAD OFFICE, AYALA AVENUE, MAKATI CITY',
+          prev_emp1_from: '06/09', prev_emp1_to: '02/12',
+          prev_emp2_name: 'PHILAM LIFE INSURANCE COMPANY',
+          prev_emp2_address: 'PHILAM LIFE BUILDING, UN AVENUE, ERMITA, MANILA',
+          prev_emp2_from: '06/06', prev_emp2_to: '05/09',
+          prev_emp3_name: 'SAN MIGUEL CORPORATION',
+          prev_emp3_address: 'SMC HEAD OFFICE, ORTIGAS AVENUE, MANDALUYONG CITY',
+          prev_emp3_from: '06/03', prev_emp3_to: '05/06',
         },
       ],
 
       // ── Pag-IBIG SLF-065 (Multi-Purpose Loan) ───────────────────────────
       'pagibig-slf-065': [
         {
-          mid_no: '555566667777', application_no: '',
+          // ── Sample A: Patricia Ann R. Garcia · BDO Branch Manager · Single
+          // · Health & wellness loan (gym membership + annual exec checkup) ──
+          mid_no: '5555-6666-7777', application_no: '',
           last_name: 'GARCIA', first_name: 'PATRICIA ANN', ext_name: 'N/A', middle_name: 'REYES', no_maiden_middle_name: '',
-          dob: '03/18/1992', place_of_birth: 'Quezon City, Metro Manila', mothers_maiden_name: 'REYES, LINDA SANTOS',
-          nationality: 'Filipino', sex: 'Female', marital_status: 'Single/Unmarried', citizenship: 'Filipino',
+          dob: '03/18/1992', place_of_birth: 'QUEZON CITY, METRO MANILA', mothers_maiden_name: 'REYES, LINDA SANTOS',
+          nationality: 'FILIPINO', sex: 'Female', marital_status: 'Single/Unmarried', citizenship: 'FILIPINO',
           email: 'p.garcia@work.com',
-          perm_unit: 'Unit 2A', perm_cell_phone: '09162223333', perm_home_tel: '',
-          perm_street: 'Aurora Blvd', perm_subdivision: '', perm_barangay: 'Brgy. Cubao', perm_city: 'Quezon City', perm_province: 'Metro Manila (NCR)', perm_zip: '1109',
-          perm_tin: '789-012-345', perm_sss_gsis: '11-2345678-9',
-          pres_unit: '', pres_business_tel: '028840-7000', pres_nature_of_work: 'Regular',
-          pres_street: 'BDO Corporate Center Ortigas', pres_subdivision: '', pres_barangay: 'Ortigas', pres_city: 'Pasig', pres_province: 'Metro Manila (NCR)', pres_zip: '1605',
-          loan_term: '24 months', desired_loan_amount: '80000',
-          employer_name: 'BDO Unibank Inc', loan_purpose: 'Healthcare Plan from accredited HMO',
-          employer_address_line: 'BDO Corporate Center, Ortigas', employer_subdivision: '', employer_barangay: 'Ortigas', employer_city: 'Pasig', employer_province: 'Metro Manila (NCR)', employer_zip: '1605',
+          perm_unit: 'Unit 2A', perm_cell_phone: '09162223333', perm_home_tel: '028123-4567',
+          perm_street: 'AURORA BLVD', perm_subdivision: 'CUBAO COMMERCIAL CENTER', perm_barangay: 'BRGY. CUBAO', perm_city: 'QUEZON CITY', perm_province: 'METRO MANILA (NCR)', perm_zip: '1109',
+          perm_tin: '789012345000', perm_sss_gsis: '11-2345678-9',
+          pres_unit: '15F BDO Corporate Center', pres_business_tel: '028840-7000', pres_nature_of_work: 'Branch Manager — Retail Banking',
+          pres_street: 'ORTIGAS CENTER', pres_subdivision: 'ORTIGAS BUSINESS DISTRICT', pres_barangay: 'BRGY. SAN ANTONIO', pres_city: 'PASIG', pres_province: 'METRO MANILA (NCR)', pres_zip: '1605',
+          loan_term: 'Two (2) Years', desired_loan_amount: '80000',
+          employer_name: 'BDO UNIBANK INC.', loan_purpose: 'Health & wellness',
+          employer_address_line: 'BDO CORPORATE CENTER, ORTIGAS', employer_subdivision: 'ORTIGAS CENTER', employer_barangay: 'BRGY. SAN ANTONIO', employer_city: 'PASIG', employer_province: 'METRO MANILA (NCR)', employer_zip: '1605',
           employee_id_no: 'BD-2023-9876', date_of_employment: '01/15/2019',
-          source_of_fund: 'Provident Fund', payroll_bank_name: 'BDO Unibank — Ortigas Branch',
+          source_of_fund: 'Salary', payroll_bank_name: 'BDO Unibank — Ortigas Branch',
           signature_date: new Date().toISOString().split('T')[0],
+          source_of_referral: 'Employer/Fund Coordinator',
         },
         {
-          mid_no: '888899990001', application_no: 'APP-2026-011234',
+          // ── Sample B: Mario Jose D. Torres · Cebu Pacific First Officer
+          // (Pilot) · Married · Vacation/travel loan (family Japan trip) ──
+          mid_no: '8888-9999-0001', application_no: 'APP-2026-011234',
           last_name: 'TORRES', first_name: 'MARIO JOSE', ext_name: 'N/A', middle_name: 'DELA VEGA', no_maiden_middle_name: '',
-          dob: '09/25/1985', place_of_birth: 'Cebu City, Cebu', mothers_maiden_name: 'DELA VEGA, CARLA SANTOS',
-          nationality: 'Filipino', sex: 'Male', marital_status: 'Married', citizenship: 'Filipino',
+          dob: '09/25/1985', place_of_birth: 'CEBU CITY, CEBU', mothers_maiden_name: 'DELA VEGA, CARLA SANTOS',
+          nationality: 'FILIPINO', sex: 'Male', marital_status: 'Married', citizenship: 'FILIPINO',
           email: 'mario.torres@cebu.ph',
-          perm_unit: 'House 3', perm_cell_phone: '09221112222', perm_home_tel: '0322345678',
-          perm_street: '12 Sampaguita St', perm_subdivision: 'Cebu Village', perm_barangay: 'Brgy. Camputhaw', perm_city: 'Cebu City', perm_province: 'Cebu', perm_zip: '6000',
-          perm_tin: '654-321-098', perm_sss_gsis: '34-9876543-2',
-          pres_unit: '', pres_business_tel: '0322234567', pres_nature_of_work: 'Regular',
-          pres_street: 'Jones Ave', pres_subdivision: '', pres_barangay: 'Brgy. Kamputhaw', pres_city: 'Cebu City', pres_province: 'Cebu', pres_zip: '6000',
-          loan_term: '36 months', desired_loan_amount: '120000',
-          employer_name: 'Cebu Pacific Air', loan_purpose: 'Healthcare Plan from accredited HMO',
-          employer_address_line: 'MIA Road, Pasay City', employer_subdivision: '', employer_barangay: 'Brgy. 183', employer_city: 'Pasay', employer_province: 'Metro Manila (NCR)', employer_zip: '1300',
+          perm_unit: 'House 3 Lot 15', perm_cell_phone: '09221112222', perm_home_tel: '0322345678',
+          perm_street: '12 SAMPAGUITA ST', perm_subdivision: 'CEBU VILLAGE', perm_barangay: 'BRGY. CAMPUTHAW', perm_city: 'CEBU CITY', perm_province: 'CEBU', perm_zip: '6000',
+          perm_tin: '654321098000', perm_sss_gsis: '34-9876543-2',
+          pres_unit: 'Unit 12B Crew Quarters', pres_business_tel: '0322234567', pres_nature_of_work: 'First Officer (Commercial Pilot) — A320 Fleet',
+          pres_street: 'JONES AVE', pres_subdivision: 'KAMPUTHAW DISTRICT', pres_barangay: 'BRGY. KAMPUTHAW', pres_city: 'CEBU CITY', pres_province: 'CEBU', pres_zip: '6000',
+          loan_term: 'Three (3) Years', desired_loan_amount: '120000',
+          employer_name: 'CEBU PACIFIC AIR', loan_purpose: 'Vacation / travel',
+          employer_address_line: 'MIA ROAD, PASAY CITY', employer_subdivision: 'NAIA COMPLEX', employer_barangay: 'BRGY. 183', employer_city: 'PASAY', employer_province: 'METRO MANILA (NCR)', employer_zip: '1300',
           employee_id_no: 'CEB-2018-4567', date_of_employment: '06/01/2018',
-          source_of_fund: 'Savings', payroll_bank_name: 'BPI — Cebu City Branch',
+          source_of_fund: 'Salary', payroll_bank_name: 'BPI — Cebu City Branch',
           signature_date: new Date().toISOString().split('T')[0],
+          source_of_referral: 'Pag-IBIG Fund Website',
         },
         {
-          // Full — all fields
-          mid_no: '111122223334', application_no: 'APP-2026-099999',
+          // ── Sample C: FULL — Diana Rose E. Navarro · Southern Philippine
+          // Bank VP · Married · Tuition/Educational loan for 2 kids in college ──
+          mid_no: '1111-2222-3334', application_no: 'APP-2026-099999',
           last_name: 'NAVARRO', first_name: 'DIANA ROSE', ext_name: 'N/A', middle_name: 'ESPIRITU', no_maiden_middle_name: '',
-          dob: '04/12/1979', place_of_birth: 'Davao City, Davao del Sur', mothers_maiden_name: 'ESPIRITU, NORA SANTOS',
-          nationality: 'Filipino', sex: 'Female', marital_status: 'Married', citizenship: 'Filipino',
+          dob: '04/12/1979', place_of_birth: 'DAVAO CITY, DAVAO DEL SUR', mothers_maiden_name: 'ESPIRITU, NORA SANTOS',
+          nationality: 'FILIPINO', sex: 'Female', marital_status: 'Married', citizenship: 'FILIPINO',
           email: 'diana.navarro@southbank.ph',
           perm_unit: 'Unit 4C', perm_cell_phone: '09257778888', perm_home_tel: '0822227777',
-          perm_street: '100 Sampaguita Ave', perm_subdivision: 'Poblacion Heights', perm_barangay: 'Brgy. Poblacion', perm_city: 'Davao City', perm_province: 'Davao del Sur', perm_zip: '8000',
-          perm_tin: '321-654-099', perm_sss_gsis: '34-9876543-9',
-          pres_unit: '', pres_business_tel: '0822234560', pres_nature_of_work: 'Permanent',
-          pres_street: 'Magsaysay Ave', pres_subdivision: '', pres_barangay: 'Brgy. Poblacion', pres_city: 'Davao City', pres_province: 'Davao del Sur', pres_zip: '8000',
-          loan_term: '48 months', desired_loan_amount: '200000',
-          employer_name: 'Southern Philippine Bank', loan_purpose: 'Healthcare Plan from accredited HMO',
-          employer_address_line: 'Magsaysay Ave, Davao City', employer_subdivision: '', employer_barangay: 'Brgy. Poblacion', employer_city: 'Davao City', employer_province: 'Davao del Sur', employer_zip: '8000',
+          perm_street: '100 SAMPAGUITA AVE', perm_subdivision: 'POBLACION HEIGHTS', perm_barangay: 'BRGY. POBLACION', perm_city: 'DAVAO CITY', perm_province: 'DAVAO DEL SUR', perm_zip: '8000',
+          perm_tin: '321654099000', perm_sss_gsis: '34-9876543-9',
+          pres_unit: '8F SPB Tower', pres_business_tel: '0822234560', pres_nature_of_work: 'Vice President — Branch Operations',
+          pres_street: 'MAGSAYSAY AVE', pres_subdivision: 'POBLACION COMMERCIAL DISTRICT', pres_barangay: 'BRGY. POBLACION', pres_city: 'DAVAO CITY', pres_province: 'DAVAO DEL SUR', pres_zip: '8000',
+          // loan_term capped at 3 years for SLF-065 (was '48 months' — invalid, max is Three (3) Years)
+          loan_term: 'Three (3) Years', desired_loan_amount: '200000',
+          employer_name: 'SOUTHERN PHILIPPINE BANK', loan_purpose: 'Tuition / Educational Expenses',
+          employer_address_line: 'SPB TOWER, MAGSAYSAY AVE', employer_subdivision: 'POBLACION COMMERCIAL DISTRICT', employer_barangay: 'BRGY. POBLACION', employer_city: 'DAVAO CITY', employer_province: 'DAVAO DEL SUR', employer_zip: '8000',
           employee_id_no: 'SPB-2005-00123', date_of_employment: '03/01/2005',
-          source_of_fund: 'Provident Fund', payroll_bank_name: 'Southern Philippine Bank — Main Branch',
+          source_of_fund: 'Salary', payroll_bank_name: 'Southern Philippine Bank — Main Branch',
           signature_date: new Date().toISOString().split('T')[0],
+          source_of_referral: 'Referral',
         },
       ],
 
       // ── Pag-IBIG HLF-868 (HEAL Co-Borrower) ─────────────────────────────
       'pagibig-hlf-868': [
         {
-          mid_no: '333344445555', housing_account_no: 'HL-2024-000123',
+          // ── Sample A: Mark Christian Torres · Spouse co-borrower (50%
+          // share) · Married civil engineer at family construction firm ──
+          mid_no: '3333-4444-5555', housing_account_no: 'HL-2024-000123',
           last_name: 'TORRES', first_name: 'MARK CHRISTIAN', ext_name: 'N/A', middle_name: 'DELA VEGA', maiden_middle_name: '',
-          dob: '09/25/1983', citizenship: 'Filipino', proportionate_share: '50',
-          perm_unit: '', perm_street: '12 Sampaguita St', perm_subdivision: 'Primavera Residences', perm_barangay: 'Brgy. Sta. Cruz', perm_city: 'Antipolo', perm_province: 'Rizal', perm_zip: '1870',
-          perm_country_tel: '', perm_home_tel: '028123-4567',
-          pres_unit: '', pres_street: '12 Sampaguita St', pres_subdivision: 'Primavera Residences', pres_barangay: 'Brgy. Sta. Cruz', pres_city: 'Antipolo', pres_province: 'Rizal', pres_zip: '1870',
+          dob: '09/25/1983', citizenship: 'FILIPINO', proportionate_share: '50',
+          sex: 'Male', marital_status: 'Married', relationship_to_principal: 'Spouse',
+          perm_unit: 'House 4 Block 2', perm_street: '12 SAMPAGUITA ST', perm_subdivision: 'PRIMAVERA RESIDENCES', perm_barangay: 'BRGY. STA. CRUZ', perm_city: 'ANTIPOLO', perm_province: 'RIZAL', perm_zip: '1870',
+          perm_country_tel: '63-2', perm_home_tel: '028123-4567',
+          pres_unit: 'House 4 Block 2', pres_street: '12 SAMPAGUITA ST', pres_subdivision: 'PRIMAVERA RESIDENCES', pres_barangay: 'BRGY. STA. CRUZ', pres_city: 'ANTIPOLO', pres_province: 'RIZAL', pres_zip: '1870',
           pres_business_tel: '028765-4321', pres_cellphone: '09221112222',
           email_address: 'm.torres@email.com', years_stay_present: '5',
-          tin: '789-012-345', sss_gsis: '34-9876543-1',
-          occupation: 'Civil Engineer', employer_name: 'Torres Construction Inc',
-          employer_address_line: 'EDSA cor Shaw Blvd', employer_subdivision: 'Wack-Wack', employer_barangay: 'Brgy. Wack-Wack', employer_city: 'Mandaluyong', employer_province: 'Metro Manila (NCR)', employer_zip: '1550',
-          employer_business_tel: '026321-1111', employer_email: 'hr@torrresconstruction.ph',
+          tin: '789012345000', sss_gsis: '34-9876543-1',
+          home_ownership: 'Owned', mailing_preference: 'Permanent Home Address',
+          employment_type: 'Self-Employed', industry_category: 'Construction',
+          occupation: 'Civil Engineer', employer_name: 'TORRES CONSTRUCTION INC.',
+          employer_address_line: 'EDSA COR SHAW BLVD', employer_subdivision: 'WACK-WACK', employer_barangay: 'BRGY. WACK-WACK', employer_city: 'MANDALUYONG', employer_province: 'METRO MANILA (NCR)', employer_zip: '1550',
+          employer_business_tel: '026321-1111', employer_email: 'hr@torresconstruction.ph',
           position_dept: 'Senior Engineer / Engineering Dept', preferred_time_contact: '9:00 AM - 5:00 PM',
           place_assignment: 'Mandaluyong Main Office', years_employment: '8', no_dependents: '2',
           signature_date: new Date().toISOString().split('T')[0],
         },
         {
-          mid_no: '666677778888', housing_account_no: '',
+          // ── Sample B: Jose Ramon Flores Jr. · Brother co-borrower (30%
+          // share) · Single male IT manager at TechPH ──
+          mid_no: '6666-7777-8888', housing_account_no: '',
           last_name: 'FLORES', first_name: 'JOSE RAMON', ext_name: 'Jr.', middle_name: 'ABAD', maiden_middle_name: '',
-          dob: '12/01/1980', citizenship: 'Filipino', proportionate_share: '30',
-          perm_unit: 'Unit 5A', perm_street: 'Magnolia St', perm_subdivision: 'Valle Verde', perm_barangay: 'Brgy. Ugong', perm_city: 'Pasig', perm_province: 'Metro Manila (NCR)', perm_zip: '1604',
-          perm_country_tel: '', perm_home_tel: '027234-5678',
-          pres_unit: 'Unit 5A', pres_street: 'Magnolia St', pres_subdivision: 'Valle Verde', pres_barangay: 'Brgy. Ugong', pres_city: 'Pasig', pres_province: 'Metro Manila (NCR)', pres_zip: '1604',
+          dob: '12/01/1980', citizenship: 'FILIPINO', proportionate_share: '30',
+          sex: 'Male', marital_status: 'Single/Unmarried', relationship_to_principal: 'Brother/Sister',
+          perm_unit: 'Unit 5A', perm_street: 'MAGNOLIA ST', perm_subdivision: 'VALLE VERDE', perm_barangay: 'BRGY. UGONG', perm_city: 'PASIG', perm_province: 'METRO MANILA (NCR)', perm_zip: '1604',
+          perm_country_tel: '63-2', perm_home_tel: '027234-5678',
+          pres_unit: 'Unit 5A', pres_street: 'MAGNOLIA ST', pres_subdivision: 'VALLE VERDE', pres_barangay: 'BRGY. UGONG', pres_city: 'PASIG', pres_province: 'METRO MANILA (NCR)', pres_zip: '1604',
           pres_business_tel: '027222-3333', pres_cellphone: '09335556666',
           email_address: 'jr.flores@email.ph', years_stay_present: '3',
-          tin: '321-654-099', sss_gsis: '11-9876543-0',
-          occupation: 'IT Manager', employer_name: 'TechPH Solutions Inc',
-          employer_address_line: 'E. Rodriguez Jr. Ave', employer_subdivision: 'Bagumbayan', employer_barangay: 'Brgy. Bagumbayan', employer_city: 'Quezon City', employer_province: 'Metro Manila (NCR)', employer_zip: '1110',
+          tin: '321654099000', sss_gsis: '11-9876543-0',
+          home_ownership: 'Owned', mailing_preference: 'Present Home Address',
+          employment_type: 'Locally Employed', industry_category: 'Technology',
+          occupation: 'IT Manager', employer_name: 'TECHPH SOLUTIONS INC.',
+          employer_address_line: 'E. RODRIGUEZ JR. AVE', employer_subdivision: 'BAGUMBAYAN', employer_barangay: 'BRGY. BAGUMBAYAN', employer_city: 'QUEZON CITY', employer_province: 'METRO MANILA (NCR)', employer_zip: '1110',
           employer_business_tel: '028765-9999', employer_email: 'hr@techph.com',
           position_dept: 'IT Manager / Technology Dept', preferred_time_contact: '8:00 AM - 5:00 PM',
           place_assignment: 'Quezon City Head Office', years_employment: '6', no_dependents: '1',
           signature_date: new Date().toISOString().split('T')[0],
         },
         {
-          // Full — all fields
-          mid_no: '999900001112', housing_account_no: 'HL-2025-004567',
+          // ── Sample C: FULL — Maria Theresa Reyes · Spouse co-borrower (50%
+          // share) · Married female bank branch manager (Globally Employed
+          // returnee — kept maiden middle name VILLANUEVA) · all optionals ──
+          mid_no: '9999-0000-1112', housing_account_no: 'HL-2025-004567',
           last_name: 'REYES', first_name: 'MARIA THERESA', ext_name: 'N/A', middle_name: 'SANTOS', maiden_middle_name: 'VILLANUEVA',
-          dob: '06/15/1988', citizenship: 'Filipino', proportionate_share: '50',
-          perm_unit: 'Lot 12 Block 5', perm_street: 'Rosal Street', perm_subdivision: 'Greenfield Subdivision', perm_barangay: 'Brgy. San Isidro', perm_city: 'Antipolo', perm_province: 'Rizal', perm_zip: '1870',
+          dob: '06/15/1988', citizenship: 'FILIPINO', proportionate_share: '50',
+          sex: 'Female', marital_status: 'Married', relationship_to_principal: 'Spouse',
+          perm_unit: 'Lot 12 Block 5', perm_street: 'ROSAL STREET', perm_subdivision: 'GREENFIELD SUBDIVISION', perm_barangay: 'BRGY. SAN ISIDRO', perm_city: 'ANTIPOLO', perm_province: 'RIZAL', perm_zip: '1870',
           perm_country_tel: '63-2-8123-4567', perm_home_tel: '028123-4567',
-          pres_unit: 'Torre de Manila Unit 304', pres_street: 'Pablo Ocampo Avenue', pres_subdivision: 'Malate', pres_barangay: 'Brgy. 708 Zone 77', pres_city: 'Manila', pres_province: 'Metro Manila (NCR)', pres_zip: '1004',
+          pres_unit: 'Torre de Manila Unit 304', pres_street: 'PABLO OCAMPO AVENUE', pres_subdivision: 'MALATE', pres_barangay: 'BRGY. 708 ZONE 77', pres_city: 'MANILA', pres_province: 'METRO MANILA (NCR)', pres_zip: '1004',
           pres_business_tel: '027234-5678', pres_cellphone: '09171234567',
           email_address: 'mtheresa.reyes@globalbank.ph', years_stay_present: '2',
-          tin: '456-789-012', sss_gsis: '34-1122334-5',
-          occupation: 'Branch Manager', employer_name: 'Global Bank Philippines',
-          employer_address_line: 'GT Tower, Ayala Avenue', employer_subdivision: 'Makati Central Business District', employer_barangay: 'Brgy. San Lorenzo', employer_city: 'Makati City', employer_province: 'Metro Manila (NCR)', employer_zip: '1223',
+          tin: '456789012000', sss_gsis: '34-1122334-5',
+          home_ownership: 'Rented', mailing_preference: 'Employer/Business Address',
+          employment_type: 'Locally Employed', industry_category: 'Financial Services/Intermediation',
+          occupation: 'Branch Manager', employer_name: 'GLOBAL BANK PHILIPPINES',
+          employer_address_line: 'GT TOWER, AYALA AVENUE', employer_subdivision: 'MAKATI CENTRAL BUSINESS DISTRICT', employer_barangay: 'BRGY. SAN LORENZO', employer_city: 'MAKATI CITY', employer_province: 'METRO MANILA (NCR)', employer_zip: '1223',
           employer_business_tel: '028888-8888', employer_email: 'hr@globalbank.ph',
           position_dept: 'Branch Manager / Retail Banking', preferred_time_contact: '8:00 AM - 6:00 PM',
           place_assignment: 'Makati Main Branch', years_employment: '10', no_dependents: '3',
@@ -768,63 +916,115 @@ export default function FormWizardPage() {
       // ── Pag-IBIG HLF-858 (HEAL Principal Borrower) ──────────────────────
       'pagibig-hlf-858': [
         {
-          mid_no: '111122223333', housing_account_no: 'HL-2024-001111',
+          // ── Sample A: Carmen A. Flores · Married female senior accountant
+          // at Metrobank · 3M HEAL loan for home renovation. Spouse block
+          // populated (Married per maiden_middle_name='SANTOS'). ──
+          mid_no: '1111-2222-3333', housing_account_no: 'HL-2024-001111',
           desired_loan_amount: '3000000',
+          loan_purpose: 'Home Improvement', loan_term: '15', mode_of_payment: 'Salary deduction',
+          request_for_reinspection: 'No',
           last_name: 'FLORES', first_name: 'CARMEN', ext_name: 'N/A', middle_name: 'ABAD', maiden_middle_name: 'SANTOS',
-          dob: '12/01/1975', citizenship: 'Filipino', no_dependents: '2',
-          perm_unit: '', perm_street: '56 Magnolia St', perm_subdivision: 'Valle Verde', perm_barangay: 'Brgy. Kapasigan', perm_city: 'Pasig', perm_province: 'Metro Manila (NCR)', perm_zip: '1600',
-          perm_country_tel: '', perm_home_tel: '027234-1111', perm_business_tel: '027234-2222',
-          pres_unit: '', pres_street: '56 Magnolia St', pres_subdivision: 'Valle Verde', pres_barangay: 'Brgy. Kapasigan', pres_city: 'Pasig', pres_province: 'Metro Manila (NCR)', pres_zip: '1600',
+          dob: '12/01/1975', citizenship: 'FILIPINO', no_dependents: '2',
+          sex: 'Female', marital_status: 'Married',
+          perm_unit: 'Unit 7B', perm_street: '56 MAGNOLIA ST', perm_subdivision: 'VALLE VERDE', perm_barangay: 'BRGY. KAPASIGAN', perm_city: 'PASIG', perm_province: 'METRO MANILA (NCR)', perm_zip: '1600',
+          perm_country_tel: '63-2', perm_home_tel: '027234-1111', perm_business_tel: '027234-2222',
+          pres_unit: 'Unit 7B', pres_street: '56 MAGNOLIA ST', pres_subdivision: 'VALLE VERDE', pres_barangay: 'BRGY. KAPASIGAN', pres_city: 'PASIG', pres_province: 'METRO MANILA (NCR)', pres_zip: '1600',
           pres_cellphone: '09235556666', email_address: 'c.flores@business.ph', years_stay_present: '7',
-          occupation: 'Accountant', tin: '321-654-987', sss_gsis: '34-0000001-2',
-          employer_business_tel: '028840-1234', employer_name: 'Metrobank',
-          employer_address_line: 'Metrobank Plaza, Gil Puyat Ave', employer_subdivision: '', employer_barangay: 'Brgy. Bel-Air', employer_city: 'Makati City', employer_province: 'Metro Manila (NCR)', employer_zip: '1209',
+          home_ownership: 'Owned', mailing_preference: 'Permanent Home Address',
+          occupation: 'Senior Accountant', employment_type: 'Locally Employed', industry_category: 'Financial Services/Intermediation',
+          tin: '321654987000', sss_gsis: '34-0000001-2',
+          employer_business_tel: '028840-1234', employer_name: 'METROBANK',
+          employer_address_line: 'METROBANK PLAZA, GIL PUYAT AVE', employer_subdivision: 'BEL-AIR DISTRICT', employer_barangay: 'BRGY. BEL-AIR', employer_city: 'MAKATI CITY', employer_province: 'METRO MANILA (NCR)', employer_zip: '1209',
           employer_email: 'hr@metrobank.com.ph',
           position_dept: 'Senior Accountant / Finance Division', preferred_time_contact: '9:00 AM - 5:00 PM',
           place_assignment: 'Makati Head Office', years_employment: '10',
           signature_date: new Date().toISOString().split('T')[0],
+          // Spouse block (Married)
+          spouse_last_name: 'FLORES', spouse_first_name: 'ROBERTO', spouse_ext_name: 'N/A', spouse_middle_name: 'NAVARRO',
+          spouse_dob: '08/12/1972', spouse_citizenship: 'FILIPINO', spouse_tin: '987654321000',
+          spouse_occupation: 'Mechanical Engineer', spouse_employer_name: 'MERALCO',
+          spouse_place_assignment: 'Ortigas Substation', spouse_years_employment: '15',
+          spouse_employer_address_line: 'MERALCO BUILDING, ORTIGAS AVE',
+          spouse_position_dept: 'Senior Engineer / Operations',
+          spouse_employer_subdivision: 'WACK-WACK', spouse_employer_barangay: 'BRGY. WACK-WACK', spouse_employer_city: 'MANDALUYONG', spouse_employer_province: 'METRO MANILA (NCR)', spouse_employer_zip: '1550',
+          spouse_business_tel: '026321-9999',
         },
         {
-          mid_no: '444455556667', housing_account_no: '',
+          // ── Sample B: Elena Grace C. Aquino · Married female ICU nurse at
+          // Cebu Doctor's Hospital · 1.5M HEAL loan for educational expenses
+          // (kids' tuition). Spouse block populated. ──
+          mid_no: '4444-5555-6667', housing_account_no: '',
           desired_loan_amount: '1500000',
+          loan_purpose: 'Educational expenses', loan_term: '10', mode_of_payment: 'Salary deduction',
+          request_for_reinspection: 'N/A',
           last_name: 'AQUINO', first_name: 'ELENA GRACE', ext_name: 'N/A', middle_name: 'CRUZ', maiden_middle_name: 'SANTOS',
-          dob: '11/30/1987', citizenship: 'Filipino', no_dependents: '3',
-          perm_unit: '', perm_street: '22 Colon St', perm_subdivision: '', perm_barangay: 'Brgy. Kamputhaw', perm_city: 'Cebu City', perm_province: 'Cebu', perm_zip: '6000',
-          perm_country_tel: '', perm_home_tel: '0322345678', perm_business_tel: '',
-          pres_unit: '', pres_street: '22 Colon St', pres_subdivision: '', pres_barangay: 'Brgy. Kamputhaw', pres_city: 'Cebu City', pres_province: 'Cebu', pres_zip: '6000',
+          dob: '11/30/1987', citizenship: 'FILIPINO', no_dependents: '3',
+          sex: 'Female', marital_status: 'Married',
+          perm_unit: 'House 22 Block 4', perm_street: '22 COLON ST', perm_subdivision: 'KAMPUTHAW DISTRICT', perm_barangay: 'BRGY. KAMPUTHAW', perm_city: 'CEBU CITY', perm_province: 'CEBU', perm_zip: '6000',
+          perm_country_tel: '63-32', perm_home_tel: '0322345678', perm_business_tel: '0322234567',
+          pres_unit: 'House 22 Block 4', pres_street: '22 COLON ST', pres_subdivision: 'KAMPUTHAW DISTRICT', pres_barangay: 'BRGY. KAMPUTHAW', pres_city: 'CEBU CITY', pres_province: 'CEBU', pres_zip: '6000',
           pres_cellphone: '09198887777', email_address: 'elena.aquino@cebu.ph', years_stay_present: '4',
-          occupation: 'Nurse', tin: '456-789-123', sss_gsis: '34-8765432-0',
-          employer_business_tel: '0322234567', employer_name: 'Cebu Doctor\'s University Hospital',
-          employer_address_line: 'Osmeña Blvd', employer_subdivision: '', employer_barangay: 'Brgy. Capitol Site', employer_city: 'Cebu City', employer_province: 'Cebu', employer_zip: '6000',
+          home_ownership: 'Owned', mailing_preference: 'Present Home Address',
+          occupation: 'Registered Nurse', employment_type: 'Locally Employed', industry_category: 'Health and Medical Services',
+          tin: '456789123000', sss_gsis: '34-8765432-0',
+          employer_business_tel: '0322234567', employer_name: "CEBU DOCTOR'S UNIVERSITY HOSPITAL",
+          employer_address_line: 'OSMEÑA BLVD', employer_subdivision: 'CAPITOL SITE', employer_barangay: 'BRGY. CAPITOL SITE', employer_city: 'CEBU CITY', employer_province: 'CEBU', employer_zip: '6000',
           employer_email: 'hr@cduhosp.ph',
           position_dept: 'Registered Nurse / ICU Dept', preferred_time_contact: '8:00 AM - 4:00 PM',
           place_assignment: 'Cebu City Main Campus', years_employment: '5',
           signature_date: new Date().toISOString().split('T')[0],
+          // Spouse block (Married)
+          spouse_last_name: 'AQUINO', spouse_first_name: 'MARK ANTHONY', spouse_ext_name: 'N/A', spouse_middle_name: 'REYES',
+          spouse_dob: '04/22/1985', spouse_citizenship: 'FILIPINO', spouse_tin: '111222333000',
+          spouse_occupation: 'Software Engineer', spouse_employer_name: 'ACCENTURE PHILIPPINES',
+          spouse_place_assignment: 'Cebu IT Park', spouse_years_employment: '8',
+          spouse_employer_address_line: 'EBLOC TOWER 1, GEONZON ST',
+          spouse_position_dept: 'Senior Software Engineer / Tech Delivery',
+          spouse_employer_subdivision: 'CEBU IT PARK', spouse_employer_barangay: 'BRGY. APAS', spouse_employer_city: 'CEBU CITY', spouse_employer_province: 'CEBU', spouse_employer_zip: '6000',
+          spouse_business_tel: '0324155555',
         },
         {
-          // Full — all fields
-          mid_no: '777788889990', housing_account_no: 'HL-2023-009999',
+          // ── Sample C: FULL — Maria Theresa V.S. Reyes · Married female bank
+          // VP · 6M HEAL loan for travel & leisure (annual round-the-world
+          // trip). 30-year term, full spouse block, every optional field. ──
+          mid_no: '7777-8888-9990', housing_account_no: 'HL-2023-009999',
           desired_loan_amount: '6000000',
+          loan_purpose: 'Travel and leisure', loan_term: '30', mode_of_payment: 'Bank',
+          request_for_reinspection: 'Yes',
           last_name: 'REYES', first_name: 'MARIA THERESA', ext_name: 'N/A', middle_name: 'SANTOS', maiden_middle_name: 'VILLANUEVA',
-          dob: '06/15/1988', citizenship: 'Filipino', no_dependents: '2',
-          perm_unit: 'Lot 12 Block 5', perm_street: 'Rosal Street', perm_subdivision: 'Greenfield Subdivision', perm_barangay: 'Brgy. San Isidro', perm_city: 'Antipolo', perm_province: 'Rizal', perm_zip: '1870',
+          dob: '06/15/1988', citizenship: 'FILIPINO', no_dependents: '2',
+          sex: 'Female', marital_status: 'Married',
+          perm_unit: 'Lot 12 Block 5', perm_street: 'ROSAL STREET', perm_subdivision: 'GREENFIELD SUBDIVISION', perm_barangay: 'BRGY. SAN ISIDRO', perm_city: 'ANTIPOLO', perm_province: 'RIZAL', perm_zip: '1870',
           perm_country_tel: '63-2-8123-4567', perm_home_tel: '028123-4567', perm_business_tel: '028888-8888',
-          pres_unit: 'Torre de Manila Unit 304', pres_street: 'Pablo Ocampo Avenue', pres_subdivision: 'Malate', pres_barangay: 'Brgy. 708 Zone 77', pres_city: 'Manila', pres_province: 'Metro Manila (NCR)', pres_zip: '1004',
+          pres_unit: 'Torre de Manila Unit 304', pres_street: 'PABLO OCAMPO AVENUE', pres_subdivision: 'MALATE', pres_barangay: 'BRGY. 708 ZONE 77', pres_city: 'MANILA', pres_province: 'METRO MANILA (NCR)', pres_zip: '1004',
           pres_cellphone: '09171234567', email_address: 'mtheresa.reyes@globalbank.ph', years_stay_present: '2',
-          occupation: 'Branch Manager', tin: '456-789-012', sss_gsis: '34-1122334-5',
-          employer_business_tel: '028888-8888', employer_name: 'Global Bank Philippines',
-          employer_address_line: 'GT Tower, Ayala Avenue', employer_subdivision: 'Makati Central Business District', employer_barangay: 'Brgy. San Lorenzo', employer_city: 'Makati City', employer_province: 'Metro Manila (NCR)', employer_zip: '1223',
+          home_ownership: 'Rented', mailing_preference: 'Employer/Business Address',
+          occupation: 'Branch Manager', employment_type: 'Locally Employed', industry_category: 'Financial Services/Intermediation',
+          tin: '456789012000', sss_gsis: '34-1122334-5',
+          employer_business_tel: '028888-8888', employer_name: 'GLOBAL BANK PHILIPPINES',
+          employer_address_line: 'GT TOWER, AYALA AVENUE', employer_subdivision: 'MAKATI CENTRAL BUSINESS DISTRICT', employer_barangay: 'BRGY. SAN LORENZO', employer_city: 'MAKATI CITY', employer_province: 'METRO MANILA (NCR)', employer_zip: '1223',
           employer_email: 'hr@globalbank.ph',
           position_dept: 'Branch Manager / Retail Banking', preferred_time_contact: '8:00 AM - 6:00 PM',
           place_assignment: 'Makati Main Branch', years_employment: '10',
           signature_date: new Date().toISOString().split('T')[0],
+          // Spouse block (Married)
+          spouse_last_name: 'REYES', spouse_first_name: 'JOHN PAUL', spouse_ext_name: 'N/A', spouse_middle_name: 'GARCIA',
+          spouse_dob: '02/14/1985', spouse_citizenship: 'FILIPINO', spouse_tin: '789456123000',
+          spouse_occupation: 'Investment Banker', spouse_employer_name: 'BANK OF THE PHILIPPINE ISLANDS',
+          spouse_place_assignment: 'BPI Head Office', spouse_years_employment: '12',
+          spouse_employer_address_line: 'BPI HEAD OFFICE, AYALA AVENUE',
+          spouse_position_dept: 'Vice President / Investment Banking',
+          spouse_employer_subdivision: 'AYALA TRIANGLE', spouse_employer_barangay: 'BRGY. SAN LORENZO', spouse_employer_city: 'MAKATI CITY', spouse_employer_province: 'METRO MANILA (NCR)', spouse_employer_zip: '1226',
+          spouse_business_tel: '028991-0000',
         },
       ],
 
       // ── Pag-IBIG HLF-068 (Housing Loan Application) ─────────────────────
       'pagibig-hlf-068': [
         {
-          mid_no: '888899990000', housing_account_no: '',
+          // ── Sample A: Daniel Jose R. Navarro · Davao bank manager ·
+          // 6M loan for purchase of single-detached house & lot. ──
+          mid_no: '8888-9999-0000', housing_account_no: '',
           desired_loan_amount: '6000000',
           existing_housing_application: 'No',
           loan_purpose: 'Purchase of a residential house and lot/townhouse',
@@ -833,18 +1033,20 @@ export default function FormWizardPage() {
           sex: 'Male', marital_status: 'Married',
           home_ownership: 'Owned', employment_type: 'Employed',
           last_name: 'NAVARRO', first_name: 'DANIEL JOSE', ext_name: 'N/A', middle_name: 'RICO',
-          citizenship: 'Filipino', dob: '06/20/1979',
-          perm_unit: '', perm_street: '100 Sampaguita Ave', perm_subdivision: 'Poblacion Heights', perm_barangay: 'Brgy. Poblacion', perm_city: 'Davao City', perm_province: 'Davao del Sur', perm_zip: '8000',
-          pres_unit: '', pres_street: '100 Sampaguita Ave', pres_subdivision: 'Poblacion Heights', pres_barangay: 'Brgy. Poblacion', pres_city: 'Davao City', pres_province: 'Davao del Sur', pres_zip: '8000',
+          citizenship: 'FILIPINO', dob: '06/20/1979',
+          perm_unit: 'House 100', perm_street: 'SAMPAGUITA AVE', perm_subdivision: 'POBLACION HEIGHTS', perm_barangay: 'BRGY. POBLACION', perm_city: 'DAVAO CITY', perm_province: 'DAVAO DEL SUR', perm_zip: '8000',
+          pres_unit: 'House 100', pres_street: 'SAMPAGUITA AVE', pres_subdivision: 'POBLACION HEIGHTS', pres_barangay: 'BRGY. POBLACION', pres_city: 'DAVAO CITY', pres_province: 'DAVAO DEL SUR', pres_zip: '8000',
           pres_cellphone: '09257778888', email_address: 'd.navarro@corp.com', years_stay_present: '10',
-          sss_gsis: '34-9876543-1', employer_name: 'Southern Philippine Bank', tin: '654-321-098',
-          employer_address_line: 'Magsaysay Ave', occupation: 'Bank Manager',
-          employer_subdivision: '', employer_barangay: 'Brgy. Poblacion', employer_city: 'Davao City', employer_province: 'Davao del Sur', employer_zip: '8000',
+          sss_gsis: '34-9876543-1', employer_name: 'SOUTHERN PHILIPPINE BANK', tin: '654321098000',
+          employer_address_line: 'SPB TOWER, MAGSAYSAY AVE', occupation: 'Bank Manager',
+          employer_subdivision: 'POBLACION COMMERCIAL DISTRICT', employer_barangay: 'BRGY. POBLACION', employer_city: 'DAVAO CITY', employer_province: 'DAVAO DEL SUR', employer_zip: '8000',
           position_dept: 'Manager / Branch Banking', years_employment: '15',
           signature_date: new Date().toISOString().split('T')[0],
         },
         {
-          mid_no: '222233334445', housing_account_no: 'HL-2022-004567',
+          // ── Sample B: Pedro Jose S. Reyes Sr. · Makati operations director
+          // refinancing his Ayala Alabang condo (mortgaged). 3.5M loan, 15yr ──
+          mid_no: '2222-3333-4445', housing_account_no: 'HL-2022-004567',
           desired_loan_amount: '3500000',
           existing_housing_application: 'Yes',
           loan_purpose: 'Refinancing of an existing housing loan',
@@ -853,30 +1055,496 @@ export default function FormWizardPage() {
           sex: 'Male', marital_status: 'Married',
           home_ownership: 'Mortgaged', employment_type: 'Employed',
           last_name: 'REYES', first_name: 'PEDRO JOSE', ext_name: 'Sr.', middle_name: 'SANTOS',
-          citizenship: 'Filipino', dob: '05/10/1976',
-          perm_unit: 'Blk 3 Lot 8', perm_street: 'Acacia Ave', perm_subdivision: 'Ayala Alabang Village', perm_barangay: 'Brgy. Ayala Alabang', perm_city: 'Muntinlupa', perm_province: 'Metro Manila (NCR)', perm_zip: '1780',
-          pres_unit: 'Blk 3 Lot 8', pres_street: 'Acacia Ave', pres_subdivision: 'Ayala Alabang Village', pres_barangay: 'Brgy. Ayala Alabang', pres_city: 'Muntinlupa', pres_province: 'Metro Manila (NCR)', pres_zip: '1780',
+          citizenship: 'FILIPINO', dob: '05/10/1976',
+          perm_unit: 'Blk 3 Lot 8', perm_street: 'ACACIA AVE', perm_subdivision: 'AYALA ALABANG VILLAGE', perm_barangay: 'BRGY. AYALA ALABANG', perm_city: 'MUNTINLUPA', perm_province: 'METRO MANILA (NCR)', perm_zip: '1780',
+          pres_unit: 'Blk 3 Lot 8', pres_street: 'ACACIA AVE', pres_subdivision: 'AYALA ALABANG VILLAGE', pres_barangay: 'BRGY. AYALA ALABANG', pres_city: 'MUNTINLUPA', pres_province: 'METRO MANILA (NCR)', pres_zip: '1780',
           pres_cellphone: '09191234567', email_address: 'p.reyes@mnlcorp.com', years_stay_present: '8',
-          sss_gsis: '11-1234567-8', employer_name: 'Manila Corporation', tin: '123-456-789',
-          employer_address_line: 'Ayala Ave', occupation: 'Operations Director',
-          employer_subdivision: 'Ayala Triangle', employer_barangay: 'Brgy. Legazpi Village', employer_city: 'Makati City', employer_province: 'Metro Manila (NCR)', employer_zip: '1226',
+          sss_gsis: '11-1234567-8', employer_name: 'MANILA CORPORATION', tin: '123456789000',
+          employer_address_line: 'AYALA AVE', occupation: 'Operations Director',
+          employer_subdivision: 'AYALA TRIANGLE', employer_barangay: 'BRGY. LEGAZPI VILLAGE', employer_city: 'MAKATI CITY', employer_province: 'METRO MANILA (NCR)', employer_zip: '1226',
           position_dept: 'Operations Director / Corporate Affairs', years_employment: '18',
           signature_date: new Date().toISOString().split('T')[0],
         },
         {
-          // Full — all fields
-          mid_no: '111122223334', housing_account_no: 'HL-2024-010101',
+          // ── Sample C: FULL — Maria Carla T. Dela Vega · CFO at PhilCorp
+          // Global · 8M loan for self-construction of new home in Cainta. ──
+          mid_no: '1111-2222-3334', housing_account_no: 'HL-2024-010101',
           desired_loan_amount: '8000000',
+          existing_housing_application: 'No',
+          loan_purpose: 'Construction or completion of a residential unit',
+          loan_term: '25', mode_of_payment: 'Salary deduction',
+          property_type: 'Single Detached', property_mortgaged: 'No', offsite_collateral: 'No',
+          sex: 'Female', marital_status: 'Married',
+          home_ownership: 'Rented', employment_type: 'Employed',
           last_name: 'DELA VEGA', first_name: 'MARIA CARLA', ext_name: 'N/A', middle_name: 'TORRES',
-          citizenship: 'Filipino', dob: '09/30/1981',
-          perm_unit: 'House 5 Block 3', perm_street: 'Ilang-Ilang Street', perm_subdivision: 'Filinvest East', perm_barangay: 'Brgy. San Isidro', perm_city: 'Cainta', perm_province: 'Rizal', perm_zip: '1900',
-          pres_unit: 'Unit 22A', pres_street: 'Annapolis St', pres_subdivision: 'Greenhills', pres_barangay: 'Brgy. Addition Hills', pres_city: 'San Juan', pres_province: 'Metro Manila (NCR)', pres_zip: '1500',
+          citizenship: 'FILIPINO', dob: '09/30/1981',
+          perm_unit: 'House 5 Block 3', perm_street: 'ILANG-ILANG STREET', perm_subdivision: 'FILINVEST EAST', perm_barangay: 'BRGY. SAN ISIDRO', perm_city: 'CAINTA', perm_province: 'RIZAL', perm_zip: '1900',
+          pres_unit: 'Unit 22A', pres_street: 'ANNAPOLIS ST', pres_subdivision: 'GREENHILLS', pres_barangay: 'BRGY. ADDITION HILLS', pres_city: 'SAN JUAN', pres_province: 'METRO MANILA (NCR)', pres_zip: '1500',
           pres_cellphone: '09178889990', email_address: 'carla.delavega@ph-corp.com', years_stay_present: '3',
-          sss_gsis: '34-5566778-9', employer_name: 'PhilCorp Global Inc',
-          tin: '654-999-333', employer_address_line: 'Emerald Ave, Ortigas Center', occupation: 'CFO',
-          employer_subdivision: 'Ortigas Center', employer_barangay: 'Brgy. San Antonio', employer_city: 'Pasig', employer_province: 'Metro Manila (NCR)', employer_zip: '1605',
+          sss_gsis: '34-5566778-9', employer_name: 'PHILCORP GLOBAL INC.',
+          tin: '654999333000', employer_address_line: 'EMERALD AVE, ORTIGAS CENTER', occupation: 'CFO',
+          employer_subdivision: 'ORTIGAS CENTER', employer_barangay: 'BRGY. SAN ANTONIO', employer_city: 'PASIG', employer_province: 'METRO MANILA (NCR)', employer_zip: '1605',
           position_dept: 'Chief Financial Officer / Finance', years_employment: '12',
           signature_date: new Date().toISOString().split('T')[0],
+        },
+      ],
+
+      // ── BIR 1904 (Application for Registration — One-Time Taxpayer / E.O. 98) ──
+      // 3 samples × 53 fields × 7 steps. ZERO-blanks rule: every applicable
+      // field is populated. Mutually-exclusive fields (Individual vs Estate/Trust;
+      // Filipino vs Foreign National) are left blank ONLY when filling them
+      // would produce semantically nonsensical data — these are noted per sample.
+      'bir-1904': [
+        {
+          // ── Sample 1: E.O. 98 — Filipino Citizen, Single (most common path:
+          // securing TIN for first-time jobseeker / government transactions) ──
+          date_of_registration: '04/26/2026', // BIR-only field (intake placeholder)
+          philsys_pcn: '1234567890123456',
+          rdo_code: '050', // BIR-only field (intake placeholder, RDO 050 = QC South)
+          taxpayer_type: 'E.O. 98 — Filipino Citizen',
+          // foreign_tin / country_of_residence: not applicable (Filipino)
+          foreign_tin: '',
+          country_of_residence: '',
+          last_name: 'REYES',
+          first_name: 'MARIA CRISTINA',
+          middle_name: 'SANTOS',
+          name_suffix: '',
+          nickname: 'Maricris',
+          // registered_name / estate_trust_name: not applicable (Individual)
+          registered_name: '',
+          estate_trust_name: '',
+          date_of_birth: '03/15/1998',
+          place_of_birth: 'Quezon City, Metro Manila',
+          local_unit: 'Unit 4B',
+          local_building: 'Sampaguita Residences',
+          local_lot: 'Lot 12 Block 5',
+          local_street: 'Holy Spirit Drive',
+          local_subdivision: 'Don Antonio Heights',
+          local_barangay: 'Brgy. Holy Spirit',
+          local_town: 'District 2',
+          local_city: 'Quezon City',
+          local_province: 'Metro Manila (NCR)',
+          local_zip: '1127',
+          // foreign_address / date_of_arrival: not applicable (Filipino, not foreign national)
+          foreign_address: '',
+          municipality_code: '13742', // BIR-only field (PSGC for QC, intake placeholder)
+          date_of_arrival: '',
+          gender: 'Female',
+          civil_status: 'Single',
+          contact_number: '0917-123-4567',
+          email: 'maricris.reyes@email.com',
+          mothers_name: 'ROSA MARIE TORRES SANTOS',
+          fathers_name: 'JUAN PABLO DELA CRUZ REYES',
+          id_type: 'UMID',
+          id_number: 'CRN-0001-2345678-9',
+          id_effectivity: '06/01/2023',
+          id_expiry: '06/01/2033',
+          // Spouse block: not applicable (Single). Left blank intentionally.
+          spouse_employment_status: '',
+          spouse_name: '',
+          spouse_tin: '',
+          spouse_employer_name: '',
+          spouse_employer_tin: '',
+          purpose_of_tin: 'B. Dealings with government offices (e.g. LTO, DFA, NBI)',
+          purpose_other_specify: '',
+          // Withholding agent block: not applicable (no WA for E.O. 98 first-timer).
+          wa_tin: '',
+          wa_rdo_code: '',
+          wa_name: '',
+          wa_address: '',
+          wa_zip: '',
+          wa_contact: '',
+          wa_email: '',
+          wa_title: '',
+        },
+        {
+          // ── Sample 2: One-Time Taxpayer — Filipino Citizen, Married,
+          // selling capital-asset real property (CGT). Buyer = Withholding Agent. ──
+          date_of_registration: '04/26/2026',
+          philsys_pcn: '2345678901234567',
+          rdo_code: '081', // RDO 081 = Cebu City North
+          taxpayer_type: 'One-Time Taxpayer — Filipino Citizen',
+          foreign_tin: '',
+          country_of_residence: '',
+          last_name: 'CRUZ',
+          first_name: 'PEDRO LUIS',
+          middle_name: 'GARCIA',
+          name_suffix: 'Jr.',
+          nickname: 'Pete',
+          registered_name: '',
+          estate_trust_name: '',
+          date_of_birth: '08/22/1976',
+          place_of_birth: 'Cebu City, Cebu',
+          local_unit: '',
+          local_building: '',
+          local_lot: 'Lot 5 Block 2',
+          local_street: 'Mahogany Street',
+          local_subdivision: 'Camella Subdivision',
+          local_barangay: 'Brgy. San Isidro',
+          local_town: '',
+          local_city: 'Mandaue City',
+          local_province: 'Cebu',
+          local_zip: '6014',
+          foreign_address: '',
+          municipality_code: '07215',
+          date_of_arrival: '',
+          gender: 'Male',
+          civil_status: 'Married',
+          contact_number: '0922-888-7777',
+          email: 'pedro.cruz@gmail.com',
+          mothers_name: 'LOLITA RAMIREZ GARCIA',
+          fathers_name: 'MANUEL TORRES CRUZ SR.',
+          id_type: 'Passport',
+          id_number: 'P0123456A',
+          id_effectivity: '04/12/2022',
+          id_expiry: '04/12/2032',
+          spouse_employment_status: 'Employed in the Philippines',
+          spouse_name: 'CRUZ, MARIA ELENA NAVARRO',
+          spouse_tin: '234567890000', // 12-digit (last 5 zeros = branch reserved)
+          spouse_employer_name: 'METROPOLITAN BANK & TRUST CO.',
+          spouse_employer_tin: '000123456789',
+          purpose_of_tin: 'E. Real property — capital asset',
+          purpose_other_specify: '',
+          // Buyer of the property is the Withholding Agent for CGT.
+          wa_tin: '567890123000',
+          wa_rdo_code: '050',
+          wa_name: 'ALPHA REALTY CORPORATION',
+          wa_address: '88 Ayala Avenue, Makati City, Metro Manila',
+          wa_zip: '1226',
+          wa_contact: '02-8876-5432',
+          wa_email: 'tax@alpharealty.com.ph',
+          wa_title: 'Tax Officer',
+        },
+        {
+          // ── Sample 3: FULL — Foreign National E.O. 98 + Married + Tax Agent.
+          // Exercises every field including foreign_tin, country_of_residence,
+          // foreign_address, date_of_arrival, full spouse block, full WA block,
+          // and Purpose=Other (specify). registered_name/estate_trust_name
+          // remain blank because the taxpayer is an Individual, not Estate/Trust. ──
+          date_of_registration: '04/26/2026',
+          philsys_pcn: '3456789012345678',
+          rdo_code: '044', // RDO 044 = Makati City East
+          taxpayer_type: 'E.O. 98 — Foreign National',
+          foreign_tin: 'JP-1234567890',
+          country_of_residence: 'JAPAN',
+          last_name: 'TANAKA',
+          first_name: 'HIROSHI',
+          middle_name: 'WATANABE',
+          name_suffix: '',
+          nickname: 'Hiro',
+          registered_name: '', // Individual taxpayer — not applicable
+          estate_trust_name: '', // Not an Estate/Trust — not applicable
+          date_of_birth: '11/05/1980',
+          place_of_birth: 'Tokyo, Japan',
+          local_unit: 'Unit 12B',
+          local_building: 'Trump Tower Makati',
+          local_lot: 'Lot 8 Block 3',
+          local_street: 'Forbes Street',
+          local_subdivision: 'Bel-Air Village',
+          local_barangay: 'Brgy. Bel-Air',
+          local_town: 'District 1',
+          local_city: 'Makati City',
+          local_province: 'Metro Manila (NCR)',
+          local_zip: '1209',
+          foreign_address: '2-1-1 Marunouchi, Chiyoda-ku, Tokyo 100-0005, Japan',
+          municipality_code: '13720', // PSGC Makati
+          date_of_arrival: '01/15/2025',
+          gender: 'Male',
+          civil_status: 'Married',
+          contact_number: '0918-888-9999',
+          email: 'h.tanaka@globalfirm.jp',
+          mothers_name: 'YUKI ITO WATANABE',
+          fathers_name: 'KENJI SUZUKI TANAKA',
+          id_type: 'Passport',
+          id_number: 'TZ1234567',
+          id_effectivity: '02/20/2023',
+          id_expiry: '02/19/2033',
+          spouse_employment_status: 'Employed Abroad',
+          spouse_name: 'TANAKA, AYUMI YAMADA',
+          spouse_tin: '345678901000',
+          spouse_employer_name: 'SONY CORPORATION',
+          spouse_employer_tin: '000345678999',
+          purpose_of_tin: 'J. Other (specify below)',
+          purpose_other_specify: 'SEC registration of Philippine branch office',
+          // Tax agent retained to facilitate registration.
+          wa_tin: '678901234000',
+          wa_rdo_code: '044',
+          wa_name: 'PUNONGBAYAN & ARAULLO',
+          wa_address: '20F Tower 1, The Enterprise Center, 6766 Ayala Avenue, Makati City',
+          wa_zip: '1226',
+          wa_contact: '02-8988-2288',
+          wa_email: 'tax.advisory@punongbayan-araullo.com',
+          wa_title: 'Senior Tax Manager',
+        },
+      ],
+
+      // ── BIR 2316 (Certificate of Compensation Payment / Tax Withheld) ──
+      // 3 samples × 75 fields × 7 steps. ZERO-blanks rule: every applicable
+      // field is populated INCLUDING Previous Employer (Step 3) in all 3 samples.
+      // All three personas are now mid-year-change scenarios so the Previous
+      // Employer block, `taxable_previous`, and `taxes_withheld_previous` are
+      // never blank. Conditional gates per BIR rules:
+      //   • MWE-exempt block (basic_salary_mwe / holiday / OT / night / hazard) filled
+      //     ONLY when employee is paid statutory minimum wage. None of the current
+      //     personas are MWE → these stay at '0' (see §7.6 Q1 in the doc).
+      //   • Foreign address (`emp_foreign_address`) filled only for OFW/overseas
+      //     residence (Sample C only).
+      //   • PERA tax credit filled only for voluntary PERA contributors (Sample C).
+      // Numbers reconcile: gross − non-taxable = taxable_present; taxable_present
+      // + taxable_previous = gross_taxable; tax_due derived from 2018 TRAIN brackets.
+      'bir-2316': [
+        {
+          // ── Sample 1: Mid-year join. Worked Jan-Mar at Startup Ventures,
+          // joined ACME 04/01. Both employers populated; non-MWE; no PERA. ──
+          year: '2025',
+          period_from: '04/01',
+          period_to: '12/31',
+          emp_tin_1: '123', emp_tin_2: '456', emp_tin_3: '789', emp_tin_branch: '00000',
+          emp_name: 'DELA CRUZ, JUAN ANDRES PONCE',
+          emp_rdo: '050',
+          emp_reg_address: '123 Holy Spirit Drive, Brgy. Holy Spirit, Quezon City, Metro Manila',
+          emp_reg_zip: '1127',
+          emp_local_address: '123 Holy Spirit Drive, Brgy. Holy Spirit, Quezon City, Metro Manila',
+          emp_local_zip: '1127',
+          emp_foreign_address: '', // N/A — Filipino resident
+          emp_dob: '06/15/1990',
+          emp_contact: '0917-555-1234',
+          min_wage_per_day: '0', // Non-MWE
+          min_wage_per_month: '0',
+          // Step 2: Present Employer (Apr-Dec 2025)
+          pres_emp_tin_1: '009', pres_emp_tin_2: '876', pres_emp_tin_3: '543', pres_emp_tin_branch: '00000',
+          pres_emp_name: 'ACME CORPORATION PHILIPPINES INC.',
+          pres_emp_address: '88 Ayala Avenue, Makati City, Metro Manila',
+          pres_emp_zip: '1226',
+          // Step 3: Previous Employer (Jan-Mar 2025) — FILLED per ZERO-blanks rule
+          prev_emp_tin_1: '005', prev_emp_tin_2: '432', prev_emp_tin_3: '100', prev_emp_tin_branch: '00000',
+          prev_emp_name: 'STARTUP VENTURES INC.',
+          prev_emp_address: '88 Eastwood Avenue, Brgy. Bagumbayan, Quezon City, Metro Manila',
+          prev_emp_zip: '1110',
+          // Step 4: Summary (Part IV-A) — reconciled across both employers
+          gross_compensation: '600000', // ACME Apr-Dec
+          less_non_taxable: '110000', // 13thM 80K + SSS/PHIC/HDMF 30K
+          taxable_present: '490000',
+          taxable_previous: '150000', // Startup Ventures Jan-Mar
+          gross_taxable: '640000',
+          // TRAIN: 400-800K bracket → 22,500 + 20%(640K-400K) = 22,500 + 48,000 = 70,500
+          tax_due: '70500',
+          taxes_withheld_present: '50500',
+          taxes_withheld_previous: '20000',
+          total_withheld_adjusted: '70500',
+          tax_credit_pera: '0',
+          total_taxes_withheld: '70500',
+          // Step 5: Non-Taxable (Part IV-B A) — non-MWE so MWE rows = 0
+          basic_salary_mwe: '0',
+          holiday_pay_mwe: '0',
+          overtime_pay_mwe: '0',
+          night_shift_mwe: '0',
+          hazard_pay_mwe: '0',
+          thirteenth_month: '80000',
+          de_minimis: '0',
+          sss_gsis_phic_hdmf: '30000',
+          salaries_other: '0',
+          total_non_taxable: '110000',
+          // Step 6: Taxable & Supplementary (Part IV-B B) — must sum to 490,000
+          basic_salary: '480000',
+          representation: '0',
+          transportation: '0',
+          cola: '0',
+          fixed_housing: '0',
+          others_a_label: '',
+          others_a_amount: '0',
+          others_b_label: '',
+          others_b_amount: '0',
+          commission: '10000', // Year-end performance bonus
+          profit_sharing: '0',
+          fees_director: '0',
+          taxable_13th_benefits: '0',
+          supp_hazard: '0',
+          supp_overtime: '0',
+          others_supp_label: '',
+          others_51a_label: '',
+          others_51a_amount: '0',
+          others_51b_label: '',
+          others_51b_amount: '0',
+          total_taxable_compensation: '490000',
+          // Step 7: Signatures & Dates — substituted filing
+          present_emp_date_signed: '01/30/2026',
+          employee_date_signed: '01/31/2026',
+          ctc_no: '12345678',
+          ctc_place: 'QUEZON CITY',
+          ctc_date_issued: '01/15/2026',
+          ctc_amount: '500',
+        },
+        {
+          // ── Sample 2: Mid-year job change (Jul). Both Present + Previous
+          // employers populated, taxable_previous and taxes_withheld_previous > 0,
+          // exercises the Step 3 conditional block. ──
+          year: '2025',
+          period_from: '07/01', // Started present employer mid-year
+          period_to: '12/31',
+          emp_tin_1: '234', emp_tin_2: '567', emp_tin_3: '890', emp_tin_branch: '00000',
+          emp_name: 'SANTOS, ANNA MARIE REYES',
+          emp_rdo: '044',
+          emp_reg_address: '45 Pearl Drive, Brgy. San Antonio, Pasig City, Metro Manila',
+          emp_reg_zip: '1605',
+          emp_local_address: '45 Pearl Drive, Brgy. San Antonio, Pasig City, Metro Manila',
+          emp_local_zip: '1605',
+          emp_foreign_address: '',
+          emp_dob: '11/22/1988',
+          emp_contact: '0922-777-6543',
+          min_wage_per_day: '0',
+          min_wage_per_month: '0',
+          // Step 2: Present Employer (Jul-Dec 2025)
+          pres_emp_tin_1: '008', pres_emp_tin_2: '765', pres_emp_tin_3: '432', pres_emp_tin_branch: '00000',
+          pres_emp_name: 'GLOBAL TECH SOLUTIONS PHILIPPINES INC.',
+          pres_emp_address: 'GT Tower, Ayala Avenue, Makati City, Metro Manila',
+          pres_emp_zip: '1226',
+          // Step 3: Previous Employer (Jan-Jun 2025) — FILLED
+          prev_emp_tin_1: '007', prev_emp_tin_2: '654', prev_emp_tin_3: '321', prev_emp_tin_branch: '00000',
+          prev_emp_name: 'METRO BUSINESS CORPORATION',
+          prev_emp_address: '50 Ortigas Avenue, Brgy. San Antonio, Pasig City, Metro Manila',
+          prev_emp_zip: '1605',
+          // Step 4: Summary — present 6 months, previous 6 months
+          gross_compensation: '350000', // Present employer Jul-Dec
+          less_non_taxable: '75000', // 13thM 50K + SSS 25K
+          taxable_present: '275000',
+          taxable_previous: '200000', // From previous employer Jan-Jun
+          gross_taxable: '475000',
+          // TRAIN: 22,500 + 20%(475K-400K) = 22,500 + 15,000 = 37,500
+          tax_due: '37500',
+          taxes_withheld_present: '21000', // Pro-rated from present
+          taxes_withheld_previous: '16500', // Withheld by previous employer
+          total_withheld_adjusted: '37500',
+          tax_credit_pera: '0',
+          total_taxes_withheld: '37500',
+          // Step 5: Non-Taxable (present employer)
+          basic_salary_mwe: '0',
+          holiday_pay_mwe: '0',
+          overtime_pay_mwe: '0',
+          night_shift_mwe: '0',
+          hazard_pay_mwe: '0',
+          thirteenth_month: '50000',
+          de_minimis: '0',
+          sss_gsis_phic_hdmf: '25000',
+          salaries_other: '0',
+          total_non_taxable: '75000',
+          // Step 6: Taxable Supplementary — sums to 275,000
+          basic_salary: '270000',
+          representation: '0',
+          transportation: '0',
+          cola: '0',
+          fixed_housing: '0',
+          others_a_label: '',
+          others_a_amount: '0',
+          others_b_label: '',
+          others_b_amount: '0',
+          commission: '5000', // End-of-year sales commission
+          profit_sharing: '0',
+          fees_director: '0',
+          taxable_13th_benefits: '0',
+          supp_hazard: '0',
+          supp_overtime: '0',
+          others_supp_label: '',
+          others_51a_label: '',
+          others_51a_amount: '0',
+          others_51b_label: '',
+          others_51b_amount: '0',
+          total_taxable_compensation: '275000',
+          // Step 7
+          present_emp_date_signed: '01/29/2026',
+          employee_date_signed: '01/30/2026',
+          ctc_no: '23456789',
+          ctc_place: 'PASIG CITY',
+          ctc_date_issued: '01/10/2026',
+          ctc_amount: '500',
+        },
+        {
+          // ── Sample 3: FULL — exercises EVERY field including all MWE rows,
+          // every Step 6 supplementary line (including all 4 Others labels +
+          // amounts), Foreign Address, PERA tax credit. Persona: high-income
+          // executive who was previously a Statutory Minimum Wage Earner (MWE)
+          // earlier in career — so MWE block is filled to demonstrate it works,
+          // but current year's taxable income is high. (We mark this as
+          // semantically odd in the reviewer notes — see §7.6 Q1.) ──
+          year: '2025',
+          period_from: '03/01',
+          period_to: '12/31',
+          emp_tin_1: '345', emp_tin_2: '678', emp_tin_3: '901', emp_tin_branch: '00000',
+          emp_name: 'REYES, CARLOS MIGUEL VILLANUEVA',
+          emp_rdo: '044',
+          emp_reg_address: 'Lot 12 Block 5, Forbes Park, Brgy. Bel-Air, Makati City, Metro Manila',
+          emp_reg_zip: '1209',
+          emp_local_address: 'Unit 4502 Trump Tower, Bonifacio Global City, Brgy. Fort Bonifacio, Taguig City',
+          emp_local_zip: '1634',
+          emp_foreign_address: '12 Sentosa Cove, Singapore 098297', // Has overseas property
+          emp_dob: '08/14/1972',
+          emp_contact: '0918-222-9999',
+          // Statutory Minimum Wage rates exposed (BIR requires these even for non-MWE)
+          min_wage_per_day: '610', // 2025 NCR daily rate
+          min_wage_per_month: '15860', // 26-day month equivalent
+          // Step 2: Present Employer (Mar-Dec 2025)
+          pres_emp_tin_1: '006', pres_emp_tin_2: '543', pres_emp_tin_3: '210', pres_emp_tin_branch: '00000',
+          pres_emp_name: 'PHILSTAR INVESTMENT BANKING CORPORATION',
+          pres_emp_address: '40F PSE Tower, 28th Street, Bonifacio Global City, Taguig City',
+          pres_emp_zip: '1634',
+          // Step 3: Previous Employer (Jan-Feb 2025) — FILLED per ZERO-blanks rule
+          prev_emp_tin_1: '002', prev_emp_tin_2: '345', prev_emp_tin_3: '678', prev_emp_tin_branch: '00000',
+          prev_emp_name: 'ASIAN DEVELOPMENT BANK PHILIPPINES OFFICE',
+          prev_emp_address: 'ADB Avenue, Ortigas Center, Brgy. San Antonio, Mandaluyong City',
+          prev_emp_zip: '1550',
+          // Step 4: Summary — Mar-Dec at PhilStar + Jan-Feb at ADB
+          gross_compensation: '1500000',
+          less_non_taxable: '175000', // = total of Step 5
+          taxable_present: '1325000',
+          taxable_previous: '250000', // ADB Jan-Feb
+          gross_taxable: '1575000',
+          // TRAIN: 800K-2M bracket → 102,500 + 25%(1575K-800K) = 102,500 + 193,750 = 296,250
+          tax_due: '296250',
+          taxes_withheld_present: '263750',
+          taxes_withheld_previous: '32500', // Withheld by ADB
+          total_withheld_adjusted: '296250',
+          tax_credit_pera: '5000', // PERA contribution credit (RA 9505)
+          total_taxes_withheld: '291250', // 296,250 − 5,000 PERA credit
+          // Step 5: Non-Taxable — every row exercised (175,000 total)
+          basic_salary_mwe: '0', // Not MWE in 2025 — left 0 (see §7.6 Q1)
+          holiday_pay_mwe: '0',
+          overtime_pay_mwe: '0',
+          night_shift_mwe: '0',
+          hazard_pay_mwe: '0',
+          thirteenth_month: '90000', // Capped at P90K
+          de_minimis: '50000',
+          sss_gsis_phic_hdmf: '30000',
+          salaries_other: '5000',
+          total_non_taxable: '175000',
+          // Step 6: Taxable Supplementary — every line exercised, sum = 1,325,000
+          basic_salary: '1000000',
+          representation: '50000',
+          transportation: '30000',
+          cola: '24000',
+          fixed_housing: '60000',
+          others_a_label: 'Communication Allowance',
+          others_a_amount: '12000',
+          others_b_label: 'Books & Tools Allowance',
+          others_b_amount: '8000',
+          commission: '50000',
+          profit_sharing: '30000',
+          fees_director: '25000',
+          taxable_13th_benefits: '0', // 13thM already in non-taxable cap
+          supp_hazard: '0', // Not a hazardous role
+          supp_overtime: '21000',
+          others_supp_label: 'Performance-linked Variable Pay',
+          others_51a_label: 'Sales Incentive Bonus',
+          others_51a_amount: '10000',
+          others_51b_label: 'Loyalty / Retention Bonus',
+          others_51b_amount: '5000',
+          total_taxable_compensation: '1325000',
+          // Step 7: full CTC info
+          present_emp_date_signed: '01/28/2026',
+          employee_date_signed: '01/30/2026',
+          ctc_no: '34567890',
+          ctc_place: 'TAGUIG CITY',
+          ctc_date_issued: '01/05/2026',
+          ctc_amount: '5000', // Higher CTC for high-income earner
         },
       ],
     };
@@ -1488,6 +2156,15 @@ export default function FormWizardPage() {
   );
 }
 
+// ─── Date mask helpers ────────────────────────────────────────────────────────
+// Site-wide rule: all date inputs use a masked text input "mm / dd / yyyy".
+function formatDateMask(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)} / ${digits.slice(2)}`;
+  return `${digits.slice(0, 2)} / ${digits.slice(2, 4)} / ${digits.slice(4)}`;
+}
+
 // ─── FieldInput ───────────────────────────────────────────────────────────────
 function FieldInput({
   field,
@@ -1500,6 +2177,8 @@ function FieldInput({
 }) {
   const isOptional = !field.required;
   const labelText = field.label;
+  const [acFocused, setAcFocused] = useState(false);
+  const acBlurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const commonProps = {
     id: field.id,
@@ -1514,6 +2193,15 @@ function FieldInput({
     maxLength: field.maxLength,
     autoComplete: 'off',
   };
+
+  // Autocomplete suggestions (Rule 1 — site-wide for City / Province / Bank / Country fields)
+  const acSource = field.optionsSource as AutocompleteSource | undefined;
+  const acOptions = acSource ? AUTOCOMPLETE_SOURCES[acSource] ?? [] : [];
+  const acQuery = (value || '').trim().toLowerCase();
+  const acSuggestions = acQuery
+    ? acOptions.filter((o) => o.toLowerCase().includes(acQuery)).slice(0, 8)
+    : acOptions.slice(0, 8);
+  const showAcList = field.type === 'autocomplete' && acFocused && acSuggestions.length > 0;
 
   return (
     <div>
@@ -1538,6 +2226,78 @@ function FieldInput({
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
             ▾
           </span>
+        </div>
+      ) : field.type === 'autocomplete' ? (
+        // Rule 1 — site-wide: autocomplete (typed text + filtered suggestions).
+        // User can also type values not in the list (e.g. small municipalities).
+        <div className="relative">
+          <input
+            type="text"
+            {...commonProps}
+            placeholder={commonProps.placeholder || `Type to search ${field.label.toLowerCase()}…`}
+            list={undefined}
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={showAcList}
+            onFocus={() => {
+              if (acBlurTimer.current) clearTimeout(acBlurTimer.current);
+              setAcFocused(true);
+            }}
+            onBlur={() => {
+              // Delay so click on a suggestion can fire before list disappears.
+              acBlurTimer.current = setTimeout(() => setAcFocused(false), 150);
+            }}
+          />
+          {showAcList && (
+            <ul
+              className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-lg border border-gray-300 bg-white shadow-lg dark:bg-gray-800 dark:border-gray-600"
+              role="listbox"
+            >
+              {acSuggestions.map((opt) => (
+                <li
+                  key={opt}
+                  role="option"
+                  aria-selected={value === opt}
+                  className="px-3 py-2 cursor-pointer text-sm hover:bg-blue-50 dark:hover:bg-gray-700"
+                  onMouseDown={(e) => {
+                    // Use onMouseDown so it fires before the input's blur.
+                    e.preventDefault();
+                    onChange(field.autoUppercase ? opt.toUpperCase() : opt);
+                    setAcFocused(false);
+                  }}
+                >
+                  {opt}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : field.type === 'date' ? (
+        // Rule 2 — Clear icon beside the textbox.
+        // Rule 3 — site-wide: format = mm / dd / yyyy (masked text, not native picker).
+        <div className="relative">
+          <input
+            type="text"
+            id={field.id}
+            value={value}
+            onChange={(e) => onChange(formatDateMask(e.target.value))}
+            placeholder="mm / dd / yyyy"
+            className="input-field pr-9"
+            inputMode="numeric"
+            maxLength={14}
+            autoComplete="off"
+          />
+          {value && (
+            <button
+              type="button"
+              aria-label={`Clear ${field.label}`}
+              onClick={() => onChange('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 text-base leading-none px-1"
+              tabIndex={-1}
+            >
+              ✕
+            </button>
+          )}
         </div>
       ) : field.type === 'textarea' ? (
         <textarea {...commonProps} rows={3} />
@@ -2174,7 +2934,15 @@ function PaymentModal({
       )}
 
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
+        {/* Close button — upper right */}
+        {step !== 'generating' && (
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/20 hover:bg-black/30 text-white text-lg leading-none transition-colors"
+            aria-label="Close"
+          >×</button>
+        )}
         {/* Header */}
         <div className="bg-gradient-to-r from-[#0b7c3e] to-[#00a651] px-5 py-4">
           <div className="flex items-center justify-between">
@@ -2196,7 +2964,7 @@ function PaymentModal({
             {/* Heartfelt note */}
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
               <p className="text-xs text-blue-800 leading-relaxed">
-                Built with a lot of time and effort to make it easier for Filipinos to fill out government forms. Your ₱5 or any amount above that helps cover hosting and supports future improvements. Any additional support would be greatly appreciated. Maraming salamat Po🙏
+                Made to make government forms easier for Filipinos. Your ₱5 or any extra helps cover maintenance and future improvements. Maraming salamat po.
               </p>
             </div>
 

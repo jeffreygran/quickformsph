@@ -21,6 +21,7 @@ import {
   formatTimeLeft,
   type StoredAccessToken,
 } from '@/lib/access-token-client';
+import { trackEvent } from '@/lib/analytics-client';
 
 type Mode = 'choice' | 'pay' | 'key';
 
@@ -92,7 +93,7 @@ export default function PaymentGate({
                 formCode={formCode}
                 agency={agency}
                 existingToken={existingToken}
-                onDemo={() => { onAccessGranted?.(true); triggerExit(() => setDemoMode(true)); }}
+                onDemo={() => { trackEvent('demo_click', formCode); onAccessGranted?.(true); triggerExit(() => setDemoMode(true)); }}
                 onPay={() => setMode('pay')}
                 onKey={() => setMode('key')}
                 onProceed={() => { onAccessGranted?.(false); triggerExit(() => setDemoMode(true)); }}
@@ -212,7 +213,7 @@ function ChoiceScreen({
             className="flex flex-col items-center gap-2 rounded-2xl border border-blue-200 hover:border-blue-300 bg-blue-50/60 hover:bg-blue-100/70 px-3 py-4 active:scale-[.97] transition-all"
           >
             <span className="text-2xl" aria-hidden>💚</span>
-            <span className="text-sm font-bold text-blue-700">Pay ₱5</span>
+            <span className="text-sm font-bold text-blue-700">Donate ₱5</span>
             <span className="text-[10px] text-blue-500 text-center leading-tight">24-hr full access</span>
           </button>
         )}
