@@ -2599,6 +2599,17 @@ function PreviewScreen({
           <p className="text-center text-[10px] text-gray-600 mt-0.5">
             Watermark will not appear on the downloaded PDF.
           </p>
+
+          {/* Review reminder */}
+          <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex gap-3 items-start">
+            <span className="text-lg leading-none mt-0.5 flex-shrink-0">⚠️</span>
+            <div>
+              <p className="text-[12px] font-bold text-amber-400 mb-0.5">Review before downloading</p>
+              <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                Please check that <strong className="text-amber-300">all information is correct</strong> and each field appears in its <strong className="text-amber-300">exact position</strong> on the form. Download only when everything looks right.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
