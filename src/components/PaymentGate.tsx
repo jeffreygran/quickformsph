@@ -210,23 +210,27 @@ function ChoiceScreen({
         <p className="text-[11px] uppercase tracking-widest font-bold text-blue-600 mb-0.5">{formCode}</p>
         <h2 className="text-sm font-bold text-gray-900 leading-snug mb-4">{formName}</h2>
 
-        <p className="text-[20px] font-semibold text-gray-500 mb-5">How would you like to access?</p>
+        <p className="text-[20px] font-semibold text-gray-500 mb-5">
+          {existingToken ? 'Ready to continue?' : 'How would you like to access?'}
+        </p>
 
         {/* Layout C — Horizontal Pill Stack */}
 
-        {/* Demo pill */}
-        <button
-          type="button"
-          onClick={onDemo}
-          className="flex items-center gap-3 w-full rounded-full px-5 py-3 mb-2 border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 active:scale-[.98] transition-all text-left"
-        >
-          <span className="text-[22px] flex-shrink-0" aria-hidden>🧪</span>
-          <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-bold text-gray-800 leading-tight">Demo</div>
-            <div className="text-[10px] text-gray-400 leading-tight">Try it out, first</div>
-          </div>
-          <span className="text-gray-300 text-base">›</span>
-        </button>
+        {/* Demo pill — hidden when user already has access */}
+        {!existingToken && (
+          <button
+            type="button"
+            onClick={onDemo}
+            className="flex items-center gap-3 w-full rounded-full px-5 py-3 mb-2 border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 active:scale-[.98] transition-all text-left"
+          >
+            <span className="text-[22px] flex-shrink-0" aria-hidden>🧪</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-bold text-gray-800 leading-tight">Demo</div>
+              <div className="text-[10px] text-gray-400 leading-tight">Try it out, first</div>
+            </div>
+            <span className="text-gray-300 text-base">›</span>
+          </button>
+        )}
 
         {/* Pay / Proceed pill */}
         {existingToken ? (
@@ -257,15 +261,18 @@ function ChoiceScreen({
           </button>
         )}
 
-        <div className="mt-1 text-center">
-          <button
-            type="button"
-            onClick={onKey}
-            className="text-xs text-gray-400 hover:text-gray-600 underline-offset-4 hover:underline transition-colors"
-          >
-            I have a promo code.
-          </button>
-        </div>
+        {/* Promo link — hidden when user already has access */}
+        {!existingToken && (
+          <div className="mt-1 text-center">
+            <button
+              type="button"
+              onClick={onKey}
+              className="text-xs text-gray-400 hover:text-gray-600 underline-offset-4 hover:underline transition-colors"
+            >
+              I have a promo code.
+            </button>
+          </div>
+        )}
       </div>
 
     </>
