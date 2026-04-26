@@ -29,6 +29,7 @@ export type AuditEventType =
   | 'request_blocked'
   | 'license_key_invalid'
   | 'license_key_already_used'
+  | 'license_key_expired'
   | 'license_key_redeemed';
 
 export interface AuditEvent {

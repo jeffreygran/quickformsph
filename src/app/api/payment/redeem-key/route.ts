@@ -62,6 +62,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ valid: false, error: 'This license key has already been used' }, { status: 200 });
   }
 
+  // Check expiry
+  if (keyRow.expires_at !== null && keyRow.expires_at < Date.now()) {
+    auditLog('license_key_expired', ip, `Expired key attempt: ${rawKey}`);
+    return NextResponse.json({ valid: false, error: 'This promo code has expired' }, { status: 200 });
+  }
+
   // Atomically mark as used
   const claimed = markLicenseKeyUsed(rawKey, ip);
   if (!claimed) {

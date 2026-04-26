@@ -371,13 +371,13 @@ export default function FormWizardPage() {
           animal_bite_arv_day1: '', animal_bite_arv_day2: '', animal_bite_arv_day3: '', animal_bite_rig: '', animal_bite_others: '',
           newborn_essential_care: '', newborn_hearing_screening: '', newborn_screening_test: '', hiv_lab_number: '',
           philhealth_benefit_first_case_rate: 'Appendectomy', philhealth_benefit_second_case_rate: '', philhealth_benefit_icd_rvs_code: 'K37 / 10060',
-          hcp1_accreditation_no: 'DR-2025-01234 — DR. RICARDO GOMEZ', hcp1_date_signed_month: '04', hcp1_date_signed_day: '15', hcp1_date_signed_year: '2026', hcp1_copay: '0',
+          hcp1_accreditation_no: 'DR-2025-01234 — DR. RICARDO GOMEZ', hcp1_date_signed_month: '04', hcp1_date_signed_day: '15', hcp1_date_signed_year: '2026', hcp1_copay: 'No co-pay on top of PhilHealth Benefit',
           hcp2_accreditation_no: '', hcp2_date_signed_month: '', hcp2_date_signed_day: '', hcp2_date_signed_year: '', hcp2_copay: '',
           hcp3_accreditation_no: '', hcp3_date_signed_month: '', hcp3_date_signed_day: '', hcp3_date_signed_year: '', hcp3_copay: '',
           total_hci_fees: '35000', total_professional_fees: '8000', grand_total: '43000',
           total_actual_charges: '43000', discount_amount: '0', philhealth_benefit_amount: '18000', amount_after_philhealth: '25000',
-          hci_amount_paid_by: '25000', hci_paid_member_patient: '25000', hci_paid_hmo: '0', hci_paid_others: '0',
-          pf_amount_paid_by: '8000', pf_paid_member_patient: '8000', pf_paid_hmo: '0', pf_paid_others: '0',
+          hci_amount_paid_by: '25000', hci_paid_member_patient: 'Yes', hci_paid_hmo: 'No', hci_paid_others: 'No',
+          pf_amount_paid_by: '8000', pf_paid_member_patient: 'Yes', pf_paid_hmo: 'No', pf_paid_others: 'No',
           drug_purchase_none: '', drug_purchase_total_amount: '2500',
           diagnostic_purchase_none: '', diagnostic_purchase_total_amount: '3500',
         },
@@ -410,13 +410,13 @@ export default function FormWizardPage() {
           animal_bite_arv_day1: '', animal_bite_arv_day2: '', animal_bite_arv_day3: '', animal_bite_rig: '', animal_bite_others: '',
           newborn_essential_care: '', newborn_hearing_screening: '', newborn_screening_test: '', hiv_lab_number: '',
           philhealth_benefit_first_case_rate: 'CAP-MR', philhealth_benefit_second_case_rate: 'Hypertension Stage 2', philhealth_benefit_icd_rvs_code: 'J18.9 / I10',
-          hcp1_accreditation_no: 'DR-2024-98765 — DR. ELENA REYES', hcp1_date_signed_month: '03', hcp1_date_signed_day: '28', hcp1_date_signed_year: '2026', hcp1_copay: '0',
+          hcp1_accreditation_no: 'DR-2024-98765 — DR. ELENA REYES', hcp1_date_signed_month: '03', hcp1_date_signed_day: '28', hcp1_date_signed_year: '2026', hcp1_copay: 'No co-pay on top of PhilHealth Benefit',
           hcp2_accreditation_no: '', hcp2_date_signed_month: '', hcp2_date_signed_day: '', hcp2_date_signed_year: '', hcp2_copay: '',
           hcp3_accreditation_no: '', hcp3_date_signed_month: '', hcp3_date_signed_day: '', hcp3_date_signed_year: '', hcp3_copay: '',
           total_hci_fees: '28000', total_professional_fees: '6000', grand_total: '34000',
           total_actual_charges: '34000', discount_amount: '0', philhealth_benefit_amount: '16000', amount_after_philhealth: '18000',
-          hci_amount_paid_by: '18000', hci_paid_member_patient: '18000', hci_paid_hmo: '0', hci_paid_others: '0',
-          pf_amount_paid_by: '6000', pf_paid_member_patient: '6000', pf_paid_hmo: '0', pf_paid_others: '0',
+          hci_amount_paid_by: '18000', hci_paid_member_patient: 'Yes', hci_paid_hmo: 'No', hci_paid_others: 'No',
+          pf_amount_paid_by: '6000', pf_paid_member_patient: 'Yes', pf_paid_hmo: 'No', pf_paid_others: 'No',
           drug_purchase_none: '', drug_purchase_total_amount: '4500',
           diagnostic_purchase_none: '', diagnostic_purchase_total_amount: '2200',
         },
@@ -450,13 +450,13 @@ export default function FormWizardPage() {
           animal_bite_arv_day1: '', animal_bite_arv_day2: '', animal_bite_arv_day3: '', animal_bite_rig: '', animal_bite_others: '',
           newborn_essential_care: '', newborn_hearing_screening: '', newborn_screening_test: '', hiv_lab_number: '',
           philhealth_benefit_first_case_rate: 'ESRD (HD)', philhealth_benefit_second_case_rate: 'Anemia of CKD', philhealth_benefit_icd_rvs_code: 'N18.6 / 90935',
-          hcp1_accreditation_no: 'DR-2025-11111 — DR. JOSE MENDOZA (Nephrologist)', hcp1_date_signed_month: '02', hcp1_date_signed_day: '28', hcp1_date_signed_year: '2026', hcp1_copay: '5000',
-          hcp2_accreditation_no: 'DR-2025-22222 — DR. LINDA TAN (Endocrinologist)', hcp2_date_signed_month: '02', hcp2_date_signed_day: '28', hcp2_date_signed_year: '2026', hcp2_copay: '3000',
-          hcp3_accreditation_no: 'DR-2025-33333 — DR. ROBERTO CRUZ (Hematologist)', hcp3_date_signed_month: '02', hcp3_date_signed_day: '28', hcp3_date_signed_year: '2026', hcp3_copay: '2500',
+          hcp1_accreditation_no: 'DR-2025-11111 — DR. JOSE MENDOZA (Nephrologist)', hcp1_date_signed_month: '02', hcp1_date_signed_day: '28', hcp1_date_signed_year: '2026', hcp1_copay: 'With co-pay on top of PhilHealth Benefit',
+          hcp2_accreditation_no: 'DR-2025-22222 — DR. LINDA TAN (Endocrinologist)', hcp2_date_signed_month: '02', hcp2_date_signed_day: '28', hcp2_date_signed_year: '2026', hcp2_copay: 'With co-pay on top of PhilHealth Benefit',
+          hcp3_accreditation_no: 'DR-2025-33333 — DR. ROBERTO CRUZ (Hematologist)', hcp3_date_signed_month: '02', hcp3_date_signed_day: '28', hcp3_date_signed_year: '2026', hcp3_copay: 'With co-pay on top of PhilHealth Benefit',
           total_hci_fees: '95000', total_professional_fees: '18000', grand_total: '113000',
           total_actual_charges: '113000', discount_amount: '5000', philhealth_benefit_amount: '45000', amount_after_philhealth: '63000',
-          hci_amount_paid_by: '63000', hci_paid_member_patient: '40000', hci_paid_hmo: '20000', hci_paid_others: '3000',
-          pf_amount_paid_by: '18000', pf_paid_member_patient: '12000', pf_paid_hmo: '6000', pf_paid_others: '0',
+          hci_amount_paid_by: '63000', hci_paid_member_patient: 'Yes', hci_paid_hmo: 'Yes', hci_paid_others: 'Yes',
+          pf_amount_paid_by: '18000', pf_paid_member_patient: 'Yes', pf_paid_hmo: 'Yes', pf_paid_others: 'No',
           drug_purchase_none: '', drug_purchase_total_amount: '12500',
           diagnostic_purchase_none: '', diagnostic_purchase_total_amount: '8700',
         },
@@ -1275,6 +1275,100 @@ export default function FormWizardPage() {
           wa_contact: '02-8988-2288',
           wa_email: 'tax.advisory@punongbayan-araullo.com',
           wa_title: 'Senior Tax Manager',
+        },
+      ],
+
+      // ── BIR 1902 (Application for Registration — Purely Compensation Income) ──
+      // 3 samples × 41 fields × 5 steps. Conditional gates: spouse block populated
+      // only when civil_status='Married'; foreign_address blank for Local Employee;
+      // other_citizenship blank for Filipino.
+      'bir-1902': [
+        {
+          // Sample 1: Local Employee — Filipino, Single (most common path).
+          philsys_pcn: '1234567890123456',
+          tin: '123456789012',
+          taxpayer_type: 'Local Employee',
+          last_name: 'DELA CRUZ', first_name: 'JUAN MIGUEL', middle_name: 'SANTOS', name_suffix: '',
+          gender: 'Male', civil_status: 'Single',
+          date_of_birth: '03/15/1995', place_of_birth: 'QUEZON CITY, METRO MANILA',
+          mothers_maiden_name: 'ROSA MARIE TORRES SANTOS',
+          fathers_name: 'PEDRO LUIS GARCIA DELA CRUZ',
+          citizenship: 'FILIPINO', other_citizenship: '',
+          local_unit: 'Unit 4B', local_building: 'SAMPAGUITA RESIDENCES',
+          local_lot: 'LOT 12 BLOCK 5', local_street: 'HOLY SPIRIT DRIVE',
+          local_subdivision: 'DON ANTONIO HEIGHTS', local_barangay: 'BRGY. HOLY SPIRIT',
+          local_town: 'DISTRICT 2', local_city: 'QUEZON CITY',
+          local_province: 'METRO MANILA (NCR)', local_zip: '1127',
+          foreign_address: '',
+          id_type: 'UMID', id_number: 'CRN-0001-2345678-9',
+          id_effectivity: '06/01/2023', id_expiry: '06/01/2033',
+          id_issuer: 'SSS', id_place_issue: 'QUEZON CITY',
+          preferred_contact_type: 'Mobile',
+          contact_landline: '', contact_fax: '',
+          contact_mobile: '0917-123-4567', contact_email: 'juan.delacruz@email.com',
+          spouse_employment_status: '',
+          spouse_last_name: '', spouse_first_name: '', spouse_middle_name: '', spouse_suffix: '',
+          spouse_tin: '', spouse_employer_name: '', spouse_employer_tin: '',
+        },
+        {
+          // Sample 2: Local Employee — Filipino, Married (full spouse block populated).
+          philsys_pcn: '2345678901234567',
+          tin: '234567890123',
+          taxpayer_type: 'Local Employee',
+          last_name: 'REYES', first_name: 'MARIA CRISTINA', middle_name: 'GARCIA', name_suffix: '',
+          gender: 'Female', civil_status: 'Married',
+          date_of_birth: '08/22/1988', place_of_birth: 'CEBU CITY, CEBU',
+          mothers_maiden_name: 'CARMEN ANGELES VILLANUEVA GARCIA',
+          fathers_name: 'JOSE ANTONIO MENDOZA REYES',
+          citizenship: 'FILIPINO', other_citizenship: '',
+          local_unit: '', local_building: '',
+          local_lot: 'LOT 5 BLOCK 2', local_street: 'MABOLO STREET',
+          local_subdivision: 'MABOLO VILLAGE', local_barangay: 'BRGY. MABOLO',
+          local_town: '', local_city: 'CEBU CITY',
+          local_province: 'CEBU', local_zip: '6000',
+          foreign_address: '',
+          id_type: 'PASSPORT', id_number: 'P1234567A',
+          id_effectivity: '01/15/2022', id_expiry: '01/15/2032',
+          id_issuer: 'DFA', id_place_issue: 'CEBU CITY',
+          preferred_contact_type: 'Email',
+          contact_landline: '032-555-1234', contact_fax: '',
+          contact_mobile: '0928-987-6543', contact_email: 'maria.reyes@email.com',
+          spouse_employment_status: 'Employed in the Philippines',
+          spouse_last_name: 'TORRES', spouse_first_name: 'RICARDO',
+          spouse_middle_name: 'MENDOZA', spouse_suffix: 'Jr.',
+          spouse_tin: '345678901234',
+          spouse_employer_name: 'AYALA CORPORATION',
+          spouse_employer_tin: '000123456789',
+        },
+        {
+          // Sample 3: Resident Alien — Married, with foreign address + dual citizenship.
+          philsys_pcn: '',
+          tin: '345678901234',
+          taxpayer_type: 'Resident Alien',
+          last_name: 'TANAKA', first_name: 'HIROSHI', middle_name: '', name_suffix: '',
+          gender: 'Male', civil_status: 'Married',
+          date_of_birth: '11/30/1982', place_of_birth: 'TOKYO, JAPAN',
+          mothers_maiden_name: 'YUKI SATO TANAKA',
+          fathers_name: 'KENJI TANAKA',
+          citizenship: 'JAPANESE', other_citizenship: 'FILIPINO',
+          local_unit: 'Unit 2502', local_building: 'ONE MCKINLEY PLACE',
+          local_lot: '', local_street: '4TH AVENUE',
+          local_subdivision: 'BONIFACIO GLOBAL CITY', local_barangay: 'BRGY. FORT BONIFACIO',
+          local_town: '', local_city: 'TAGUIG CITY',
+          local_province: 'METRO MANILA (NCR)', local_zip: '1634',
+          foreign_address: '3-1-1 KASUMIGASEKI, CHIYODA-KU, TOKYO 100-0013 JAPAN',
+          id_type: 'ACR I-CARD', id_number: 'E-12345678A',
+          id_effectivity: '02/01/2024', id_expiry: '02/01/2027',
+          id_issuer: 'BUREAU OF IMMIGRATION', id_place_issue: 'MANILA',
+          preferred_contact_type: 'Mobile',
+          contact_landline: '', contact_fax: '',
+          contact_mobile: '0939-444-5566', contact_email: 'hiroshi.tanaka@globalcorp.com',
+          spouse_employment_status: 'Employed Abroad',
+          spouse_last_name: 'TANAKA', spouse_first_name: 'AKIKO',
+          spouse_middle_name: '', spouse_suffix: '',
+          spouse_tin: '',
+          spouse_employer_name: 'MITSUBISHI CORPORATION TOKYO',
+          spouse_employer_tin: '',
         },
       ],
 
@@ -2785,6 +2879,7 @@ function PaymentModal({
   const [manualRefBusy, setManualRefBusy] = useState(false);
   const [gcashCopied, setGcashCopied]     = useState(false);
   const [qrFullscreen, setQrFullscreen]   = useState(false);
+  const [paymentMode, setPaymentMode]     = useState<'process' | 'upload_only'>('process');
   // Live settings fetched from API (fall back to props)
   const [liveNumber, setLiveNumber] = useState(gcashNumberProp);
   const [liveName, setLiveName]     = useState(gcashNameProp);
@@ -2794,11 +2889,12 @@ function PaymentModal({
   useEffect(() => {
     fetch('/api/admin/gcash-settings')
       .then(r => r.ok ? r.json() : null)
-      .then((d: { gcash_number?: string; gcash_name?: string; qr_url?: string | null } | null) => {
+      .then((d: { gcash_number?: string; gcash_name?: string; qr_url?: string | null; payment_mode?: string } | null) => {
         if (!d) return;
         if (d.gcash_number) setLiveNumber(d.gcash_number);
         if (d.gcash_name)   setLiveName(d.gcash_name);
         setLiveQrUrl(d.qr_url ?? null);
+        if (d.payment_mode === 'upload_only') setPaymentMode('upload_only');
       })
       .catch(() => { /* use prop defaults */ });
   }, []);
@@ -2849,6 +2945,41 @@ function PaymentModal({
     const fd = new FormData();
     fd.append('screenshot', file);
     fd.append('amount', String(Math.max(amount, 5)));
+
+    // Upload Only mode — skip OCR, just save screenshot and get access token
+    if (paymentMode === 'upload_only') {
+      try {
+        const res  = await fetch('/api/payment/upload-screenshot', { method: 'POST', body: fd });
+        const data = await res.json() as {
+          ok: boolean;
+          token?: string | null;
+          tokenExpiresAt?: number | null;
+          refNo?: string | null;
+          amount?: number | null;
+          error?: string;
+        };
+        if (data.ok && data.token && data.tokenExpiresAt && data.refNo) {
+          setVerifiedMeta({
+            token: data.token,
+            refNo: data.refNo,
+            amount: data.amount ?? 5,
+            expiresAt: data.tokenExpiresAt,
+          });
+          setStep('verified');
+        } else {
+          setVerifyErrors([data.error ?? 'Upload failed']);
+          setFailCount(c => c + 1);
+          setStep('failed');
+        }
+      } catch {
+        setVerifyErrors(['Could not reach server. Please try again.']);
+        setFailCount(c => c + 1);
+        setStep('failed');
+      }
+      return;
+    }
+
+    // Process Payment mode — full OCR verification
     try {
       const res  = await fetch('/api/payment/verify-screenshot', { method: 'POST', body: fd });
       const data = await res.json() as {

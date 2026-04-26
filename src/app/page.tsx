@@ -64,6 +64,15 @@ export default function HomePage() {
   // Donation modal state
   const [showDonation, setShowDonation] = useState(false);
 
+  // Referral program — show nav link if user is registered
+  const [isReferralUser, setIsReferralUser] = useState(false);
+
+  useEffect(() => {
+    try {
+      setIsReferralUser(!!localStorage.getItem('qfph_referral_email'));
+    } catch { /* ignore */ }
+  }, []);
+
   // Privacy notice — show only on first visit
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
@@ -329,6 +338,15 @@ export default function HomePage() {
 
           {/* Right nav */}
           <nav className="flex items-center gap-2">
+            {/* Referral Program link — shown when user is registered */}
+            {isReferralUser && (
+              <Link
+                href="/referral"
+                className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition-colors"
+              >
+                🤝 <span className="hidden sm:inline">Referral Program</span>
+              </Link>
+            )}
             {/* ── Download Code Button (hidden) ── */}
             <div className="relative hidden" ref={codePanelRef}>
               <button

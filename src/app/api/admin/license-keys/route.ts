@@ -31,16 +31,20 @@ export async function POST(req: NextRequest) {
   if (!requireAdmin(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  let body: { count?: number; label?: string } = {};
+  let body: { count?: number; label?: string; expiry_hours?: number | null } = {};
   try { body = await req.json(); } catch { /* empty body ok */ }
 
-  const count = Math.min(Math.max(Number(body.count ?? 1), 1), 50);
-  const label = (body.label ?? '').trim().slice(0, 100);
+  const count       = Math.min(Math.max(Number(body.count ?? 1), 1), 50);
+  const label       = (body.label ?? '').trim().slice(0, 100);
+  const expiryHours = body.expiry_hours != null && Number(body.expiry_hours) > 0
+    ? Number(body.expiry_hours)
+    : null;
+  const expires_at  = expiryHours !== null ? Date.now() + expiryHours * 3_600_000 : null;
 
   const created: string[] = [];
   for (let i = 0; i < count; i++) {
     const key = generateKey();
-    insertLicenseKey(key, label);
+    insertLicenseKey(key, label, expires_at);
     created.push(key);
   }
   return NextResponse.json({ created });

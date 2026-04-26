@@ -364,6 +364,15 @@ function LicenseKeyScreen({
       >
         {loading ? 'Verifying…' : 'Redeem Code'}
       </button>
+
+      <div className="mt-3 text-center">
+        <a
+          href="/referral"
+          className="text-xs text-blue-500 hover:text-blue-700 underline-offset-4 hover:underline transition-colors"
+        >
+          🤝 Don&apos;t have a code? Refer a Friend &amp; earn one free
+        </a>
+      </div>
     </>
   );
 }

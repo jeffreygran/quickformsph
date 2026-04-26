@@ -79,11 +79,40 @@ export function getDB(): Database.Database {
       label      TEXT    NOT NULL DEFAULT '',
       used_at    INTEGER,
       used_by_ip TEXT,
-      created_at INTEGER NOT NULL
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER
     );
 
     CREATE INDEX IF NOT EXISTS idx_license_keys_key_code   ON license_keys (key_code);
     CREATE INDEX IF NOT EXISTS idx_license_keys_created_at ON license_keys (created_at DESC);
+
+    -- Referral program tables
+    CREATE TABLE IF NOT EXISTS referral_config (
+      id                  INTEGER PRIMARY KEY CHECK (id = 1),
+      required_referrals  INTEGER NOT NULL DEFAULT 5,
+      promo_expiry_hours  INTEGER NOT NULL DEFAULT 24,
+      updated_at          INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS referral_users (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      email      TEXT    NOT NULL UNIQUE,
+      ref_token  TEXT    NOT NULL UNIQUE,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_referral_users_token ON referral_users (ref_token);
+    CREATE INDEX IF NOT EXISTS idx_referral_users_email ON referral_users (email);
+
+    CREATE TABLE IF NOT EXISTS referral_events (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      referrer_email  TEXT    NOT NULL,
+      referred_email  TEXT    NOT NULL UNIQUE,
+      ip              TEXT    NOT NULL DEFAULT '',
+      accepted_at     INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_referral_events_referrer ON referral_events (referrer_email);
 
     CREATE TABLE IF NOT EXISTS analytics_events (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,6 +142,18 @@ export function getDB(): Database.Database {
       ALTER TABLE generated_pdfs DROP COLUMN amount;
     `);
   }
+
+  // Migration: add expires_at to license_keys if missing
+  const lkCols = (_db.prepare('PRAGMA table_info(license_keys)').all() as { name: string }[]).map((c) => c.name);
+  if (!lkCols.includes('expires_at')) {
+    _db.exec(`ALTER TABLE license_keys ADD COLUMN expires_at INTEGER;`);
+  }
+
+  // Seed referral_config default row if not present
+  _db.prepare(`
+    INSERT OR IGNORE INTO referral_config (id, required_referrals, promo_expiry_hours, updated_at)
+    VALUES (1, 5, 24, ?)
+  `).run(Date.now());
 
   return _db;
 }
@@ -262,13 +303,14 @@ export interface LicenseKey {
   used_at: number | null;
   used_by_ip: string | null;
   created_at: number;
+  expires_at: number | null;
 }
 
-export function insertLicenseKey(key_code: string, label: string): void {
+export function insertLicenseKey(key_code: string, label: string, expires_at?: number | null): void {
   getDB().prepare(`
-    INSERT INTO license_keys (key_code, label, created_at)
-    VALUES (?, ?, ?)
-  `).run(key_code, label, Date.now());
+    INSERT INTO license_keys (key_code, label, created_at, expires_at)
+    VALUES (?, ?, ?, ?)
+  `).run(key_code, label, Date.now(), expires_at ?? null);
 }
 
 export function getLicenseKey(key_code: string): LicenseKey | null {
@@ -294,6 +336,110 @@ export function getAllLicenseKeys(): LicenseKey[] {
 export function deleteLicenseKey(id: number): boolean {
   const result = getDB().prepare('DELETE FROM license_keys WHERE id = ?').run(id);
   return result.changes > 0;
+}
+
+// ─── referral_config ──────────────────────────────────────────────────────────
+
+export interface ReferralConfig {
+  required_referrals: number;
+  promo_expiry_hours: number;
+}
+
+export function getReferralConfig(): ReferralConfig {
+  const row = getDB().prepare('SELECT required_referrals, promo_expiry_hours FROM referral_config WHERE id = 1').get() as ReferralConfig | undefined;
+  return row ?? { required_referrals: 5, promo_expiry_hours: 24 };
+}
+
+export function setReferralConfig(cfg: ReferralConfig): void {
+  getDB().prepare(`
+    INSERT INTO referral_config (id, required_referrals, promo_expiry_hours, updated_at)
+    VALUES (1, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      required_referrals = excluded.required_referrals,
+      promo_expiry_hours = excluded.promo_expiry_hours,
+      updated_at         = excluded.updated_at
+  `).run(cfg.required_referrals, cfg.promo_expiry_hours, Date.now());
+}
+
+// ─── referral_users ───────────────────────────────────────────────────────────
+
+export interface ReferralUser {
+  id: number;
+  email: string;
+  ref_token: string;
+  created_at: number;
+}
+
+export function insertReferralUser(email: string, ref_token: string): ReferralUser {
+  const db = getDB();
+  db.prepare(`
+    INSERT OR IGNORE INTO referral_users (email, ref_token, created_at)
+    VALUES (?, ?, ?)
+  `).run(email, ref_token, Date.now());
+  return db.prepare('SELECT * FROM referral_users WHERE email = ?').get(email) as ReferralUser;
+}
+
+export function getReferralUserByEmail(email: string): ReferralUser | null {
+  return (getDB().prepare('SELECT * FROM referral_users WHERE email = ?').get(email) as ReferralUser | undefined) ?? null;
+}
+
+export function getReferralUserByToken(ref_token: string): ReferralUser | null {
+  return (getDB().prepare('SELECT * FROM referral_users WHERE ref_token = ?').get(ref_token) as ReferralUser | undefined) ?? null;
+}
+
+export function getAllReferralUsers(): ReferralUser[] {
+  return getDB().prepare('SELECT * FROM referral_users ORDER BY created_at DESC').all() as ReferralUser[];
+}
+
+// ─── referral_events ──────────────────────────────────────────────────────────
+
+export interface ReferralEvent {
+  id: number;
+  referrer_email: string;
+  referred_email: string;
+  ip: string;
+  accepted_at: number;
+}
+
+/** Returns false if this referred_email or ip has already been counted (abuse prevention). */
+export function insertReferralEvent(referrer_email: string, referred_email: string, ip: string): boolean {
+  // Block self-referral
+  if (referrer_email.toLowerCase() === referred_email.toLowerCase()) return false;
+  // Block same IP referring twice for same referrer
+  const existingIP = getDB().prepare(
+    `SELECT id FROM referral_events WHERE referrer_email = ? AND ip = ?`
+  ).get(referrer_email, ip);
+  if (existingIP) return false;
+  try {
+    getDB().prepare(`
+      INSERT INTO referral_events (referrer_email, referred_email, ip, accepted_at)
+      VALUES (?, ?, ?, ?)
+    `).run(referrer_email, referred_email, ip, Date.now());
+    return true;
+  } catch {
+    // UNIQUE constraint on referred_email — already counted
+    return false;
+  }
+}
+
+export function getReferralCount(referrer_email: string): number {
+  const row = getDB().prepare(
+    `SELECT COUNT(*) AS cnt FROM referral_events WHERE referrer_email = ?`
+  ).get(referrer_email) as { cnt: number };
+  return row.cnt;
+}
+
+export function getReferralStats(): { email: string; count: number; earned_codes: number }[] {
+  return getDB().prepare(`
+    SELECT
+      ru.email,
+      COUNT(re.id) AS count,
+      (SELECT COUNT(*) FROM license_keys lk WHERE lk.label LIKE 'referral:' || ru.email || '%') AS earned_codes
+    FROM referral_users ru
+    LEFT JOIN referral_events re ON re.referrer_email = ru.email
+    GROUP BY ru.email
+    ORDER BY count DESC
+  `).all() as { email: string; count: number; earned_codes: number }[];
 }
 
 // ─── analytics_events CRUD ────────────────────────────────────────────────────
