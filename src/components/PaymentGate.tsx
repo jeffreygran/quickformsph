@@ -175,16 +175,14 @@ function ChoiceScreen({
 
   return (
     <>
-      {/* Banner — only logo inside the wave image */}
+      {/* Banner — wave image only, logo overlaps the bottom edge */}
       <div
-        className="relative w-full flex flex-col items-center justify-center"
+        className="relative w-full"
         style={{
           backgroundImage: `url('/standard-banner.png')`,
           backgroundSize: 'cover',
           backgroundPosition: 'top center',
-          minHeight: '160px',
-          paddingTop: '20px',
-          paddingBottom: '8px',
+          height: '120px',
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-transparent rounded-t-3xl pointer-events-none" />
@@ -195,8 +193,9 @@ function ChoiceScreen({
             aria-label="Close"
           >×</button>
         )}
-        <div className="relative z-10">
-          <div className="w-16 h-16 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center">
+        {/* Logo — anchored to banner bottom, half overlaps into white */}
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 z-10">
+          <div className="w-16 h-16 rounded-2xl bg-white border border-gray-200 shadow-md flex items-center justify-center">
             {logo ? (
               <Image src={logo.src} alt={agency} width={logo.w} height={logo.h} className="object-contain" />
             ) : (
@@ -206,15 +205,12 @@ function ChoiceScreen({
         </div>
       </div>
 
-      {/* Form identity — in white area, tight below banner */}
-      <div className="px-6 pt-2 pb-0 text-center">
+      {/* White area — padded to clear the overlapping logo, then form id + body */}
+      <div className="px-6 pt-10 pb-6 sm:px-8 text-center">
         <p className="text-[11px] uppercase tracking-widest font-bold text-blue-600 mb-0.5">{formCode}</p>
-        <h2 className="text-sm font-bold text-gray-900 leading-snug">{formName}</h2>
-      </div>
+        <h2 className="text-sm font-bold text-gray-900 leading-snug mb-4">{formName}</h2>
 
-      {/* Body */}
-      <div className="relative z-10 px-6 pt-3 pb-6 sm:px-8">
-        <p className="text-[20px] font-semibold text-gray-500 text-center mb-5">How would you like to access?</p>
+        <p className="text-[20px] font-semibold text-gray-500 mb-5">How would you like to access?</p>
 
         <div className="grid grid-cols-2 gap-3">
         {/* Demo */}
