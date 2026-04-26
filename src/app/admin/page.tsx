@@ -284,21 +284,64 @@ function UploadTab() {
 function StorageConfigTab() {
   const [backend, setBackend] = useState<'local' | 'azure'>('local');
   const [connectionString, setConnectionString] = useState('');
+  const [containerName, setContainerName] = useState('quickformsph');
+  const [csHint, setCsHint] = useState('');
   const [testing, setTesting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState('');
+  const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/storage-config')
+      .then((r) => r.json())
+      .then((d: { backend: string; containerName: string; hasConnectionString: boolean; connectionStringHint: string }) => {
+        setBackend(d.backend === 'azure' ? 'azure' : 'local');
+        setContainerName(d.containerName ?? 'quickformsph');
+        setCsHint(d.connectionStringHint ?? '');
+      })
+      .catch(() => {});
+  }, []);
 
   async function testConnection() {
     setTesting(true);
     setTestResult('');
-    await new Promise((r) => setTimeout(r, 1000));
-    if (backend === 'local') {
-      setTestResult('✅ Local filesystem accessible');
-    } else if (!connectionString) {
-      setTestResult('❌ Connection string is required for Azure Blob');
-    } else {
-      setTestResult('🔄 Azure Blob test not yet implemented — add endpoint in .env.local');
+    try {
+      const res = await fetch('/api/admin/storage-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'test', backend, connectionString, containerName }),
+      });
+      const d = await res.json() as { ok: boolean; message: string };
+      setTestResult(d.message ?? (d.ok ? '✅ Connected' : '❌ Failed'));
+    } catch {
+      setTestResult('❌ Network error');
+    } finally {
+      setTesting(false);
     }
-    setTesting(false);
+  }
+
+  async function saveConfig() {
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const res = await fetch('/api/admin/storage-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save', backend, connectionString, containerName }),
+      });
+      const d = await res.json() as { ok?: boolean; error?: string };
+      if (d.ok) {
+        setSaveMsg({ ok: true, text: '✅ Configuration saved' });
+        if (connectionString) setCsHint(`${connectionString.slice(0, 30)}…`);
+        setConnectionString('');
+      } else {
+        setSaveMsg({ ok: false, text: `❌ ${d.error ?? 'Save failed'}` });
+      }
+    } catch {
+      setSaveMsg({ ok: false, text: '❌ Network error' });
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -340,15 +383,30 @@ function StorageConfigTab() {
         </div>
 
         {backend === 'azure' && (
-          <div className="mt-4">
-            <label className="field-label">Azure Blob Connection String</label>
-            <input
-              type="password"
-              className="input-field"
-              placeholder="DefaultEndpointsProtocol=https;AccountName=…"
-              value={connectionString}
-              onChange={(e) => setConnectionString(e.target.value)}
-            />
+          <div className="mt-4 space-y-3">
+            <div>
+              <label className="field-label">Azure Blob Connection String</label>
+              {csHint && !connectionString && (
+                <p className="text-xs text-gray-400 mb-1">Saved: {csHint}</p>
+              )}
+              <input
+                type="password"
+                className="input-field"
+                placeholder={csHint ? 'Leave blank to keep saved value' : 'DefaultEndpointsProtocol=https;AccountName=…'}
+                value={connectionString}
+                onChange={(e) => setConnectionString(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="field-label">Container Name</label>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="quickformsph"
+                value={containerName}
+                onChange={(e) => setContainerName(e.target.value)}
+              />
+            </div>
           </div>
         )}
 
@@ -358,16 +416,28 @@ function StorageConfigTab() {
           </div>
         )}
 
+        {saveMsg && (
+          <div className={`mt-3 rounded-xl border px-4 py-3 text-xs ${
+            saveMsg.ok ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'
+          }`}>
+            {saveMsg.text}
+          </div>
+        )}
+
         <div className="mt-4 flex gap-3">
           <button
             className="btn-secondary flex-1 text-xs py-2"
             onClick={testConnection}
-            disabled={testing}
+            disabled={testing || saving}
           >
             {testing ? 'Testing…' : '🔌 Test Connection'}
           </button>
-          <button className="btn-primary flex-1 text-xs py-2">
-            💾 Save Configuration
+          <button
+            className="btn-primary flex-1 text-xs py-2"
+            onClick={saveConfig}
+            disabled={saving || testing}
+          >
+            {saving ? 'Saving…' : '💾 Save Configuration'}
           </button>
         </div>
       </div>

@@ -9,6 +9,7 @@ export interface GCashSettings {
   gcash_number: string;
   gcash_name: string;
   qr_url: string | null;
+  payment_mode: 'process' | 'upload_only';
 }
 
 export function getDefaults(): GCashSettings {
@@ -16,6 +17,7 @@ export function getDefaults(): GCashSettings {
     gcash_number: process.env.NEXT_PUBLIC_GCASH_NUMBER ?? '0917-551-4822',
     gcash_name:   process.env.NEXT_PUBLIC_GCASH_NAME   ?? 'JE****Y JO*N G.',
     qr_url:       null,
+    payment_mode: 'process',
   };
 }
 

@@ -25,9 +25,10 @@ export async function POST(req: NextRequest) {
 
   const current = readGCashSettings();
   const updated: GCashSettings = {
-    gcash_number: typeof body.gcash_number === 'string' ? body.gcash_number.trim() : current.gcash_number,
-    gcash_name:   typeof body.gcash_name   === 'string' ? body.gcash_name.trim()   : current.gcash_name,
-    qr_url:       body.qr_url !== undefined              ? body.qr_url              : current.qr_url,
+    gcash_number:  typeof body.gcash_number === 'string' ? body.gcash_number.trim() : current.gcash_number,
+    gcash_name:    typeof body.gcash_name   === 'string' ? body.gcash_name.trim()   : current.gcash_name,
+    qr_url:        body.qr_url !== undefined              ? body.qr_url              : current.qr_url,
+    payment_mode:  current.payment_mode ?? 'process',
   };
 
   writeGCashSettings(updated);
