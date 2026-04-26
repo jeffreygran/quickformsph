@@ -3111,7 +3111,7 @@ function PaymentModal({
             {/* Heartfelt note */}
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
               <p className="text-xs text-blue-800 leading-relaxed">
-                Made to make government forms easier for Filipinos. Your ₱5 or any extra helps cover maintenance and future improvements. Maraming salamat po. 🙏💚
+                Built to help Filipinos fill out government forms more easily. Your ₱5 or any extra supports maintenance and future updates. Maraming salamat po. 🙏💚
               </p>
             </div>
 
