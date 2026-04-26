@@ -2392,72 +2392,136 @@ const HLF068_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
 // TIN cells: 4 segments per TIN at x=86.24/135.88/185.55/235.22, h=15 → fontSize=9.
 const BIR2316_PAGE_H = 936.0;
 const BIR2316_FIELD_COORDS: CoordsMap = {
-  // Row top=94 y_pdf≈830.9
-  // Year cell: x0=124.8 x1=195.7 w=70.9 → center=160.25; "2025" f=10 ≈22pt → x=149.
-  year:                { page: 0, x: 149, y: 830.99, fontSize: 10, maxWidth: 46 },
-  // Period cells: From x0=386.8 x1=456.7 w=69.9 → center=421.8; "MM/DD" f=10 ≈25pt → x=409.
-  //              To   x0=512.4 x1=582.3 w=69.9 → center=547.4 → x=535.
-  period_from:         { page: 0, x: 409, y: 830.85, fontSize: 10, maxWidth: 46 },
-  period_to:           { page: 0, x: 535, y: 830.85, fontSize: 10, maxWidth: 46 },
+  // ── R9 (2026-04-26): Pixel-truth scan reveals visible sub-cell tick marks on
+  // year/period/TIN/ZIP/RDO/DOB/Contact/Date Signed boxes. All converted to boxCenters
+  // per L-BIR1904-R8-01 (visible gridlines → digit-boxes regardless of width fit).
 
-  // Row top=123 (Employee TIN) y_pdf≈802.6
-  // TIN seg cells w=37.9: centers 105.15/154.85/204.55; "NNN" f=10 ≈17pt → x=center-8.5.
-  // TIN branch cell w=70.9: center=270.65; "NNNNN" f=10 ≈28pt → x=257.
-  emp_tin_1:           { page: 0, x: 97,  y: 802.28, fontSize: 10, maxWidth: 26 },
-  emp_tin_2:           { page: 0, x: 146, y: 802.61, fontSize: 10, maxWidth: 26 },
-  emp_tin_3:           { page: 0, x: 196, y: 802.61, fontSize: 10, maxWidth: 26 },
-  emp_tin_branch:      { page: 0, x: 257, y: 802.61, fontSize: 10, maxWidth: 48 },
+  // Row pdf_y_bot=822 cell_h≈20. Year — 4 cells.
+  year: {
+    page: 0, x: 0, y: 822 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [133.55, 151.25, 169.25, 186.95],
+  },
+  // Period MM/DD — 4 cells each (same row as year)
+  period_from: {
+    page: 0, x: 0, y: 822 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [395.60, 413.00, 431.15, 448.55],
+  },
+  period_to: {
+    page: 0, x: 0, y: 822 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [521.05, 538.45, 556.75, 574.00],
+  },
 
-  // Row top=148 y_pdf≈776.9
-  // RDO cell x0=264.5 x1=302.5 w=38 → center=283.5; "NNN" f=9 ≈15pt → x=276.
+  // Row pdf_y_bot=793 cell_h≈20. Employee TIN — each segment has 3 sub-cells; branch has 5.
+  emp_tin_1: {
+    page: 0, x: 0, y: 793 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [92.65, 105.25, 118.00],
+  },
+  emp_tin_2: {
+    page: 0, x: 0, y: 793 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [142.30, 155.05, 167.65],
+  },
+  emp_tin_3: {
+    page: 0, x: 0, y: 793 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [191.95, 204.55, 217.30],
+  },
+  emp_tin_branch: {
+    page: 0, x: 0, y: 793 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [242.20, 256.45, 271.30, 286.00, 299.65],
+  },
+
+  // Row pdf_y_bot=768 cell_h≈20. Name (free text) + RDO (3 sub-cells).
   emp_name:            { page: 0, x: 45,  y: 776.87, fontSize: 9, maxWidth: 205 },
-  emp_rdo:             { page: 0, x: 276, y: 776.87, fontSize: 9, maxWidth: 26 },
+  emp_rdo: {
+    page: 0, x: 0, y: 768 + (20 - 9 * 0.7) / 2, fontSize: 9,
+    boxCenters: [270.65, 283.10, 296.15],
+  },
 
-  // Row top=176 y_pdf≈748.8
-  // ZIP cell x0=261.4 x1=309.4 w=48 → center=285.4; "NNNN" f=9 ≈20pt → x=275.
+  // Row pdf_y_bot=740 cell_h≈20. Reg address (text) + ZIP (4 sub-cells).
   emp_reg_address:     { page: 0, x: 45,  y: 748.83, fontSize: 7, maxWidth: 205 },
-  emp_reg_zip:         { page: 0, x: 275, y: 748.76, fontSize: 9, maxWidth: 34 },
+  emp_reg_zip: {
+    page: 0, x: 0, y: 740 + (20 - 9 * 0.7) / 2, fontSize: 9,
+    boxCenters: [267.15, 279.45, 292.35, 304.05],
+  },
 
-  // Row top=202 y_pdf≈723.6
+  // Row pdf_y_bot=715 cell_h≈20. Local address (text) + ZIP (4 sub-cells).
   emp_local_address:   { page: 0, x: 45,  y: 723.57, fontSize: 7, maxWidth: 205 },
-  emp_local_zip:       { page: 0, x: 275, y: 723.69, fontSize: 9, maxWidth: 34 },
+  emp_local_zip: {
+    page: 0, x: 0, y: 715 + (20 - 9 * 0.7) / 2, fontSize: 9,
+    boxCenters: [267.35, 279.65, 292.55, 304.25],
+  },
 
-  // Row top=227 y_pdf≈698.0
+  // Row top=227 y_pdf≈698.0 — foreign address is free text (single box).
   emp_foreign_address: { page: 0, x: 45,  y: 697.97, fontSize: 7, maxWidth: 260 },
 
-  // Row top=254 y_pdf≈671.4: DOB (50-wide) + second (50-wide) + contact (142-wide)
-  emp_dob:             { page: 0, x: 50,  y: 671.42, fontSize: 9, maxWidth: 95 },
-  emp_contact:         { page: 0, x: 170, y: 671.18, fontSize: 9, maxWidth: 135 },
+  // Row pdf_y_bot=660 cell_h≈20. DOB (8 sub-cells MMDDYYYY) + Contact (11 sub-cells).
+  emp_dob: {
+    page: 0, x: 0, y: 660 + (20 - 9 * 0.7) / 2, fontSize: 9,
+    boxCenters: [54.65, 65.75, 78.95, 91.40, 103.55, 116.15, 129.20, 141.80],
+  },
+  emp_contact: {
+    page: 0, x: 0, y: 660 + (20 - 9 * 0.7) / 2, fontSize: 9,
+    boxCenters: [174.00, 186.90, 199.65, 214.50, 226.20, 238.95, 251.10, 263.55, 276.15, 289.05, 301.05],
+  },
 
   // Min wage (row top=272,291 y_pdf≈653/635, x=209.88, w=98.74)
   min_wage_per_day:    { page: 0, x: 213, y: 653.15, fontSize: 9, maxWidth: 93 },
   min_wage_per_month:  { page: 0, x: 213, y: 634.70, fontSize: 9, maxWidth: 93 },
 
-  // Present Employer — TIN row top=335 y_pdf≈590.1 (same cell widths as emp TIN)
-  pres_emp_tin_1:      { page: 0, x: 97,  y: 589.76, fontSize: 10, maxWidth: 26 },
-  pres_emp_tin_2:      { page: 0, x: 146, y: 590.09, fontSize: 10, maxWidth: 26 },
-  pres_emp_tin_3:      { page: 0, x: 196, y: 590.09, fontSize: 10, maxWidth: 26 },
-  pres_emp_tin_branch: { page: 0, x: 257, y: 590.09, fontSize: 10, maxWidth: 48 },
+  // Present Employer — TIN row pdf_y_bot=580 cell_h≈20 (same sub-cell layout as emp TIN).
+  pres_emp_tin_1: {
+    page: 0, x: 0, y: 580 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [92.65, 105.25, 118.00],
+  },
+  pres_emp_tin_2: {
+    page: 0, x: 0, y: 580 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [142.30, 155.05, 167.65],
+  },
+  pres_emp_tin_3: {
+    page: 0, x: 0, y: 580 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [191.95, 204.55, 217.30],
+  },
+  pres_emp_tin_branch: {
+    page: 0, x: 0, y: 580 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [242.20, 256.45, 271.30, 286.00, 299.65],
+  },
 
   // Row top=361 y_pdf≈564.4: Employer Name (wider single)
   pres_emp_name:       { page: 0, x: 45,  y: 564.37, fontSize: 9, maxWidth: 260 },
 
-  // Row top=387 y_pdf≈538.2: Registered Address + ZIP (ZIP w=48 center=283.3 → x=273)
+  // Row pdf_y_bot=525 cell_h≈20: Registered Address (text) + ZIP (4 sub-cells).
   pres_emp_address:    { page: 0, x: 45,  y: 538.18, fontSize: 7, maxWidth: 205 },
-  pres_emp_zip:        { page: 0, x: 273, y: 537.72, fontSize: 9, maxWidth: 34 },
+  pres_emp_zip: {
+    page: 0, x: 0, y: 525 + (20 - 9 * 0.7) / 2, fontSize: 9,
+    boxCenters: [265.05, 277.35, 290.25, 301.95],
+  },
 
-  // Previous Employer — TIN row top=431 y_pdf≈494.0
-  prev_emp_tin_1:      { page: 0, x: 97,  y: 493.64, fontSize: 10, maxWidth: 26 },
-  prev_emp_tin_2:      { page: 0, x: 146, y: 493.97, fontSize: 10, maxWidth: 26 },
-  prev_emp_tin_3:      { page: 0, x: 196, y: 493.97, fontSize: 10, maxWidth: 26 },
-  prev_emp_tin_branch: { page: 0, x: 257, y: 493.97, fontSize: 10, maxWidth: 48 },
+  // Previous Employer — TIN row pdf_y_bot=484 cell_h≈20.
+  prev_emp_tin_1: {
+    page: 0, x: 0, y: 484 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [92.65, 105.25, 118.00],
+  },
+  prev_emp_tin_2: {
+    page: 0, x: 0, y: 484 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [142.30, 155.05, 167.65],
+  },
+  prev_emp_tin_3: {
+    page: 0, x: 0, y: 484 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [191.95, 204.55, 217.30],
+  },
+  prev_emp_tin_branch: {
+    page: 0, x: 0, y: 484 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [242.20, 256.45, 271.30, 286.00, 299.65],
+  },
 
   // Row top=457 y_pdf≈468.3: Employer Name
   prev_emp_name:       { page: 0, x: 45,  y: 468.25, fontSize: 9, maxWidth: 260 },
 
-  // Row top=484 y_pdf≈441.4: Address + ZIP (ZIP w=47.9 center=283.75 → x=274)
+  // Row pdf_y_bot=430 cell_h≈20: Address (text) + ZIP (4 sub-cells).
   prev_emp_address:    { page: 0, x: 46,  y: 441.41, fontSize: 7, maxWidth: 205 },
-  prev_emp_zip:        { page: 0, x: 274, y: 441.34, fontSize: 9, maxWidth: 34 },
+  prev_emp_zip: {
+    page: 0, x: 0, y: 430 + (20 - 9 * 0.7) / 2, fontSize: 9,
+    boxCenters: [265.65, 277.80, 290.55, 302.25],
+  },
 
   // ── Part IVA Summary — amounts at x=207.45 (w=101.77) ──
   gross_compensation:       { page: 0, x: 211, y: 412.94, fontSize: 8, maxWidth: 96 },
@@ -2516,16 +2580,22 @@ const BIR2316_FIELD_COORDS: CoordsMap = {
   total_taxable_compensation: { page: 0, x: 488, y: 258.32, fontSize: 8, maxWidth: 96 },
 
   // ── Signatures / CTC row ──
-  // Date cells are 2 adjacent 50pt sub-cells forming one 100pt date box.
-  // Center the date across both sub-cells: combined cx≈466.15, f=10 → x≈438.
-  present_emp_date_signed: { page: 0, x: 438, y: 168.80, fontSize: 10, maxWidth: 95 },
-  // Date Signed 54 (row top=787)
-  employee_date_signed:    { page: 0, x: 438, y: 138.39, fontSize: 10, maxWidth: 95 },
-  // CTC row top=812: CTC No (97-198 w=101.77), Place (245-347 w=101.76),
-  //   Date Issued (416-517 w=100.88), Amount (540-578 w=37.83)
+  // R9: Pixel-truth scan reveals each Date Signed/Issued box is 8 sub-cells (MMDDYYYY).
+  present_emp_date_signed: {
+    page: 0, x: 0, y: 158 + (20 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [421.90, 434.65, 447.70, 460.30, 472.45, 485.05, 498.10, 510.70],
+  },
+  employee_date_signed: {
+    page: 0, x: 0, y: 128 + (22 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [422.35, 434.95, 448.00, 460.60, 472.90, 485.50, 498.55, 511.15],
+  },
+  // CTC No / Place — single free-text boxes; Amount free text. Date Issued is 8 sub-cells.
   ctc_no:                  { page: 0, x: 100, y: 113.04, fontSize: 9, maxWidth: 96 },
   ctc_place:               { page: 0, x: 249, y: 113.42, fontSize: 9, maxWidth: 96 },
-  ctc_date_issued:         { page: 0, x: 438, y: 112.68, fontSize: 10, maxWidth: 95 },
+  ctc_date_issued: {
+    page: 0, x: 0, y: 100 + (22 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [422.80, 435.55, 448.60, 461.20, 473.35, 485.95, 499.00, 511.60],
+  },
   ctc_amount:              { page: 0, x: 543, y: 112.66, fontSize: 9, maxWidth: 33 },
 };
 
@@ -2599,10 +2669,27 @@ const bir1904Y = (cellBottom: number) => BIR1904_PAGE_H - cellBottom + 3;
 const bir1904CheckY = (top: number) => BIR1904_PAGE_H - top - 7;
 
 const BIR1904_FIELD_COORDS: CoordsMap = {
-  // ── Q2 PhilSys PCN (16 digits) — text fallback in single wide cell ─────
-  // Cell row top=151.1 bot=161.4 → y = 776.6. PCN cell spans roughly x=255-540
-  // (between Date of Reg cells on left and RDO cells on right).
-  philsys_pcn:        { page: 0, x: 260, y: bir1904Y(161.4), fontSize: 10, maxWidth: 280 },
+  // ── Q1 Date of Registration (8 digit boxes, MMDDYYYY) ─────────────────
+  // R8: Pixel-truth cells y=152-168 in source; 8 white cells centered.
+  date_of_registration: {
+    page: 0, x: 0, y: 936 - 168.3 + (16.5 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [53.10, 67.20, 81.45, 95.85, 109.95, 124.35, 138.75, 153.15],
+  },
+
+  // ── Q3 RDO Code (3 digit boxes) ───────────────────────────────────────
+  // "(To be filled out by BIR)" — pixel-truth cells y=152-168 right side.
+  rdo_code: {
+    page: 0, x: 0, y: 936 - 168.3 + (16.5 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [514.20, 528.75, 543.30],
+  },
+
+  // ── Q2 PhilSys PCN (16 digits) — single wide white data cell ──────────
+  // Round 6 (Mai/Irwin): R1 shipped x=260 was actually wrong — extracted text
+  // confirmed value rendered at x=260-349 which is OUTSIDE the white data box
+  // (actual cell x=406.2-593.7) and ON TOP of the printed label "(If Applicable)".
+  // Source-PDF rect: white data cell x=406.2-593.7, top=151.1-168.3 (h=17.2).
+  // 16 chars at fontSize 10 ≈ 96pt; cell width=187.5pt. Centered x = 406 + 46 = 452.
+  philsys_pcn:        { page: 0, x: 278, y: bir1904Y(168.3) + 4, fontSize: 10, maxWidth: 156 },
 
   // ── Q5 Foreign TIN / Q6 Country of Residence ──────────────────────────
   // Cell rows: top=246.6 bot=264.3 → y = 674.7
@@ -2610,82 +2697,130 @@ const BIR1904_FIELD_COORDS: CoordsMap = {
   country_of_residence:  { page: 0, x: 308, y: bir1904Y(264.3), fontSize: 9, maxWidth: 280 },
 
   // ── Q7A Names row (5 text columns) — cell bot=303.3 → y=635.7 ────────────
-  last_name:    { page: 0, x:  27, y: bir1904Y(303.3), fontSize: 10, maxWidth: 156 },
-  first_name:   { page: 0, x: 187, y: bir1904Y(303.3), fontSize: 10, maxWidth: 156 },
-  middle_name:  { page: 0, x: 347, y: bir1904Y(303.3), fontSize: 10, maxWidth: 100 },
-  name_suffix:  { page: 0, x: 451, y: bir1904Y(303.3), fontSize: 10, maxWidth:  60 },
-  nickname:     { page: 0, x: 515, y: bir1904Y(303.3), fontSize: 10, maxWidth:  73 },
+  last_name:    { page: 0, x:  34, y: bir1904Y(303.3), fontSize: 10, maxWidth: 140 },
+  first_name:   { page: 0, x: 193, y: bir1904Y(303.3), fontSize: 10, maxWidth: 140 },
+  middle_name:  { page: 0, x: 352, y: bir1904Y(303.3), fontSize: 10, maxWidth: 124 },
+  name_suffix:  { page: 0, x: 496, y: bir1904Y(303.3), fontSize: 10, maxWidth:  24 },
+  nickname:     { page: 0, x: 539, y: bir1904Y(303.3), fontSize: 10, maxWidth:  40 },
 
   // ── Q7B Registered Name (non-individual) — cell bot=331.9 → y=607 ───────
-  registered_name:    { page: 0, x:  27, y: bir1904Y(331.9), fontSize: 10, maxWidth: 562 },
+  registered_name:    { page: 0, x:  34, y: bir1904Y(331.9), fontSize: 10, maxWidth: 545 },
 
   // ── Q7C Estate / Trust name — cell bot=360.5 → y=579 ───────────────────
-  estate_trust_name:  { page: 0, x:  27, y: bir1904Y(360.5), fontSize: 9, maxWidth: 562 },
+  estate_trust_name:  { page: 0, x:  34, y: bir1904Y(360.5), fontSize: 9, maxWidth: 545 },
 
   // ── Q8 Date of Birth (8 digit boxes inside Q8/Q9 row) ─────────────────
   // The DOB sub-cells are sub-elements of the Q8/Q9 row (top=360.5 bot=378.7).
   // Approximate cxs based on image: 8 boxes centered around x=255-360 (estimate).
   // Since precise rects could not be isolated, render as text fallback in a
   // single mini cell (8 digits as MM/DD/YYYY string fits ~50pt wide).
-  date_of_birth:   { page: 0, x: 255, y: bir1904Y(378.7) - 4, fontSize: 11, maxWidth: 105 },
+  // BOXCENTERS: Date of Birth — 8 cells (top=360.5 bot=378.2 h=17.7)
+  date_of_birth: {
+    page: 0, x: 0, y: 936 - 378.2 + (17.7 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [198.0, 212.5, 227.1, 241.6, 255.9, 270.3, 284.7, 299.1],
+  },
   // ── Q9 Place of Birth (text right of DOB) ─────────────────────────────
-  place_of_birth:  { page: 0, x: 405, y: bir1904Y(378.7) - 4, fontSize: 9, maxWidth: 185 },
+  place_of_birth:  { page: 0, x: 396, y: bir1904Y(378.7) - 1, fontSize: 9, maxWidth: 180 },
 
   // ── Q10 Local Residence Address — 3 sub-rows ─────────────────────────
   // Sub-row 1: Unit / Building / Lot / Street (cell bot ≈ 416.6 → y=522.4)
-  local_unit:        { page: 0, x:  27, y: bir1904Y(416.6), fontSize: 8, maxWidth: 110 },
-  local_building:    { page: 0, x: 142, y: bir1904Y(416.6), fontSize: 8, maxWidth: 165 },
-  local_lot:         { page: 0, x: 311, y: bir1904Y(416.6), fontSize: 8, maxWidth: 130 },
-  local_street:      { page: 0, x: 446, y: bir1904Y(416.6), fontSize: 8, maxWidth: 140 },
+  local_unit:        { page: 0, x:  34, y: bir1904Y(416.6), fontSize: 8, maxWidth:  82 },
+  local_building:    { page: 0, x: 135, y: bir1904Y(416.6), fontSize: 8, maxWidth: 154 },
+  local_lot:         { page: 0, x: 309, y: bir1904Y(416.6), fontSize: 8, maxWidth:  95 },
+  local_street:      { page: 0, x: 424, y: bir1904Y(416.6), fontSize: 8, maxWidth: 153 },
   // Sub-row 2: Subdivision / Barangay / Town (cell bot ≈ 443.9 → y=495)
-  local_subdivision: { page: 0, x:  27, y: bir1904Y(443.9), fontSize: 8, maxWidth: 170 },
-  local_barangay:    { page: 0, x: 202, y: bir1904Y(443.9), fontSize: 8, maxWidth: 230 },
-  local_town:        { page: 0, x: 437, y: bir1904Y(443.9), fontSize: 8, maxWidth: 150 },
+  local_subdivision: { page: 0, x:  34, y: bir1904Y(443.9), fontSize: 8, maxWidth: 169 },
+  local_barangay:    { page: 0, x: 222, y: bir1904Y(443.9), fontSize: 8, maxWidth: 168 },
+  local_town:        { page: 0, x: 410, y: bir1904Y(443.9), fontSize: 8, maxWidth: 167 },
   // Sub-row 3: City / Province / ZIP (cell bot ≈ 471.4 → y=467.6)
-  local_city:        { page: 0, x:  27, y: bir1904Y(471.4), fontSize: 8, maxWidth: 280 },
-  local_province:    { page: 0, x: 312, y: bir1904Y(471.4), fontSize: 8, maxWidth: 220 },
-  local_zip:         { page: 0, x: 537, y: bir1904Y(471.4), fontSize: 9, maxWidth:  50 },
+  local_city:        { page: 0, x:  34, y: bir1904Y(471.4), fontSize: 8, maxWidth: 226 },
+  local_province:    { page: 0, x: 280, y: bir1904Y(471.4), fontSize: 8, maxWidth: 211 },
+  local_zip:         { page: 0, x: 510, y: bir1904Y(471.4), fontSize: 9, maxWidth:  67 },
 
   // ── Q11 Foreign Address (cell bot ≈ 508.1 → y=430.9) ─────────────────
-  foreign_address:   { page: 0, x:  27, y: bir1904Y(508.1), fontSize: 8, maxWidth: 380 },
+  foreign_address:   { page: 0, x:  34, y: bir1904Y(508.1), fontSize: 8, maxWidth: 442 },
+
+  // ── Q12 Municipality Code (5 digit boxes) — "(To be filled out by BIR)" ──
+  // R8: Pixel-truth cells y=491-507 inside right-side BIR-only band.
+  municipality_code: {
+    page: 0, x: 0, y: 936 - 507.6 + (16.5 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [514.65, 529.05, 543.60, 558.15, 572.55],
+  },
 
   // ── Q13 Date of Arrival / Q14 Gender / Q15 Civil Status ──────────────
   // Cell row at top=527.5 bot=540.5 → y=398.5; date_of_arrival is text on left
-  date_of_arrival:   { page: 0, x:  27, y: bir1904Y(540.5), fontSize: 11, maxWidth: 130 },
+  // BOXCENTERS: Date of Arrival — first 8 of 12 cells (top=527.5 bot=537.8 h=10.3)
+  date_of_arrival: {
+    page: 0, x: 0, y: 936 - 537.8 + (10.3 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [25.0, 39.2, 53.3, 67.9, 82.0, 96.6, 110.9, 125.4],
+  },
 
   // ── Q16 Contact / Q17 Email (cell bot ≈ 574.2 → y=364.8) ─────────────
-  contact_number:    { page: 0, x:  27, y: bir1904Y(574.2), fontSize: 9, maxWidth: 270 },
-  email:             { page: 0, x: 308, y: bir1904Y(574.2), fontSize: 9, maxWidth: 280 },
+  contact_number:    { page: 0, x:  34, y: bir1904Y(574.2), fontSize: 9, maxWidth: 154 },
+  email:             { page: 0, x: 222, y: bir1904Y(574.2), fontSize: 9, maxWidth: 355 },
 
   // ── Q18 Mother's / Q19 Father's name (cell bot ≈ 602.9 → y=336.1) ────
-  mothers_name:      { page: 0, x:  27, y: bir1904Y(602.9), fontSize: 9, maxWidth: 270 },
-  fathers_name:      { page: 0, x: 308, y: bir1904Y(602.9), fontSize: 9, maxWidth: 280 },
+  mothers_name:      { page: 0, x:  30, y: bir1904Y(602.9), fontSize: 9, maxWidth: 274 },
+  fathers_name:      { page: 0, x: 311, y: bir1904Y(602.9), fontSize: 9, maxWidth: 280 },
 
   // ── Q20 Identification (Type / Number / Effectivity / Expiry) ────────
-  // Sub-row at cell bot ≈ 643.4 → y=295.6
-  id_type:           { page: 0, x:  27, y: bir1904Y(643.4), fontSize: 8, maxWidth: 165 },
-  id_number:         { page: 0, x: 195, y: bir1904Y(643.4), fontSize: 8, maxWidth: 155 },
-  id_effectivity:    { page: 0, x: 355, y: bir1904Y(643.4), fontSize: 9, maxWidth: 110 },
-  id_expiry:         { page: 0, x: 470, y: bir1904Y(643.4), fontSize: 9, maxWidth: 120 },
+  // Round 6 (Mai/Irwin): R1 had id_effectivity x=355 and id_expiry x=470 which
+  // rendered text BEFORE the left edge of those columns. Source-PDF rects
+  // (Q20 data row top=624.5-641.9, h=17.4):
+  //   Type col          x=18.4-190.4   (left-align, x=27 + margin)
+  //   Number col        x=190.4-363.5  (left-align, x=195)
+  //   Effectivity col   x=363.5-478.7  (115 wide; "01/15/2023"≈50pt → x≈396 centered)
+  //   Expiry col        x=478.7-593.6  (115 wide; centered x≈511)
+  id_type:           { page: 0, x:  27, y: bir1904Y(641.9), fontSize: 8, maxWidth: 160 },
+  id_number:         { page: 0, x: 195, y: bir1904Y(641.9), fontSize: 8, maxWidth: 165 },
+  // R8: Effectivity & Expiry are 8-digit-box rows (MMDDYYYY), not free text.
+  id_effectivity: {
+    page: 0, x: 0, y: 936 - 641.9 + (17.4 - 9 * 0.7) / 2, fontSize: 9,
+    boxCenters: [370.80, 385.20, 399.45, 414.00, 428.40, 442.95, 457.20, 471.60],
+  },
+  id_expiry: {
+    page: 0, x: 0, y: 936 - 641.9 + (17.4 - 9 * 0.7) / 2, fontSize: 9,
+    boxCenters: [485.85, 500.25, 514.65, 529.05, 543.60, 558.15, 572.55, 586.80],
+  },
 
   // ── Q22 Spouse Name / Q23 Spouse TIN ─────────────────────────────────
   // Spouse name: cell bot ≈ 700.3 → y=238.7 (text)
   // Spouse TIN: digit cells at top≈682-692 - render as text in right cell
   spouse_name:       { page: 0, x:  27, y: bir1904Y(700.3), fontSize: 9, maxWidth: 320 },
-  spouse_tin:        { page: 0, x: 355, y: bir1904Y(700.3), fontSize: 10, maxWidth: 200 },
+  // BOXCENTERS: Spouse TIN — 16 cells (top=682.0 bot=699.8 h=17.8)
+  // R8: Skip gray dash cells (idx 2,6,10) AND preprinted "0" cells (idx 11-15).
+  // 8 user-fillable cells (TIN format XXX-XXX-XXX with 5 trailing zeros preprint).
+  spouse_tin: {
+    page: 0, x: 0, y: 936 - 699.8 + (17.8 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [371.2, 385.6, 414.3, 428.9, 443.2, 472.0, 486.4, 500.7],
+  },
 
   // ── Q24 Spouse Employer Name / Q25 Spouse Employer TIN ──────────────
   // Cell bot ≈ 739.5 → y=199.5
   spouse_employer_name: { page: 0, x:  27, y: bir1904Y(739.5), fontSize: 9, maxWidth: 320 },
-  spouse_employer_tin:  { page: 0, x: 355, y: bir1904Y(739.5), fontSize: 10, maxWidth: 200 },
+  // BOXCENTERS: Spouse Employer TIN — 16 cells (top=720.3 bot=738.0 h=17.7)
+  // R8: Skip gray dash cells (idx 2,6,10). Last 5 cells are blank (no preprint).
+  spouse_employer_tin: {
+    page: 0, x: 0, y: 936 - 738.0 + (17.7 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [371.2, 385.6, 414.2, 428.9, 443.2, 471.8, 486.4, 500.7, 529.4, 544.0, 558.6, 573.0, 587.0],
+  },
 
   // ── Q26-J Other purpose specify (when J selected) ────────────────────
   // Inline with row I/J at top=805 — write text after "Others (specify)"
   purpose_other_specify: { page: 0, x: 320, y: bir1904Y(817.6), fontSize: 8, maxWidth: 270 },
 
   // ── Q27 WA TIN / Q28 RDO Code (cell bot ≈ 847.7 → y=91.3) ────────────
-  wa_tin:            { page: 0, x: 335, y: bir1904Y(847.7), fontSize: 10, maxWidth: 200 },
-  wa_rdo_code:       { page: 0, x: 555, y: bir1904Y(847.7), fontSize: 10, maxWidth: 35 },
+  // BOXCENTERS: WA TIN — 17 cells (top=829.5 bot=847.2 h=17.7)
+  // R8: Skip gray dash cells (idx 3,7,11) of the 17-cell layout.
+  wa_tin: {
+    page: 0, x: 0, y: 936 - 847.2 + (17.7 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [242.2, 256.7, 270.9, 299.8, 314.2, 328.4, 357.2, 371.7, 386.0, 414.7, 429.4, 443.8, 458.1, 472.4],
+  },
+  // BOXCENTERS: WA RDO Code — 3 cells (same row)
+  wa_rdo_code: {
+    page: 0, x: 0, y: 936 - 847.2 + (17.7 - 10 * 0.7) / 2, fontSize: 10,
+    boxCenters: [558.9, 573.5, 587.5],
+  },
 
   // ── Q29 WA Name (page 0 bottom row, cell bot ≈ 875 → y=64) ───────────
   wa_name:           { page: 0, x:  27, y: 64, fontSize: 9, maxWidth: 562 },
@@ -2760,6 +2895,9 @@ const BIR1904_CHECKBOX_COORDS: FormPdfConfig['checkboxCoords'] = {
 
 const BIR1904_SKIP_VALUES: Record<string, string[]> = {
   // Optional / conditional fields — render blank when empty
+  date_of_registration: [''],
+  rdo_code: [''],
+  municipality_code: [''],
   philsys_pcn: [''],
   foreign_tin: [''],
   country_of_residence: [''],
@@ -2796,6 +2934,140 @@ const BIR1904_SKIP_VALUES: Record<string, string[]> = {
   wa_title: [''],
 };
 void BIR1904_PAGE_H;
+
+// ─── BIR-1902 — Individuals Earning Purely Compensation (R10 v4) ─────────────
+// BIR Oct-2025: each item has a gray label-strip (~10pt) at the TOP of its row
+// followed by a wider WHITE data area below. The data area extends from the
+// label-strip bottom down to just before the NEXT item's label. To place text
+// near the bottom of the data area (visually "in" the cell), we use the NEXT
+// item's label_top minus 4pt as the baseline.
+const BIR1902_PAGE_H = 936.0;
+const yBeforeNext = (nextLabelTop: number) => BIR1902_PAGE_H - (nextLabelTop - 4);
+// For sub-rows inside a single item (e.g., address rows, name rows) the same
+// rule applies using the next sub-row's label-strip top.
+const yAt = (baselineTop: number) => BIR1902_PAGE_H - baselineTop;
+
+const BIR1902_FIELD_COORDS: CoordsMap = {
+  // Item 2 — PCN. Label top=142.4. Next label (item 6) at 209.1.
+  // Free-text into wide data area; baseline near bottom of area.
+  philsys_pcn:        { page: 0, x: 282, y: yBeforeNext(170), fontSize: 10, maxWidth: 140 },
+
+  // Item 3 — TIN. Label top=171.5. Next (item 6) at 209.1.
+  tin:                { page: 0, x: 24,  y: yBeforeNext(209), fontSize: 10, maxWidth: 240 },
+  // Item 5 — Taxpayer Type. Same row.
+  taxpayer_type:      { page: 0, x: 354, y: yBeforeNext(209), fontSize: 9,  maxWidth: 240 },
+
+  // Item 6 — Last/First names. Label top=209.1. Next sub-row at 248.1.
+  // Two-row item: row1 data above row2; place baseline before row2 caption.
+  last_name:          { page: 0, x: 24,  y: yAt(243),         fontSize: 10, maxWidth: 263 },
+  first_name:         { page: 0, x: 308, y: yAt(243),         fontSize: 10, maxWidth: 280 },
+
+  // Item 7 sub-row — Middle/Suffix/Gender. Label-strip at top=248.1. Next (8) at 280.9.
+  middle_name:        { page: 0, x: 24,  y: yBeforeNext(280), fontSize: 10, maxWidth: 263 },
+  name_suffix:        { page: 0, x: 308, y: yBeforeNext(280), fontSize: 10, maxWidth: 38  },
+  gender:             { page: 0, x: 368, y: yBeforeNext(280), fontSize: 9,  maxWidth: 224 },
+
+  // Item 8 — Civil Status. Label top=280.9. Next (9/10) at 295.4. Inline (single strip).
+  civil_status:       { page: 0, x: 397, y: yAt(290),         fontSize: 9,  maxWidth: 80  },
+
+  // Item 9 — DOB. Label top=295.4. Next (11) at 324.
+  date_of_birth:      { page: 0, x: 24,  y: yBeforeNext(324), fontSize: 10, maxWidth: 130 },
+  // Item 10 — Place of Birth. Same row.
+  place_of_birth:     { page: 0, x: 165, y: yBeforeNext(324), fontSize: 9,  maxWidth: 425 },
+
+  // Item 11 — Mother. Label 324. Next (12) at 352.6.
+  mothers_maiden_name:{ page: 0, x: 24,  y: yBeforeNext(352), fontSize: 9,  maxWidth: 560 },
+  // Item 12 — Father. Label 352.6. Next (13) at 381.2.
+  fathers_name:       { page: 0, x: 24,  y: yBeforeNext(381), fontSize: 9,  maxWidth: 560 },
+
+  // Item 13/14 — Citizenship. Label 381.2. Next (15) at 409.8.
+  citizenship:        { page: 0, x: 24,  y: yBeforeNext(409), fontSize: 9,  maxWidth: 280 },
+  other_citizenship:  { page: 0, x: 312, y: yBeforeNext(409), fontSize: 9,  maxWidth: 280 },
+
+  // Item 15 — Local Address (5 sub-rows). Each sub-label-strip is at:
+  // 419.5, 448.1, 476.6, 505.2, 533.8. Next sub-row label_top = previous + 28.6.
+  // After last sub-row (533.8), next item (16) at 563.7.
+  local_unit:         { page: 0, x: 24,  y: yBeforeNext(448), fontSize: 9,  maxWidth: 165 },
+  local_building:     { page: 0, x: 209, y: yBeforeNext(448), fontSize: 9,  maxWidth: 380 },
+  local_lot:          { page: 0, x: 24,  y: yBeforeNext(476), fontSize: 9,  maxWidth: 165 },
+  local_street:       { page: 0, x: 209, y: yBeforeNext(476), fontSize: 9,  maxWidth: 380 },
+  local_subdivision:  { page: 0, x: 24,  y: yBeforeNext(505), fontSize: 9,  maxWidth: 265 },
+  local_barangay:     { page: 0, x: 310, y: yBeforeNext(505), fontSize: 9,  maxWidth: 280 },
+  local_town:         { page: 0, x: 24,  y: yBeforeNext(533), fontSize: 9,  maxWidth: 265 },
+  local_city:         { page: 0, x: 310, y: yBeforeNext(533), fontSize: 9,  maxWidth: 280 },
+  local_province:     { page: 0, x: 24,  y: yBeforeNext(563), fontSize: 9,  maxWidth: 495 },
+  local_zip:          { page: 0, x: 540, y: yBeforeNext(563), fontSize: 10, maxWidth: 50  },
+
+  // Item 16 — Foreign Address. Label 563.7. Next (17/18/19/20) at 592.3.
+  foreign_address:    { page: 0, x: 24,  y: yBeforeNext(592), fontSize: 9,  maxWidth: 565 },
+
+  // Item 21 — ID details (Type/Number/Effectivity/Expiry). Label 611.2. Next sub at 649 (Issuer).
+  id_type:            { page: 0, x: 24,  y: yBeforeNext(649), fontSize: 9,  maxWidth: 165 },
+  id_number:          { page: 0, x: 195, y: yBeforeNext(649), fontSize: 9,  maxWidth: 165 },
+  id_effectivity:     { page: 0, x: 368, y: yBeforeNext(649), fontSize: 9,  maxWidth: 110 },
+  id_expiry:          { page: 0, x: 484, y: yBeforeNext(649), fontSize: 9,  maxWidth: 108 },
+
+  // Item 21 cont. Issuer/Place. Sub-label-strip at 649. Next (22) at 669.
+  id_issuer:          { page: 0, x: 80,  y: yBeforeNext(669), fontSize: 9,  maxWidth: 195 },
+  id_place_issue:     { page: 0, x: 282, y: yBeforeNext(669), fontSize: 9,  maxWidth: 110 },
+
+  // Item 22 — Preferred Contact Type. Label 669. Sub-row of Landline/Fax/Mobile at ~679.
+  preferred_contact_type: { page: 0, x: 24,  y: yBeforeNext(679), fontSize: 8, maxWidth: 22 },
+  // Sub-row Landline/Fax/Mobile (label-strip 679). Email row label at ~715.
+  contact_landline:   { page: 0, x: 50,  y: yBeforeNext(715), fontSize: 9,  maxWidth: 152 },
+  contact_fax:        { page: 0, x: 238, y: yBeforeNext(715), fontSize: 9,  maxWidth: 152 },
+  contact_mobile:     { page: 0, x: 425, y: yBeforeNext(715), fontSize: 9,  maxWidth: 152 },
+  // Email row. Label-strip ~715. Next item (23) at 751.9.
+  contact_email:      { page: 0, x: 130, y: yBeforeNext(752), fontSize: 9,  maxWidth: 460 },
+
+  // Item 23 — Spouse Employment Status. Label 751.9. Next (24) at 768.4.
+  spouse_employment_status: { page: 0, x: 440, y: yAt(763), fontSize: 8, maxWidth: 152 },
+
+  // Item 24 — Spouse Last/First. Label 768.4. Next sub at 805.9.
+  spouse_last_name:   { page: 0, x: 24,  y: yAt(800),         fontSize: 10, maxWidth: 250 },
+  spouse_first_name:  { page: 0, x: 296, y: yAt(800),         fontSize: 10, maxWidth: 295 },
+
+  // Item 24/25 — Spouse Middle/Suffix/SpouseTIN. Label 805.9. Next (26) at 837.2.
+  spouse_middle_name: { page: 0, x: 24,  y: yBeforeNext(837), fontSize: 10, maxWidth: 250 },
+  spouse_suffix:      { page: 0, x: 296, y: yBeforeNext(837), fontSize: 10, maxWidth: 38  },
+  spouse_tin:         { page: 0, x: 354, y: yBeforeNext(837), fontSize: 10, maxWidth: 165 },
+
+  // Item 26 — Spouse Employer Name. Label 837.2. Next (27) at 868.8.
+  spouse_employer_name: { page: 0, x: 24,  y: yBeforeNext(868), fontSize: 9,  maxWidth: 565 },
+
+  // Item 27 — Spouse Employer TIN. Label 868.8. End of fields; use +25 below.
+  spouse_employer_tin:{ page: 0, x: 238, y: yAt(893),         fontSize: 10, maxWidth: 110 },
+};
+
+const BIR1902_SKIP_VALUES: Record<string, string[]> = {
+  philsys_pcn: [''],
+  middle_name: [''],
+  name_suffix: ['', 'N/A'],
+  other_citizenship: [''],
+  local_unit: [''],
+  local_building: [''],
+  local_lot: [''],
+  local_subdivision: [''],
+  local_town: [''],
+  foreign_address: [''],
+  id_effectivity: [''],
+  id_expiry: [''],
+  id_place_issue: [''],
+  contact_landline: [''],
+  contact_fax: [''],
+  contact_mobile: [''],
+  contact_email: [''],
+  spouse_employment_status: ['', 'N/A'],
+  spouse_last_name: [''],
+  spouse_first_name: [''],
+  spouse_middle_name: [''],
+  spouse_suffix: ['', 'N/A'],
+  spouse_tin: [''],
+  spouse_employer_name: [''],
+  spouse_employer_tin: [''],
+};
+void BIR1902_PAGE_H;
+
 
 export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   'hqp-pff-356': {
@@ -2906,6 +3178,11 @@ export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
     skipValues: BIR1904_SKIP_VALUES,
     copyYOffsets: [0],
     checkboxCoords: BIR1904_CHECKBOX_COORDS,
+  },
+  'bir-1902': {
+    fieldCoords: BIR1902_FIELD_COORDS,
+    skipValues: BIR1902_SKIP_VALUES,
+    copyYOffsets: [0],
   },
 };
 

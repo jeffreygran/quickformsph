@@ -10,6 +10,7 @@ import { auditLog } from '@/lib/audit-log';
 import { isBlocked } from '@/lib/ip-blocklist';
 import { isPdfBuffer, MAX_UPLOAD_BYTES } from '@/lib/sanitize';
 import { issueAccessToken } from '@/lib/access-token';
+import { insertAnalyticsEvent } from '@/lib/db';
 
 function getIP(req: NextRequest): string {
   return (
@@ -227,6 +228,16 @@ export async function POST(req: NextRequest) {
   // Mark ref as used only when all checks pass
   if (errors.length === 0 && refNo) {
     await markRefUsed(refNo);
+    // Record payment success analytics (server-side, fire-and-forget)
+    try {
+      insertAnalyticsEvent({
+        event_type: 'payment_success',
+        slug: '',
+        session_id: '',
+        ip_hash: '',
+        created_at: Date.now(),
+      });
+    } catch { /* swallow */ }
   }
 
   // Issue an access token (v2.0) so the client can unlock local PDF download

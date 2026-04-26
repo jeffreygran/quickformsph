@@ -6,6 +6,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit-log';
 import { isBlocked } from '@/lib/ip-blocklist';
 import { issueAccessToken } from '@/lib/access-token';
+import { insertAnalyticsEvent } from '@/lib/db';
 
 function getIP(req: NextRequest): string {
   return (
@@ -96,6 +97,17 @@ export async function POST(req: NextRequest) {
 
   await markRefUsed(normalized);
   auditLog('admin_action', ip, `Manual ref validated and accepted: ${normalized}`);
+
+  // Record payment success analytics
+  try {
+    insertAnalyticsEvent({
+      event_type: 'payment_success',
+      slug: '',
+      session_id: '',
+      ip_hash: '',
+      created_at: Date.now(),
+    });
+  } catch { /* swallow */ }
 
   // Issue an access token (v2.0) so the client can unlock local PDF download
   // without sending any form data to the server.

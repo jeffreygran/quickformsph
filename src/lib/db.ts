@@ -84,6 +84,18 @@ export function getDB(): Database.Database {
 
     CREATE INDEX IF NOT EXISTS idx_license_keys_key_code   ON license_keys (key_code);
     CREATE INDEX IF NOT EXISTS idx_license_keys_created_at ON license_keys (created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type TEXT    NOT NULL,
+      slug       TEXT    NOT NULL DEFAULT '',
+      session_id TEXT    NOT NULL DEFAULT '',
+      ip_hash    TEXT    NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_analytics_type_time ON analytics_events (event_type, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_analytics_slug_time ON analytics_events (slug, event_type, created_at DESC);
   `);
 
   // ── Migration: if generated_pdfs still has ref_no/amount columns from the
@@ -282,5 +294,101 @@ export function getAllLicenseKeys(): LicenseKey[] {
 export function deleteLicenseKey(id: number): boolean {
   const result = getDB().prepare('DELETE FROM license_keys WHERE id = ?').run(id);
   return result.changes > 0;
+}
+
+// ─── analytics_events CRUD ────────────────────────────────────────────────────
+
+export type AnalyticsEventType = 'form_view' | 'demo_click' | 'payment_success';
+
+export interface AnalyticsEvent {
+  event_type: AnalyticsEventType;
+  slug: string;
+  session_id: string;
+  ip_hash: string;
+  created_at: number;
+}
+
+export function insertAnalyticsEvent(ev: AnalyticsEvent): void {
+  getDB().prepare(`
+    INSERT INTO analytics_events (event_type, slug, session_id, ip_hash, created_at)
+    VALUES (@event_type, @slug, @session_id, @ip_hash, @created_at)
+  `).run(ev);
+}
+
+/** Returns epoch ms cutoff for a given period filter. */
+function periodCutoff(period: 'day' | 'week' | 'month'): number {
+  const now = Date.now();
+  if (period === 'day')   return now - 86_400_000;
+  if (period === 'week')  return now - 7  * 86_400_000;
+  return                         now - 30 * 86_400_000;
+}
+
+export interface FormAnalytics {
+  slug: string;
+  form_views: number;
+  demo_clicks: number;
+  payment_successes: number;
+}
+
+export interface DashboardStats {
+  period: 'day' | 'week' | 'month';
+  perForm: FormAnalytics[];
+  totalFormViews: number;
+  totalDemoClicks: number;
+  totalPaymentSuccesses: number;
+  claimedCodes: number;
+  unclaimedCodes: number;
+  /** Daily buckets for line chart — last 30 calendar days */
+  dailyBuckets: { date: string; form_views: number; demo_clicks: number; payment_successes: number }[];
+}
+
+export function getDashboardStats(period: 'day' | 'week' | 'month'): DashboardStats {
+  const db = getDB();
+  const since = periodCutoff(period);
+
+  // Per-form breakdown
+  const rows = db.prepare(`
+    SELECT slug,
+      SUM(CASE WHEN event_type = 'form_view'        THEN 1 ELSE 0 END) AS form_views,
+      SUM(CASE WHEN event_type = 'demo_click'       THEN 1 ELSE 0 END) AS demo_clicks,
+      SUM(CASE WHEN event_type = 'payment_success'  THEN 1 ELSE 0 END) AS payment_successes
+    FROM analytics_events
+    WHERE created_at >= ?
+    GROUP BY slug
+    ORDER BY form_views DESC
+  `).all(since) as FormAnalytics[];
+
+  const totalFormViews        = rows.reduce((s, r) => s + r.form_views, 0);
+  const totalDemoClicks       = rows.reduce((s, r) => s + r.demo_clicks, 0);
+  const totalPaymentSuccesses = rows.reduce((s, r) => s + r.payment_successes, 0);
+
+  // License key counts (always total, not period-filtered)
+  const { claimed }   = db.prepare(`SELECT COUNT(*) AS claimed   FROM license_keys WHERE used_at IS NOT NULL`).get() as { claimed: number };
+  const { unclaimed } = db.prepare(`SELECT COUNT(*) AS unclaimed FROM license_keys WHERE used_at IS NULL`).get()     as { unclaimed: number };
+
+  // Daily buckets — last 30 days (regardless of period filter, for chart context)
+  const thirtyDaysAgo = Date.now() - 30 * 86_400_000;
+  const bucketRows = db.prepare(`
+    SELECT
+      strftime('%Y-%m-%d', datetime(created_at / 1000, 'unixepoch')) AS date,
+      SUM(CASE WHEN event_type = 'form_view'        THEN 1 ELSE 0 END) AS form_views,
+      SUM(CASE WHEN event_type = 'demo_click'       THEN 1 ELSE 0 END) AS demo_clicks,
+      SUM(CASE WHEN event_type = 'payment_success'  THEN 1 ELSE 0 END) AS payment_successes
+    FROM analytics_events
+    WHERE created_at >= ?
+    GROUP BY date
+    ORDER BY date ASC
+  `).all(thirtyDaysAgo) as { date: string; form_views: number; demo_clicks: number; payment_successes: number }[];
+
+  return {
+    period,
+    perForm: rows,
+    totalFormViews,
+    totalDemoClicks,
+    totalPaymentSuccesses,
+    claimedCodes: claimed,
+    unclaimedCodes: unclaimed,
+    dailyBuckets: bucketRows,
+  };
 }
 

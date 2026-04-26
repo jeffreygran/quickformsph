@@ -8,6 +8,7 @@ export type FieldType =
   | 'number'
   | 'date'
   | 'dropdown'
+  | 'autocomplete'
   | 'textarea'
   | 'checkbox';
 
@@ -20,6 +21,12 @@ export interface FormField {
   placeholder?: string;
   hint?: string;
   options?: string[];          // for dropdown
+  /**
+   * For type='autocomplete': key into AUTOCOMPLETE_SOURCES registry
+   * (see src/data/autocomplete-sources/index.ts).
+   * Examples: 'ph_cities', 'ph_provinces', 'ph_banks', 'countries'.
+   */
+  optionsSource?: string;
   maxLength?: number;
   inputMode?: 'numeric' | 'tel' | 'email' | 'text';
   autoUppercase?: boolean;
@@ -151,7 +158,8 @@ const hqpPff356: FormSchema = {
     {
       id: 'city',
       label: 'City / Municipality',
-      type: 'text',
+      type: 'autocomplete',
+      optionsSource: 'ph_cities',
       required: true,
       placeholder: 'e.g., Quezon City', maxLength: 60, autoUppercase: true,
       step: 2,
@@ -159,29 +167,9 @@ const hqpPff356: FormSchema = {
     {
       id: 'province',
       label: 'Province',
-      type: 'dropdown',
+      type: 'autocomplete',
       required: true,
-      options: [
-        'Metro Manila (NCR)',
-        'Abra', 'Agusan del Norte', 'Agusan del Sur', 'Aklan', 'Albay',
-        'Antique', 'Apayao', 'Aurora', 'Basilan', 'Bataan', 'Batanes',
-        'Batangas', 'Benguet', 'Biliran', 'Bohol', 'Bukidnon', 'Bulacan',
-        'Cagayan', 'Camarines Norte', 'Camarines Sur', 'Camiguin', 'Capiz',
-        'Catanduanes', 'Cavite', 'Cebu', 'Cotabato', 'Davao de Oro',
-        'Davao del Norte', 'Davao del Sur', 'Davao Occidental', 'Davao Oriental',
-        'Dinagat Islands', 'Eastern Samar', 'Guimaras', 'Ifugao', 'Ilocos Norte',
-        'Ilocos Sur', 'Iloilo', 'Isabela', 'Kalinga', 'La Union', 'Laguna',
-        'Lanao del Norte', 'Lanao del Sur', 'Leyte', 'Maguindanao del Norte',
-        'Maguindanao del Sur', 'Marinduque', 'Masbate', 'Misamis Occidental',
-        'Misamis Oriental', 'Mountain Province', 'Negros Occidental',
-        'Negros Oriental', 'Northern Samar', 'Nueva Ecija', 'Nueva Vizcaya',
-        'Occidental Mindoro', 'Oriental Mindoro', 'Palawan', 'Pampanga',
-        'Pangasinan', 'Quezon', 'Quirino', 'Rizal', 'Romblon', 'Samar',
-        'Sarangani', 'Siquijor', 'Sorsogon', 'South Cotabato', 'Southern Leyte',
-        'Sultan Kudarat', 'Sulu', 'Surigao del Norte', 'Surigao del Sur',
-        'Tarlac', 'Tawi-Tawi', 'Zambales', 'Zamboanga del Norte',
-        'Zamboanga del Sur', 'Zamboanga Sibugay',
-      ],
+      optionsSource: 'ph_provinces',
       step: 2,
     },
     {
@@ -234,25 +222,10 @@ const hqpPff356: FormSchema = {
     {
       id: 'bank_name',
       label: 'Bank Name',
-      type: 'dropdown',
+      type: 'autocomplete',
       required: false,
       optional_note: 'Optional',
-      options: [
-        '',
-        'BDO Unibank',
-        'Bank of the Philippine Islands (BPI)',
-        'Metrobank',
-        'UnionBank of the Philippines',
-        'RCBC',
-        'Landbank of the Philippines',
-        'Philippine National Bank (PNB)',
-        'Security Bank',
-        'Eastwest Bank',
-        'Chinabank',
-        'GCash (GSave)',
-        'Maya Bank',
-        'Other',
-      ],
+      optionsSource: 'ph_banks',
       step: 3,
     },
     {
@@ -623,7 +596,7 @@ const philhealthPmrf: FormSchema = {
     {
       id: 'perm_city',
       label: 'Municipality/City',
-      type: 'text',
+      type: 'autocomplete', optionsSource: 'ph_cities',
       required: true,
       placeholder: 'e.g., Quezon City', maxLength: 60, autoUppercase: true,
       step: 3,
@@ -631,30 +604,9 @@ const philhealthPmrf: FormSchema = {
     {
       id: 'perm_province',
       label: 'Province/State/Country',
-      type: 'dropdown',
+      type: 'autocomplete',
       required: true,
-      options: [
-        'Metro Manila (NCR)',
-        'Abra', 'Agusan del Norte', 'Agusan del Sur', 'Aklan', 'Albay',
-        'Antique', 'Apayao', 'Aurora', 'Basilan', 'Bataan', 'Batanes',
-        'Batangas', 'Benguet', 'Biliran', 'Bohol', 'Bukidnon', 'Bulacan',
-        'Cagayan', 'Camarines Norte', 'Camarines Sur', 'Camiguin', 'Capiz',
-        'Catanduanes', 'Cavite', 'Cebu', 'Cotabato', 'Davao de Oro',
-        'Davao del Norte', 'Davao del Sur', 'Davao Occidental', 'Davao Oriental',
-        'Dinagat Islands', 'Eastern Samar', 'Guimaras', 'Ifugao', 'Ilocos Norte',
-        'Ilocos Sur', 'Iloilo', 'Isabela', 'Kalinga', 'La Union', 'Laguna',
-        'Lanao del Norte', 'Lanao del Sur', 'Leyte', 'Maguindanao del Norte',
-        'Maguindanao del Sur', 'Marinduque', 'Masbate', 'Misamis Occidental',
-        'Misamis Oriental', 'Mountain Province', 'Negros Occidental',
-        'Negros Oriental', 'Northern Samar', 'Nueva Ecija', 'Nueva Vizcaya',
-        'Occidental Mindoro', 'Oriental Mindoro', 'Palawan', 'Pampanga',
-        'Pangasinan', 'Quezon', 'Quirino', 'Rizal', 'Romblon', 'Samar',
-        'Sarangani', 'Siquijor', 'Sorsogon', 'South Cotabato', 'Southern Leyte',
-        'Sultan Kudarat', 'Sulu', 'Surigao del Norte', 'Surigao del Sur',
-        'Tarlac', 'Tawi-Tawi', 'Zambales', 'Zamboanga del Norte',
-        'Zamboanga del Sur', 'Zamboanga Sibugay',
-        'Abroad',
-      ],
+      optionsSource: 'ph_provinces',
       step: 3,
     },
     {
@@ -757,7 +709,8 @@ const philhealthPmrf: FormSchema = {
     {
       id: 'mail_city',
       label: 'Mailing — Municipality/City',
-      type: 'text',
+      type: 'autocomplete',
+      optionsSource: 'ph_cities',
       required: false,
       placeholder: 'e.g., Quezon City', maxLength: 60, autoUppercase: true,
       step: 3,
@@ -765,7 +718,8 @@ const philhealthPmrf: FormSchema = {
     {
       id: 'mail_province',
       label: 'Mailing — Province/State/Country',
-      type: 'text',
+      type: 'autocomplete',
+      optionsSource: 'ph_provinces',
       required: false,
       placeholder: 'e.g., Metro Manila or Abroad', maxLength: 60, autoUppercase: true,
       step: 3,
@@ -1095,7 +1049,8 @@ const philhealthClaimForm1: FormSchema = {
     {
       id: 'addr_city',
       label: 'City/Municipality',
-      type: 'text',
+      type: 'autocomplete',
+      optionsSource: 'ph_cities',
       required: true,
       placeholder: 'e.g., Quezon City', maxLength: 60, autoUppercase: true,
       step: 2,
@@ -1103,38 +1058,17 @@ const philhealthClaimForm1: FormSchema = {
     {
       id: 'addr_province',
       label: 'Province',
-      type: 'dropdown',
+      type: 'autocomplete',
       required: true,
-      options: [
-        'Metro Manila (NCR)',
-        'Abra', 'Agusan del Norte', 'Agusan del Sur', 'Aklan', 'Albay',
-        'Antique', 'Apayao', 'Aurora', 'Basilan', 'Bataan', 'Batanes',
-        'Batangas', 'Benguet', 'Biliran', 'Bohol', 'Bukidnon', 'Bulacan',
-        'Cagayan', 'Camarines Norte', 'Camarines Sur', 'Camiguin', 'Capiz',
-        'Catanduanes', 'Cavite', 'Cebu', 'Cotabato', 'Davao de Oro',
-        'Davao del Norte', 'Davao del Sur', 'Davao Occidental', 'Davao Oriental',
-        'Dinagat Islands', 'Eastern Samar', 'Guimaras', 'Ifugao', 'Ilocos Norte',
-        'Ilocos Sur', 'Iloilo', 'Isabela', 'Kalinga', 'La Union', 'Laguna',
-        'Lanao del Norte', 'Lanao del Sur', 'Leyte', 'Maguindanao del Norte',
-        'Maguindanao del Sur', 'Marinduque', 'Masbate', 'Misamis Occidental',
-        'Misamis Oriental', 'Mountain Province', 'Negros Occidental',
-        'Negros Oriental', 'Northern Samar', 'Nueva Ecija', 'Nueva Vizcaya',
-        'Occidental Mindoro', 'Oriental Mindoro', 'Palawan', 'Pampanga',
-        'Pangasinan', 'Quezon', 'Quirino', 'Rizal', 'Romblon', 'Samar',
-        'Sarangani', 'Siquijor', 'Sorsogon', 'South Cotabato', 'Southern Leyte',
-        'Sultan Kudarat', 'Sulu', 'Surigao del Norte', 'Surigao del Sur',
-        'Tarlac', 'Tawi-Tawi', 'Zambales', 'Zamboanga del Norte',
-        'Zamboanga del Sur', 'Zamboanga Sibugay',
-        'N/A (Abroad)',
-      ],
+      optionsSource: 'ph_provinces',
       step: 2,
     },
     {
       id: 'addr_country',
       label: 'Country',
-      type: 'dropdown',
+      type: 'autocomplete',
       required: true,
-      options: ['Philippines', 'Abroad'],
+      optionsSource: 'countries',
       hint: 'Select "Abroad" if currently overseas',
       step: 2,
     },
@@ -1548,7 +1482,8 @@ const philhealthClaimForm2: FormSchema = {
     {
       id: 'hci_city',
       label: 'City/Municipality',
-      type: 'text',
+      type: 'autocomplete',
+      optionsSource: 'ph_cities',
       required: true,
       placeholder: 'e.g., Quezon City', maxLength: 60, autoUppercase: true,
       step: 1,
@@ -1556,29 +1491,9 @@ const philhealthClaimForm2: FormSchema = {
     {
       id: 'hci_province',
       label: 'Province',
-      type: 'dropdown',
+      type: 'autocomplete',
       required: true,
-      options: [
-        'Metro Manila (NCR)',
-        'Abra', 'Agusan del Norte', 'Agusan del Sur', 'Aklan', 'Albay',
-        'Antique', 'Apayao', 'Aurora', 'Basilan', 'Bataan', 'Batanes',
-        'Batangas', 'Benguet', 'Biliran', 'Bohol', 'Bukidnon', 'Bulacan',
-        'Cagayan', 'Camarines Norte', 'Camarines Sur', 'Camiguin', 'Capiz',
-        'Catanduanes', 'Cavite', 'Cebu', 'Cotabato', 'Davao de Oro',
-        'Davao del Norte', 'Davao del Sur', 'Davao Occidental', 'Davao Oriental',
-        'Dinagat Islands', 'Eastern Samar', 'Guimaras', 'Ifugao', 'Ilocos Norte',
-        'Ilocos Sur', 'Iloilo', 'Isabela', 'Kalinga', 'La Union', 'Laguna',
-        'Lanao del Norte', 'Lanao del Sur', 'Leyte', 'Maguindanao del Norte',
-        'Maguindanao del Sur', 'Marinduque', 'Masbate', 'Misamis Occidental',
-        'Misamis Oriental', 'Mountain Province', 'Negros Occidental',
-        'Negros Oriental', 'Northern Samar', 'Nueva Ecija', 'Nueva Vizcaya',
-        'Occidental Mindoro', 'Oriental Mindoro', 'Palawan', 'Pampanga',
-        'Pangasinan', 'Quezon', 'Quirino', 'Rizal', 'Romblon', 'Samar',
-        'Sarangani', 'Siquijor', 'Sorsogon', 'South Cotabato', 'Southern Leyte',
-        'Sultan Kudarat', 'Sulu', 'Surigao del Norte', 'Surigao del Sur',
-        'Tarlac', 'Tawi-Tawi', 'Zambales', 'Zamboanga del Norte',
-        'Zamboanga del Sur', 'Zamboanga Sibugay',
-      ],
+      optionsSource: 'ph_provinces',
       step: 1,
     },
 
@@ -1651,7 +1566,8 @@ const philhealthClaimForm2: FormSchema = {
     {
       id: 'referring_hci_city',
       label: 'City/Municipality (Referring HCI)',
-      type: 'text',
+      type: 'autocomplete',
+      optionsSource: 'ph_cities',
       required: false,
       optional_note: 'Only if referred',
       placeholder: 'e.g., Manila', maxLength: 60, autoUppercase: true,
@@ -1660,7 +1576,8 @@ const philhealthClaimForm2: FormSchema = {
     {
       id: 'referring_hci_province',
       label: 'Province (Referring HCI)',
-      type: 'text',
+      type: 'autocomplete',
+      optionsSource: 'ph_provinces',
       required: false,
       optional_note: 'Only if referred',
       placeholder: 'e.g., Metro Manila', maxLength: 60, autoUppercase: true,
@@ -1899,7 +1816,8 @@ const philhealthClaimForm2: FormSchema = {
     {
       id: 'transferred_hci_city',
       label: 'City/Municipality (Transfer HCI)',
-      type: 'text',
+      type: 'autocomplete',
+      optionsSource: 'ph_cities',
       required: false,
       optional_note: 'Only if Transferred/Referred',
       placeholder: 'e.g., Manila', maxLength: 60, autoUppercase: true,
@@ -1908,7 +1826,8 @@ const philhealthClaimForm2: FormSchema = {
     {
       id: 'transferred_hci_province',
       label: 'Province (Transfer HCI)',
-      type: 'text',
+      type: 'autocomplete',
+      optionsSource: 'ph_provinces',
       required: false,
       optional_note: 'Only if Transferred/Referred',
       placeholder: 'e.g., Metro Manila', maxLength: 60, autoUppercase: true,
@@ -3222,9 +3141,9 @@ const pagibigSlf089: FormSchema = {
     { id: 'perm_subdivision', label: 'Subdivision', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 3 },
     { id: 'perm_barangay', label: 'Barangay', type: 'text', required: true,
       placeholder: 'SAN JOSE', maxLength: 60, autoUppercase: true, step: 3 },
-    { id: 'perm_city', label: 'Municipality / City', type: 'text', required: true,
+    { id: 'perm_city', label: 'Municipality / City', type: 'autocomplete', optionsSource: 'ph_cities', required: true,
       placeholder: 'QUEZON CITY', maxLength: 60, autoUppercase: true, step: 3 },
-    { id: 'perm_province', label: 'Province / State / Country', type: 'text', required: true,
+    { id: 'perm_province', label: 'Province / State / Country', type: 'autocomplete', optionsSource: 'ph_provinces', required: true,
       placeholder: 'METRO MANILA', maxLength: 60, autoUppercase: true, step: 3 },
     { id: 'perm_zip', label: 'ZIP Code', type: 'text', required: true,
       placeholder: '1100', inputMode: 'numeric', maxLength: 4, step: 3 },
@@ -3243,8 +3162,8 @@ const pagibigSlf089: FormSchema = {
       placeholder: 'Software Engineer', step: 4 },
     { id: 'pres_subdivision', label: 'Subdivision', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 4 },
     { id: 'pres_barangay', label: 'Barangay', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 4 },
-    { id: 'pres_city', label: 'Municipality / City', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 4 },
-    { id: 'pres_province', label: 'Province / State / Country', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 4 },
+    { id: 'pres_city', label: 'Municipality / City', type: 'autocomplete', optionsSource: 'ph_cities', required: false, maxLength: 60, autoUppercase: true, step: 4 },
+    { id: 'pres_province', label: 'Province / State / Country', type: 'autocomplete', optionsSource: 'ph_provinces', required: false, maxLength: 60, autoUppercase: true, step: 4 },
     { id: 'pres_zip', label: 'ZIP Code', type: 'text', required: false, inputMode: 'numeric', maxLength: 4, step: 4 },
     { id: 'pres_sss_gsis', label: 'SSS / GSIS No.', type: 'text', required: false,
       placeholder: '12-3456789-0', maxLength: 14, inputMode: 'numeric', step: 4 },
@@ -3367,9 +3286,9 @@ const pagibigSlf065: FormSchema = {
     { id: 'perm_subdivision', label: 'Subdivision', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 3 },
     { id: 'perm_barangay', label: 'Barangay', type: 'text', required: true,
       placeholder: 'SAN JOSE', maxLength: 60, autoUppercase: true, step: 3 },
-    { id: 'perm_city', label: 'Municipality / City', type: 'text', required: true,
+    { id: 'perm_city', label: 'Municipality / City', type: 'autocomplete', optionsSource: 'ph_cities', required: true,
       placeholder: 'QUEZON CITY', maxLength: 60, autoUppercase: true, step: 3 },
-    { id: 'perm_province', label: 'Province / State / Country', type: 'text', required: true,
+    { id: 'perm_province', label: 'Province / State / Country', type: 'autocomplete', optionsSource: 'ph_provinces', required: true,
       placeholder: 'METRO MANILA', maxLength: 60, autoUppercase: true, step: 3 },
     { id: 'perm_zip', label: 'ZIP Code', type: 'text', required: true,
       placeholder: '1100', inputMode: 'numeric', maxLength: 4, step: 3 },
@@ -3388,8 +3307,8 @@ const pagibigSlf065: FormSchema = {
     { id: 'pres_street', label: 'Street Name', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 4 },
     { id: 'pres_subdivision', label: 'Subdivision', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 4 },
     { id: 'pres_barangay', label: 'Barangay', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 4 },
-    { id: 'pres_city', label: 'Municipality / City', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 4 },
-    { id: 'pres_province', label: 'Province / State / Country', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 4 },
+    { id: 'pres_city', label: 'Municipality / City', type: 'autocomplete', optionsSource: 'ph_cities', required: false, maxLength: 60, autoUppercase: true, step: 4 },
+    { id: 'pres_province', label: 'Province / State / Country', type: 'autocomplete', optionsSource: 'ph_provinces', required: false, maxLength: 60, autoUppercase: true, step: 4 },
     { id: 'pres_zip', label: 'ZIP Code', type: 'text', required: false, inputMode: 'numeric', maxLength: 4, step: 4 },
     { id: 'loan_term', label: 'Loan Term', type: 'dropdown', required: true,
       options: ['One (1) Year', 'Two (2) Years', 'Three (3) Years'], step: 4 },
@@ -3503,9 +3422,9 @@ const pagibigHlf868: FormSchema = {
     { id: 'perm_subdivision', label: 'Subdivision', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 2 },
     { id: 'perm_barangay', label: 'Barangay', type: 'text', required: true,
       placeholder: 'SAN JOSE', maxLength: 60, autoUppercase: true, step: 2 },
-    { id: 'perm_city', label: 'Municipality / City', type: 'text', required: true,
+    { id: 'perm_city', label: 'Municipality / City', type: 'autocomplete', optionsSource: 'ph_cities', required: true,
       placeholder: 'QUEZON CITY', maxLength: 60, autoUppercase: true, step: 2 },
-    { id: 'perm_province', label: 'Province / State / Country', type: 'text', required: true,
+    { id: 'perm_province', label: 'Province / State / Country', type: 'autocomplete', optionsSource: 'ph_provinces', required: true,
       placeholder: 'METRO MANILA', maxLength: 60, autoUppercase: true, step: 2 },
     { id: 'perm_zip', label: 'ZIP Code', type: 'text', required: true,
       placeholder: '1100', inputMode: 'numeric', maxLength: 4, step: 2 },
@@ -3520,8 +3439,8 @@ const pagibigHlf868: FormSchema = {
     { id: 'pres_street', label: 'Street Name', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 3 },
     { id: 'pres_subdivision', label: 'Subdivision', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 3 },
     { id: 'pres_barangay', label: 'Barangay', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 3 },
-    { id: 'pres_city', label: 'Municipality / City', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 3 },
-    { id: 'pres_province', label: 'Province / State / Country', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 3 },
+    { id: 'pres_city', label: 'Municipality / City', type: 'autocomplete', optionsSource: 'ph_cities', required: false, maxLength: 60, autoUppercase: true, step: 3 },
+    { id: 'pres_province', label: 'Province / State / Country', type: 'autocomplete', optionsSource: 'ph_provinces', required: false, maxLength: 60, autoUppercase: true, step: 3 },
     { id: 'pres_zip', label: 'ZIP Code', type: 'text', required: false, inputMode: 'numeric', maxLength: 4, step: 3 },
     { id: 'pres_business_tel', label: 'Business Telephone Number', type: 'tel', required: false,
       placeholder: '02-12345678', maxLength: 20, step: 3 },
@@ -3657,8 +3576,8 @@ const pagibigHlf858: FormSchema = {
     { id: 'perm_street', label: 'Street Name', type: 'text', required: true, maxLength: 60, autoUppercase: true, step: 2 },
     { id: 'perm_subdivision', label: 'Subdivision', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 2 },
     { id: 'perm_barangay', label: 'Barangay', type: 'text', required: true, maxLength: 60, autoUppercase: true, step: 2 },
-    { id: 'perm_city', label: 'Municipality / City', type: 'text', required: true, maxLength: 60, autoUppercase: true, step: 2 },
-    { id: 'perm_province', label: 'Province / State / Country', type: 'text', required: true, maxLength: 60, autoUppercase: true, step: 2 },
+    { id: 'perm_city', label: 'Municipality / City', type: 'autocomplete', optionsSource: 'ph_cities', required: true, maxLength: 60, autoUppercase: true, step: 2 },
+    { id: 'perm_province', label: 'Province / State / Country', type: 'autocomplete', optionsSource: 'ph_provinces', required: true, maxLength: 60, autoUppercase: true, step: 2 },
     { id: 'perm_zip', label: 'ZIP Code', type: 'text', required: true, inputMode: 'numeric', maxLength: 4, step: 2 },
     { id: 'perm_country_tel', label: 'Country + Area Code Telephone', type: 'text', required: false, placeholder: '63-2', step: 2 },
     { id: 'perm_home_tel', label: 'Home Telephone Number', type: 'tel', required: false, placeholder: '12345678', maxLength: 20, step: 2 },
@@ -3668,8 +3587,8 @@ const pagibigHlf858: FormSchema = {
     { id: 'pres_street', label: 'Street Name', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 3 },
     { id: 'pres_subdivision', label: 'Subdivision', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 3 },
     { id: 'pres_barangay', label: 'Barangay', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 3 },
-    { id: 'pres_city', label: 'Municipality / City', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 3 },
-    { id: 'pres_province', label: 'Province / State / Country', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 3 },
+    { id: 'pres_city', label: 'Municipality / City', type: 'autocomplete', optionsSource: 'ph_cities', required: false, maxLength: 60, autoUppercase: true, step: 3 },
+    { id: 'pres_province', label: 'Province / State / Country', type: 'autocomplete', optionsSource: 'ph_provinces', required: false, maxLength: 60, autoUppercase: true, step: 3 },
     { id: 'pres_zip', label: 'ZIP Code', type: 'text', required: false, inputMode: 'numeric', maxLength: 4, step: 3 },
     { id: 'pres_cellphone', label: 'Cellphone Number', type: 'tel', required: true, placeholder: '09171234567', inputMode: 'tel', maxLength: 11, step: 3 },
     { id: 'email_address', label: 'Email Address', type: 'email', required: true, inputMode: 'email', maxLength: 150, step: 3 },
@@ -3801,16 +3720,16 @@ const pagibigHlf068: FormSchema = {
     { id: 'perm_street', label: 'Street Name', type: 'text', required: true, maxLength: 60, autoUppercase: true, step: 4 },
     { id: 'perm_subdivision', label: 'Subdivision', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 4 },
     { id: 'perm_barangay', label: 'Barangay', type: 'text', required: true, maxLength: 60, autoUppercase: true, step: 4 },
-    { id: 'perm_city', label: 'Municipality / City', type: 'text', required: true, maxLength: 60, autoUppercase: true, step: 4 },
-    { id: 'perm_province', label: 'Province / State / Country', type: 'text', required: true, maxLength: 60, autoUppercase: true, step: 4 },
+    { id: 'perm_city', label: 'Municipality / City', type: 'autocomplete', optionsSource: 'ph_cities', required: true, maxLength: 60, autoUppercase: true, step: 4 },
+    { id: 'perm_province', label: 'Province / State / Country', type: 'autocomplete', optionsSource: 'ph_provinces', required: true, maxLength: 60, autoUppercase: true, step: 4 },
     { id: 'perm_zip', label: 'ZIP Code', type: 'text', required: true, inputMode: 'numeric', maxLength: 4, step: 4 },
 
     { id: 'pres_unit', label: 'Present — Unit/Floor/Building/Lot/Block/Phase/House No.', type: 'text', required: false, maxLength: 50, step: 5 },
     { id: 'pres_street', label: 'Street Name', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 5 },
     { id: 'pres_subdivision', label: 'Subdivision', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 5 },
     { id: 'pres_barangay', label: 'Barangay', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 5 },
-    { id: 'pres_city', label: 'Municipality / City', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 5 },
-    { id: 'pres_province', label: 'Province / State / Country', type: 'text', required: false, maxLength: 60, autoUppercase: true, step: 5 },
+    { id: 'pres_city', label: 'Municipality / City', type: 'autocomplete', optionsSource: 'ph_cities', required: false, maxLength: 60, autoUppercase: true, step: 5 },
+    { id: 'pres_province', label: 'Province / State / Country', type: 'autocomplete', optionsSource: 'ph_provinces', required: false, maxLength: 60, autoUppercase: true, step: 5 },
     { id: 'pres_zip', label: 'ZIP Code', type: 'text', required: false, inputMode: 'numeric', maxLength: 4, step: 5 },
     { id: 'pres_cellphone', label: 'Cellphone Number', type: 'tel', required: true,
       placeholder: '09171234567', inputMode: 'tel', maxLength: 11, step: 5 },
@@ -4029,7 +3948,7 @@ const bir1904: FormSchema = {
     {
       label: 'Taxpayer Type & Identity',
       fieldIds: [
-        'philsys_pcn',
+        'date_of_registration', 'philsys_pcn', 'rdo_code',
         'taxpayer_type',
         'foreign_tin', 'country_of_residence',
         'last_name', 'first_name', 'middle_name', 'name_suffix', 'nickname',
@@ -4048,7 +3967,7 @@ const bir1904: FormSchema = {
     {
       label: 'Foreign Address & Contact',
       fieldIds: [
-        'foreign_address', 'date_of_arrival',
+        'foreign_address', 'municipality_code', 'date_of_arrival',
         'gender', 'civil_status',
         'contact_number', 'email',
       ],
@@ -4082,7 +4001,9 @@ const bir1904: FormSchema = {
   ],
   fields: [
     // ── Step 1: Taxpayer Type & Identity ──
+    { id: 'date_of_registration', label: '1. Date of Registration (MM/DD/YYYY) — BIR-only', type: 'text', required: false, maxLength: 10, placeholder: '01/01/2026', hint: 'To be filled out by BIR', step: 1 },
     { id: 'philsys_pcn', label: '2. PhilSys Card Number (PCN) — 16 digits', type: 'text', required: false, maxLength: 16, inputMode: 'numeric', placeholder: '1234567890123456', step: 1 },
+    { id: 'rdo_code', label: '3. RDO Code (3 digits) — BIR-only', type: 'text', required: false, maxLength: 3, inputMode: 'numeric', hint: 'To be filled out by BIR', step: 1 },
     { id: 'taxpayer_type', label: '4. Taxpayer Type', type: 'dropdown', required: true,
       options: [
         'E.O. 98 — Filipino Citizen',
@@ -4095,7 +4016,7 @@ const bir1904: FormSchema = {
       step: 1,
     },
     { id: 'foreign_tin', label: '5. Foreign TIN (if applicable)', type: 'text', required: false, maxLength: 30, inputMode: 'numeric', step: 1 },
-    { id: 'country_of_residence', label: '6. Country of Residence (if foreign national)', type: 'text', required: false, maxLength: 40, autoUppercase: true, step: 1 },
+    { id: 'country_of_residence', label: '6. Country of Residence (if foreign national)', type: 'autocomplete', optionsSource: 'countries', required: false, maxLength: 40, autoUppercase: true, step: 1 },
     { id: 'last_name', label: '7A. Last Name (if Individual)', type: 'text', required: false, maxLength: 40, autoUppercase: true, placeholder: 'DELA CRUZ', step: 1 },
     { id: 'first_name', label: '7A. First Name', type: 'text', required: false, maxLength: 30, autoUppercase: true, placeholder: 'JUAN', step: 1 },
     { id: 'middle_name', label: '7A. Middle Name', type: 'text', required: false, maxLength: 30, autoUppercase: true, step: 1 },
@@ -4113,13 +4034,14 @@ const bir1904: FormSchema = {
     { id: 'local_street', label: '10. Street Name', type: 'text', required: true, maxLength: 40, autoUppercase: true, step: 2 },
     { id: 'local_subdivision', label: '10. Subdivision / Village / Zone', type: 'text', required: false, maxLength: 30, autoUppercase: true, step: 2 },
     { id: 'local_barangay', label: '10. Barangay', type: 'text', required: true, maxLength: 30, autoUppercase: true, step: 2 },
-    { id: 'local_town', label: '10. Town / District', type: 'text', required: false, maxLength: 30, autoUppercase: true, step: 2 },
-    { id: 'local_city', label: '10. Municipality / City', type: 'text', required: true, maxLength: 30, autoUppercase: true, step: 2 },
-    { id: 'local_province', label: '10. Province', type: 'text', required: true, maxLength: 30, autoUppercase: true, step: 2 },
+    { id: 'local_town', label: '10. Town / District', type: 'autocomplete', optionsSource: 'ph_cities', required: false, maxLength: 30, autoUppercase: true, step: 2 },
+    { id: 'local_city', label: '10. Municipality / City', type: 'autocomplete', optionsSource: 'ph_cities', required: true, maxLength: 30, autoUppercase: true, step: 2 },
+    { id: 'local_province', label: '10. Province', type: 'autocomplete', optionsSource: 'ph_provinces', required: true, maxLength: 30, autoUppercase: true, step: 2 },
     { id: 'local_zip', label: '10. ZIP Code (4 digits)', type: 'text', required: true, maxLength: 4, inputMode: 'numeric', placeholder: '1100', step: 2 },
 
     // ── Step 3: Foreign Address & Contact ──
     { id: 'foreign_address', label: '11. Principal Foreign Address (foreign nationals only)', type: 'text', required: false, maxLength: 120, autoUppercase: true, step: 3 },
+    { id: 'municipality_code', label: '12. Municipality Code (5 digits) — BIR-only', type: 'text', required: false, maxLength: 5, inputMode: 'numeric', hint: 'To be filled out by BIR', step: 3 },
     { id: 'date_of_arrival', label: '13. Date of Arrival in the Philippines (MM/DD/YYYY)', type: 'text', required: false, maxLength: 10, hint: 'Foreign nationals only', step: 3 },
     { id: 'gender', label: '14. Gender', type: 'dropdown', required: true, options: ['Male', 'Female'], step: 3 },
     { id: 'civil_status', label: '15. Civil Status', type: 'dropdown', required: true,
@@ -4174,8 +4096,89 @@ const bir1904: FormSchema = {
   ],
 };
 
+// ─── BIR 1902 — Application for Registration For Individuals Earning Purely Compensation Income ──
+// R10 MVP scaffold (April 2026): full schema + free-text coord overlay.
+// Per-cell precision for 40-cell name/address rows DEFERRED to R10b — see learnings.
+const bir1902: FormSchema = {
+  slug: 'bir-1902',
+  code: 'BIR-1902',
+  version: 'October 2025 (ENCS)',
+  name: 'Application for Registration For Individuals Earning Purely Compensation Income',
+  agency: 'Bureau of Internal Revenue',
+  category: 'Tax',
+  pdfPath: 'BIR - 1902 October 2025 (ENCS) Final.pdf',
+  description: 'BIR 1902 is filed by employees earning purely compensation income (local and resident-alien). Captures TIN application, identity, address, ID, contact, and spouse details.',
+  steps: [
+    { label: 'Identity & TIN', fieldIds: ['philsys_pcn', 'tin', 'taxpayer_type', 'last_name', 'first_name', 'middle_name', 'name_suffix', 'gender', 'civil_status', 'date_of_birth', 'place_of_birth'] },
+    { label: 'Family & Citizenship', fieldIds: ['mothers_maiden_name', 'fathers_name', 'citizenship', 'other_citizenship'] },
+    { label: 'Address', fieldIds: ['local_unit', 'local_building', 'local_lot', 'local_street', 'local_subdivision', 'local_barangay', 'local_town', 'local_city', 'local_province', 'local_zip', 'foreign_address'] },
+    { label: 'ID & Contact', fieldIds: ['id_type', 'id_number', 'id_effectivity', 'id_expiry', 'id_issuer', 'id_place_issue', 'preferred_contact_type', 'contact_landline', 'contact_fax', 'contact_mobile', 'contact_email'] },
+    { label: 'Spouse (if married)', fieldIds: ['spouse_employment_status', 'spouse_last_name', 'spouse_first_name', 'spouse_middle_name', 'spouse_suffix', 'spouse_tin', 'spouse_employer_name', 'spouse_employer_tin'] },
+  ],
+  fields: [
+    // Step 1
+    { id: 'philsys_pcn', label: '2. PhilSys Card Number (PCN) — 16 digits', type: 'text', required: false, maxLength: 16, inputMode: 'numeric', placeholder: '1234567890123456', step: 1 },
+    { id: 'tin', label: '3. TIN — 12 digits (5 trailing 0s are agency-reserved)', type: 'text', required: true, maxLength: 12, inputMode: 'numeric', placeholder: '123456789012', step: 1 },
+    { id: 'taxpayer_type', label: '5. Taxpayer Type', type: 'dropdown', required: true,
+      options: ['Local Employee', 'Resident Alien', 'Special Non-Resident Alien'], step: 1 },
+    { id: 'last_name', label: '6. Last Name', type: 'text', required: true, maxLength: 40, autoUppercase: true, step: 1 },
+    { id: 'first_name', label: '6. First Name', type: 'text', required: true, maxLength: 40, autoUppercase: true, step: 1 },
+    { id: 'middle_name', label: '6. Middle Name', type: 'text', required: false, maxLength: 40, autoUppercase: true, step: 1 },
+    { id: 'name_suffix', label: '6. Suffix (Jr/Sr/III)', type: 'text', required: false, maxLength: 8, autoUppercase: true, step: 1 },
+    { id: 'gender', label: '7. Gender', type: 'dropdown', required: true, options: ['Male', 'Female'], step: 1 },
+    { id: 'civil_status', label: '8. Civil Status', type: 'dropdown', required: true,
+      options: ['Single', 'Married', 'Widow/er', 'Legally Separated'], step: 1 },
+    { id: 'date_of_birth', label: '9. Date of Birth (MM/DD/YYYY)', type: 'text', required: true, maxLength: 10, placeholder: '01/15/1990', step: 1 },
+    { id: 'place_of_birth', label: '10. Place of Birth', type: 'text', required: true, maxLength: 50, autoUppercase: true, step: 1 },
+
+    // Step 2
+    { id: 'mothers_maiden_name', label: "11. Mother's Maiden Name (First · Middle · Last · Suffix)", type: 'text', required: true, maxLength: 80, autoUppercase: true, step: 2 },
+    { id: 'fathers_name', label: "12. Father's Name (First · Middle · Last · Suffix)", type: 'text', required: true, maxLength: 80, autoUppercase: true, step: 2 },
+    { id: 'citizenship', label: '13. Citizenship', type: 'text', required: true, maxLength: 30, autoUppercase: true, placeholder: 'FILIPINO', step: 2 },
+    { id: 'other_citizenship', label: '14. Other Citizenship (if applicable)', type: 'text', required: false, maxLength: 30, autoUppercase: true, step: 2 },
+
+    // Step 3
+    { id: 'local_unit', label: '15. Unit / Room / Floor', type: 'text', required: false, maxLength: 20, step: 3 },
+    { id: 'local_building', label: '15. Building Name', type: 'text', required: false, maxLength: 30, autoUppercase: true, step: 3 },
+    { id: 'local_lot', label: '15. Lot / Block / House No.', type: 'text', required: false, maxLength: 20, autoUppercase: true, step: 3 },
+    { id: 'local_street', label: '15. Street Name', type: 'text', required: true, maxLength: 40, autoUppercase: true, step: 3 },
+    { id: 'local_subdivision', label: '15. Subdivision / Village', type: 'text', required: false, maxLength: 30, autoUppercase: true, step: 3 },
+    { id: 'local_barangay', label: '15. Barangay', type: 'text', required: true, maxLength: 30, autoUppercase: true, step: 3 },
+    { id: 'local_town', label: '15. Town / District', type: 'text', required: false, maxLength: 30, autoUppercase: true, step: 3 },
+    { id: 'local_city', label: '15. Municipality / City', type: 'text', required: true, maxLength: 30, autoUppercase: true, step: 3 },
+    { id: 'local_province', label: '15. Province', type: 'text', required: true, maxLength: 30, autoUppercase: true, step: 3 },
+    { id: 'local_zip', label: '15. ZIP Code (4 digits)', type: 'text', required: true, maxLength: 4, inputMode: 'numeric', placeholder: '1100', step: 3 },
+    { id: 'foreign_address', label: '16. Foreign Address (resident aliens only)', type: 'text', required: false, maxLength: 120, autoUppercase: true, step: 3 },
+
+    // Step 4
+    { id: 'id_type', label: '21. ID Type (e.g. Passport, UMID)', type: 'text', required: true, maxLength: 30, autoUppercase: true, step: 4 },
+    { id: 'id_number', label: '21. ID Number', type: 'text', required: true, maxLength: 24, step: 4 },
+    { id: 'id_effectivity', label: '21. ID Effective Date (MM/DD/YYYY)', type: 'text', required: false, maxLength: 10, step: 4 },
+    { id: 'id_expiry', label: '21. ID Expiry Date (MM/DD/YYYY)', type: 'text', required: false, maxLength: 10, step: 4 },
+    { id: 'id_issuer', label: '21. Issuing Office / Agency', type: 'text', required: true, maxLength: 40, autoUppercase: true, step: 4 },
+    { id: 'id_place_issue', label: '21. Place of Issue', type: 'text', required: false, maxLength: 40, autoUppercase: true, step: 4 },
+    { id: 'preferred_contact_type', label: '22. Preferred Contact Type', type: 'dropdown', required: true,
+      options: ['Landline', 'Fax', 'Mobile', 'Email'], step: 4 },
+    { id: 'contact_landline', label: '22. Landline Number', type: 'tel', required: false, maxLength: 20, step: 4 },
+    { id: 'contact_fax', label: '22. Fax Number', type: 'tel', required: false, maxLength: 20, step: 4 },
+    { id: 'contact_mobile', label: '22. Mobile Number', type: 'tel', required: false, maxLength: 20, placeholder: '0917-555-1234', step: 4 },
+    { id: 'contact_email', label: '22. Email Address', type: 'email', required: false, maxLength: 60, step: 4 },
+
+    // Step 5
+    { id: 'spouse_employment_status', label: '23. Spouse Employment Status', type: 'dropdown', required: false,
+      options: ['Unemployed', 'Employed in the Philippines', 'Employed Abroad', 'Engaged in Business'], step: 5 },
+    { id: 'spouse_last_name', label: '24. Spouse Last Name', type: 'text', required: false, maxLength: 40, autoUppercase: true, step: 5 },
+    { id: 'spouse_first_name', label: '24. Spouse First Name', type: 'text', required: false, maxLength: 40, autoUppercase: true, step: 5 },
+    { id: 'spouse_middle_name', label: '24. Spouse Middle Name', type: 'text', required: false, maxLength: 40, autoUppercase: true, step: 5 },
+    { id: 'spouse_suffix', label: '24. Spouse Suffix', type: 'text', required: false, maxLength: 8, autoUppercase: true, step: 5 },
+    { id: 'spouse_tin', label: '25. Spouse TIN — 12 digits', type: 'text', required: false, maxLength: 12, inputMode: 'numeric', step: 5 },
+    { id: 'spouse_employer_name', label: "26. Spouse's Employer Name", type: 'text', required: false, maxLength: 80, autoUppercase: true, step: 5 },
+    { id: 'spouse_employer_tin', label: "27. Spouse's Employer TIN — 12 digits", type: 'text', required: false, maxLength: 12, inputMode: 'numeric', step: 5 },
+  ],
+};
+
 // ─── Form Catalog ─────────────────────────────────────────────────────────────
-export const FORMS: FormSchema[] = [hqpPff356, philhealthPmrf, philhealthClaimForm1, philhealthClaimForm2, philhealthPmrfForeignNatl, philhealthClaimSignatureForm, pagibigPff049, pagibigSlf089, pagibigSlf065, pagibigHlf868, pagibigHlf858, pagibigHlf068, bir2316, bir1904];
+export const FORMS: FormSchema[] = [hqpPff356, philhealthPmrf, philhealthClaimForm1, philhealthClaimForm2, philhealthPmrfForeignNatl, philhealthClaimSignatureForm, pagibigPff049, pagibigSlf089, pagibigSlf065, pagibigHlf868, pagibigHlf858, pagibigHlf068, bir2316, bir1904, bir1902];
 
 export function getFormBySlug(slug: string): FormSchema | undefined {
   return FORMS.find((f) => f.slug === slug);

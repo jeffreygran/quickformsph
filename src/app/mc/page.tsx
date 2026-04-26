@@ -142,42 +142,229 @@ export default function AdminPage() {
 }
 
 // ─── Dashboard Tab ────────────────────────────────────────────────────────────
+
+type Period = 'day' | 'week' | 'month';
+
+interface FormAnalytics {
+  slug: string;
+  form_views: number;
+  demo_clicks: number;
+  payment_successes: number;
+}
+interface DailyBucket {
+  date: string;
+  form_views: number;
+  demo_clicks: number;
+  payment_successes: number;
+}
+interface DashboardStats {
+  period: Period;
+  perForm: FormAnalytics[];
+  totalFormViews: number;
+  totalDemoClicks: number;
+  totalPaymentSuccesses: number;
+  claimedCodes: number;
+  unclaimedCodes: number;
+  dailyBuckets: DailyBucket[];
+}
+
+function useDashboardStats(period: Period) {
+  const [data, setData] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/admin/analytics?period=${period}`)
+      .then((r) => { if (!r.ok) throw new Error('not ok'); return r.json(); })
+      .then((d) => { setData(d as DashboardStats); setLoading(false); })
+      .catch(() => { setData(null); setLoading(false); });
+  }, [period]);
+  return { data, loading };
+}
+
+// Simple inline SVG bar chart (no deps)
+function BarChart({ buckets }: { buckets: DailyBucket[] }) {
+  if (!buckets.length) return <div className="text-xs text-gray-400 py-8 text-center">No data yet</div>;
+
+  const maxVal = Math.max(...buckets.flatMap((b) => [b.form_views, b.demo_clicks, b.payment_successes]), 1);
+  const H = 80;
+  const barW = Math.max(4, Math.floor(320 / (buckets.length * 3 + buckets.length)));
+  const gap  = Math.floor(barW * 0.4);
+  const groupW = barW * 3 + gap * 2;
+  const totalW = buckets.length * (groupW + 4);
+
+  return (
+    <div className="overflow-x-auto">
+      <svg width={totalW} height={H + 28} className="block">
+        {buckets.map((b, i) => {
+          const x = i * (groupW + 4);
+          const fvH = Math.round((b.form_views / maxVal) * H);
+          const dcH = Math.round((b.demo_clicks / maxVal) * H);
+          const psH = Math.round((b.payment_successes / maxVal) * H);
+          const label = b.date.slice(5); // MM-DD
+          return (
+            <g key={b.date}>
+              <title>{b.date}: Views={b.form_views} Demo={b.demo_clicks} Paid={b.payment_successes}</title>
+              <rect x={x}             y={H - fvH} width={barW} height={fvH || 1} rx="2" fill="#60a5fa" />
+              <rect x={x + barW + gap} y={H - dcH} width={barW} height={dcH || 1} rx="2" fill="#a78bfa" />
+              <rect x={x + (barW + gap) * 2} y={H - psH} width={barW} height={psH || 1} rx="2" fill="#34d399" />
+              <text x={x + groupW / 2} y={H + 14} textAnchor="middle" fontSize="9" fill="#9ca3af">{label}</text>
+            </g>
+          );
+        })}
+      </svg>
+      <div className="flex gap-4 mt-2 text-[10px] text-gray-500">
+        <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-400" /> Views</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-violet-400" /> Demo</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-400" /> Paid</span>
+      </div>
+    </div>
+  );
+}
+
+// Horizontal bar for per-form breakdown
+function HBarRow({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
+  const pct = max > 0 ? (value / max) * 100 : 0;
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span className="w-28 truncate text-gray-600 shrink-0" title={label}>{label}</span>
+      <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+        <div className={`h-2 rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="w-6 text-right text-gray-700 font-semibold shrink-0">{value}</span>
+    </div>
+  );
+}
+
 function DashboardTab() {
-  const stats = [
-    { label: 'Total Forms', value: FORMS.length, icon: '📋', color: 'bg-blue-50 text-blue-700' },
-    { label: 'PDFs Generated', value: '—', icon: '📄', color: 'bg-green-50 text-green-700' },
-    { label: 'Storage Backend', value: 'Local FS', icon: '💾', color: 'bg-amber-50 text-amber-700' },
-    { label: 'Last Upload', value: '—', icon: '⬆️', color: 'bg-purple-50 text-purple-700' },
-  ];
+  const [period, setPeriod] = useState<Period>('week');
+  const { data, loading } = useDashboardStats(period);
+
+  const PERIOD_LABELS: Record<Period, string> = { day: 'Today', week: 'This Week', month: 'This Month' };
+
+  const maxViews = Math.max(...(data?.perForm?.map((f) => f.form_views) ?? []), 1);
+  const maxDemo  = Math.max(...(data?.perForm?.map((f) => f.demo_clicks) ?? []), 1);
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {stats.map((s) => (
+      {/* Period Filter */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-500 font-medium mr-1">Period:</span>
+        {(['day', 'week', 'month'] as Period[]).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+              period === p ? 'bg-blue-700 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {PERIOD_LABELS[p]}
+          </button>
+        ))}
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
+        {[
+          { label: 'Total Forms',        value: FORMS.length,                       icon: '📋', color: 'bg-blue-50 text-blue-700',    noFilter: true },
+          { label: 'Form Clicks',        value: loading ? '…' : (data?.totalFormViews        ?? 0), icon: '👆', color: 'bg-indigo-50 text-indigo-700' },
+          { label: 'Demo Clicks',        value: loading ? '…' : (data?.totalDemoClicks       ?? 0), icon: '🧪', color: 'bg-violet-50 text-violet-700' },
+          { label: 'Paid Users',         value: loading ? '…' : (data?.totalPaymentSuccesses ?? 0), icon: '💰', color: 'bg-green-50 text-green-700'  },
+          { label: 'Claimed Codes',      value: loading ? '…' : (data?.claimedCodes          ?? 0), icon: '🏷️', color: 'bg-amber-50 text-amber-700'  },
+        ].map((s) => (
           <div key={s.label} className="rounded-2xl bg-white border border-gray-200 p-5">
             <div className={`inline-flex rounded-xl p-2 text-lg ${s.color} mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-gray-900">{s.value}</div>
             <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
+            {!s.noFilter && <div className="text-[10px] text-gray-400 mt-0.5">{PERIOD_LABELS[period]}</div>}
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl bg-white border border-gray-200 p-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h2>
-        <div className="flex flex-wrap gap-3">
-          <button className="btn-primary text-xs px-4 py-2">⬆️ Upload New PDF</button>
-          <button className="btn-secondary text-xs px-4 py-2">📋 View Form Catalog</button>
-          <button className="btn-secondary text-xs px-4 py-2">⚙️ Configure Storage</button>
+      {/* Unclaimed Codes — separate, no period filter */}
+      <div className="rounded-2xl bg-white border border-gray-200 px-5 py-4 flex items-center gap-4">
+        <span className="text-2xl">🔓</span>
+        <div>
+          <div className="text-2xl font-bold text-gray-900">{loading ? '…' : (data?.unclaimedCodes ?? 0)}</div>
+          <div className="text-xs text-gray-500">Unclaimed Promo Codes (total)</div>
         </div>
       </div>
 
-      <div className="rounded-2xl bg-amber-50 border border-amber-200 p-5">
-        <div className="font-medium text-amber-900 text-sm">⚠️ Dev Environment Notice</div>
-        <p className="text-xs text-amber-700 mt-1">
-          This is the local development instance. Production is at{' '}
-          <code className="bg-amber-100 px-1 rounded">quickformsph.jeffreygran.ph</code>.
-          PDF generation uses placeholder coordinates — calibrate after uploading the real PDF.
-        </p>
+      {/* Activity Over Time chart */}
+      <div className="rounded-2xl bg-white border border-gray-200 p-5">
+        <h2 className="text-sm font-semibold text-gray-900 mb-4">Activity — Last 30 Days</h2>
+        {loading ? (
+          <div className="h-24 flex items-center justify-center text-xs text-gray-400">Loading…</div>
+        ) : (
+          <BarChart buckets={data?.dailyBuckets ?? []} />
+        )}
+      </div>
+
+      {/* Funnel */}
+      <div className="rounded-2xl bg-white border border-gray-200 p-5">
+        <h2 className="text-sm font-semibold text-gray-900 mb-4">Conversion Funnel — {PERIOD_LABELS[period]}</h2>
+        {loading ? (
+          <div className="text-xs text-gray-400">Loading…</div>
+        ) : (() => {
+          const steps = [
+            { label: 'Form Clicks (Landing)', value: data?.totalFormViews ?? 0, color: 'bg-blue-500' },
+            { label: 'Demo Clicked',          value: data?.totalDemoClicks ?? 0, color: 'bg-violet-500' },
+            { label: 'Paid / Redeemed',       value: data?.totalPaymentSuccesses ?? 0, color: 'bg-green-500' },
+          ];
+          const maxStep = Math.max(...steps.map((s) => s.value), 1);
+          return (
+            <div className="space-y-3">
+              {steps.map((s) => (
+                <div key={s.label} className="flex items-center gap-3 text-sm">
+                  <span className="w-44 text-xs text-gray-600 shrink-0">{s.label}</span>
+                  <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                    <div
+                      className={`h-4 rounded-full ${s.color} transition-all duration-500`}
+                      style={{ width: `${(s.value / maxStep) * 100}%` }}
+                    />
+                  </div>
+                  <span className="w-8 text-right font-bold text-gray-800 shrink-0">{s.value}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Per-Form breakdown */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-2xl bg-white border border-gray-200 p-5">
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Top Forms by Clicks — {PERIOD_LABELS[period]}</h2>
+          {loading ? (
+            <div className="text-xs text-gray-400">Loading…</div>
+          ) : !data?.perForm.length ? (
+            <div className="text-xs text-gray-400">No data yet</div>
+          ) : (
+            <div className="space-y-2">
+              {data.perForm.slice(0, 8).map((f) => (
+                <HBarRow key={f.slug} label={f.slug} value={f.form_views} max={maxViews} color="bg-blue-400" />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl bg-white border border-gray-200 p-5">
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Demo Clicks per Form — {PERIOD_LABELS[period]}</h2>
+          {loading ? (
+            <div className="text-xs text-gray-400">Loading…</div>
+          ) : !data?.perForm.filter((f) => f.demo_clicks > 0).length ? (
+            <div className="text-xs text-gray-400">No data yet</div>
+          ) : (
+            <div className="space-y-2">
+              {data.perForm
+                .filter((f) => f.demo_clicks > 0)
+                .sort((a, b) => b.demo_clicks - a.demo_clicks)
+                .slice(0, 8)
+                .map((f) => (
+                  <HBarRow key={f.slug} label={f.slug} value={f.demo_clicks} max={maxDemo} color="bg-violet-400" />
+                ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

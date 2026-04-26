@@ -3,7 +3,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { auditLog } from '@/lib/audit-log';
 import { isBlocked } from '@/lib/ip-blocklist';
 import { issueAccessToken } from '@/lib/access-token';
-import { getLicenseKey, markLicenseKeyUsed } from '@/lib/db';
+import { getLicenseKey, markLicenseKeyUsed, insertAnalyticsEvent } from '@/lib/db';
 
 function getIP(req: NextRequest): string {
   return (
@@ -71,6 +71,17 @@ export async function POST(req: NextRequest) {
 
   const { token, expiresAt } = await issueAccessToken(`KEY:${rawKey}`, 0);
   auditLog('license_key_redeemed', ip, `License key redeemed: ${rawKey} (label: ${keyRow.label})`);
+
+  // Record payment success analytics (promo code redemption = paid access)
+  try {
+    insertAnalyticsEvent({
+      event_type: 'payment_success',
+      slug: '',
+      session_id: '',
+      ip_hash: '',
+      created_at: Date.now(),
+    });
+  } catch { /* swallow */ }
 
   return NextResponse.json({ valid: true, token, expiresAt, refNo: `KEY:${rawKey}` });
 }

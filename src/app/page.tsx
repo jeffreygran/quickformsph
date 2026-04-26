@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { FORMS, FormSchema } from '@/data/forms';
 import SuggestionModal from '@/components/SuggestionModal';
 import DonationModal from '@/components/DonationModal';
+import { trackEvent } from '@/lib/analytics-client';
 
 const HERO_CATEGORIES = ['Pag-IBIG', 'PhilHealth', 'BIR', 'SSS', 'DFA', 'LTO', 'Government'];
 const HERO_INTERVAL_MS = 3500; // 3.5 seconds
@@ -20,6 +21,10 @@ const SUBTITLE_CHUNKS   = [
   ' No erasures',
   ', no hassle.',
 ];
+
+// After this many visits, skip the intro animation and show everything immediately.
+// Change this value to tune. Tracked via localStorage key `qfph_visit_count`.
+const SKIP_INTRO_AFTER_VISITS = 3;
 
 const HERO_ANIMATIONS = ['anim-fade', 'anim-flip', 'anim-slide-up', 'anim-blur', 'anim-scale'] as const;
 type HeroAnim = typeof HERO_ANIMATIONS[number];
@@ -71,7 +76,9 @@ export default function HomePage() {
   const [showHeroTitle, setShowHeroTitle]         = useState(false);
   const [subtitleWordCount, setSubtitleWordCount] = useState(0);
   const [showBadge, setShowBadge]                 = useState(false);
+  const [showFooter, setShowFooter]               = useState(false);
   const [badgeTypedText, setBadgeTypedText]       = useState('');
+  const [introStarted, setIntroStarted]           = useState(false);
   const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -88,8 +95,10 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Intro sequence: h1 @ 2.5s → subtitle words @ 5-9s → badge typing @ 11s
+  // Intro sequence: h1 @ 2.5s → subtitle words @ 5-9s → footer @ 11s → badge typing @ 14s
+  // Pauses while the privacy modal is up — only starts after acknowledgment.
   useEffect(() => {
+    if (!introStarted) return;
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     // 2.5s: reveal h1 title with shock effect
@@ -100,7 +109,10 @@ export default function HomePage() {
       timers.push(setTimeout(() => setSubtitleWordCount(i + 1), 5000 + i * 1000));
     });
 
-    // 11s: show badge with typing effect
+    // 11s: reveal footer with bottom-up fade
+    timers.push(setTimeout(() => setShowFooter(true), 11000));
+
+    // 14s: show badge with typing effect
     timers.push(setTimeout(() => {
       setShowBadge(true);
       let charIdx = 0;
@@ -112,25 +124,50 @@ export default function HomePage() {
           typingIntervalRef.current = null;
         }
       }, 38);
-    }, 11000));
+    }, 14000));
 
     return () => {
       timers.forEach(clearTimeout);
       if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
     };
-  }, []);
+  }, [introStarted]);
 
   useEffect(() => {
+    let visitCount = 0;
+    try {
+      visitCount = Number(localStorage.getItem('qfph_visit_count') ?? '0') || 0;
+      visitCount += 1;
+      localStorage.setItem('qfph_visit_count', String(visitCount));
+    } catch { /* localStorage unavailable */ }
+
+    // Returning visitors past the threshold: skip the whole intro animation.
+    const skipIntro = visitCount >= SKIP_INTRO_AFTER_VISITS;
+    if (skipIntro) {
+      setShowHeroTitle(true);
+      setSubtitleWordCount(SUBTITLE_CHUNKS.length);
+      setShowFooter(true);
+      setShowBadge(true);
+      setBadgeTypedText(BADGE_TYPING_TEXT);
+    }
+
     try {
       if (!localStorage.getItem('qfph_privacy_ack')) {
         setShowPrivacyModal(true);
+      } else if (!skipIntro) {
+        setIntroStarted(true);
       }
-    } catch { /* ignore */ }
+    } catch {
+      // localStorage unavailable — start intro anyway (unless skipped)
+      if (!skipIntro) setIntroStarted(true);
+    }
   }, []);
 
   const handlePrivacyAck = () => {
     try { localStorage.setItem('qfph_privacy_ack', '1'); } catch { /* ignore */ }
     setShowPrivacyModal(false);
+    // If we already short-circuited to the final state (returning visitor),
+    // don't kick off the timed intro again.
+    if (!showHeroTitle) setIntroStarted(true);
   };
 
   // Infinite scroll
@@ -174,9 +211,21 @@ export default function HomePage() {
     lastClickRef.current = now;
   }, [router]);
 
-  // Reset visible count whenever filters change
+  // Reset visible count whenever filters change; also reset agency if it has no hits
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [search, agency]);
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+    if (agency !== 'All' && search.trim()) {
+      const hasHits = FORMS.some((f) => {
+        const matchSearch =
+          f.name.toLowerCase().includes(search.toLowerCase()) ||
+          f.code.toLowerCase().includes(search.toLowerCase()) ||
+          f.agency.toLowerCase().includes(search.toLowerCase());
+        return matchSearch && f.agency === agency;
+      });
+      if (!hasHits) setAgency('All');
+    }
+  }, [search, agency]);
 
   const filtered = FORMS.filter((f) => {
     const matchSearch =
@@ -462,7 +511,17 @@ export default function HomePage() {
       {/* ── Agency Filters + Count ── */}
       {search.trim() && <div className="mx-auto max-w-5xl px-4 py-3">
         <div className="flex items-center gap-2 overflow-x-auto">
-          {AGENCY_FILTERS.map((a) => (
+          {AGENCY_FILTERS.filter((a) => {
+            if (a === 'All') return true;
+            // Only show if at least one search-matching form belongs to this agency
+            return FORMS.some((f) => {
+              const matchSearch =
+                f.name.toLowerCase().includes(search.toLowerCase()) ||
+                f.code.toLowerCase().includes(search.toLowerCase()) ||
+                f.agency.toLowerCase().includes(search.toLowerCase());
+              return matchSearch && f.agency === a;
+            });
+          }).map((a) => (
             <button
               key={a}
               onClick={() => setAgency(a)}
@@ -546,7 +605,9 @@ export default function HomePage() {
         <PrivacyNoticeModal onAck={handlePrivacyAck} />
       )}
 
-      <footer className="border-t border-gray-200 py-4 px-6 text-center text-xs text-gray-400">
+      <footer
+        className={`border-t border-gray-200 py-4 px-6 text-center text-xs text-gray-400 ${showFooter ? 'intro-footer-up' : 'invisible'}`}
+      >
         <div className="inline-flex items-center justify-center gap-0">
           <Link href="/about" className="px-3 text-gray-500 hover:text-blue-700 transition-colors">About</Link>
           <span className="text-gray-300">|</span>
@@ -614,7 +675,11 @@ const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
 function FormCard({ form }: { form: FormSchema }) {
   const logo = AGENCY_LOGO[form.agency];
   return (
-    <Link href={`/forms/${form.slug}`} className="form-card p-5 block">
+    <Link
+      href={`/forms/${form.slug}`}
+      className="form-card p-5 block"
+      onClick={() => trackEvent('form_view', form.slug)}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-shrink-0">
           {logo ? (
