@@ -177,18 +177,19 @@ function ChoiceScreen({
     <>
       {/* Banner header — standard-banner.png as background, logo + agency on top */}
       <div
-        className="relative w-full flex flex-col items-center justify-end pt-10 pb-5 px-6"
+        className="relative w-full flex flex-col items-center justify-center px-6"
         style={{
           backgroundImage: `url('/standard-banner.png')`,
           backgroundSize: 'cover',
           backgroundPosition: 'top center',
-          minHeight: '160px',
+          minHeight: '200px',
+          paddingTop: '28px',
+          paddingBottom: '20px',
         }}
-        onError={undefined}
       >
-        {/* Gradient overlay so text stays readable */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-white/80 rounded-t-3xl pointer-events-none" />
-        {/* Close button inside banner */}
+        {/* Gradient overlay — fades out before bottom so body text is never obscured */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/60 rounded-t-3xl pointer-events-none" />
+        {/* Close button */}
         {onClose && (
           <button
             onClick={onClose}
@@ -196,8 +197,8 @@ function ChoiceScreen({
             aria-label="Close"
           >×</button>
         )}
-        {/* [A] Logo+Agency nudge-up: marginBottom lifts content toward top of banner */}
-        <div className="relative z-10 flex flex-col items-center" style={{ marginBottom: '16px' }}>
+        {/* Logo + form identity */}
+        <div className="relative z-10 flex flex-col items-center">
           <div className="w-16 h-16 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center mb-3">
             {logo ? (
               <Image src={logo.src} alt={agency} width={logo.w} height={logo.h} className="object-contain" />
@@ -210,11 +211,9 @@ function ChoiceScreen({
         </div>
       </div>
 
-      {/* Body */}
-      {/* [B] Body nudge-up: pulls content up over banner bottom edge. Tune this single value. */}
-      <div className="px-6 pb-7 sm:px-8" style={{ marginTop: '-24px' }}>
-        {/* [B1] Title */}
-        <p className="text-lg font-semibold text-gray-700 text-center mb-5">How would you like to access?</p>
+      {/* Body — always below banner, never overlapping */}
+      <div className="relative z-10 px-6 pt-5 pb-7 sm:px-8">
+        <p className="text-base font-semibold text-gray-500 text-center mb-5">How would you like to access?</p>
 
         <div className="grid grid-cols-2 gap-3">
         {/* Demo */}
