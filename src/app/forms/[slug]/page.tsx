@@ -20,7 +20,7 @@ const GCASH_NAME   = process.env.NEXT_PUBLIC_GCASH_NAME   ?? 'JE****Y JO*N G.';
 const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
   'Bureau of Internal Revenue': { src: '/logos/bir.png',       w: 36, h: 36 },
   'Pag-IBIG Fund':              { src: '/logos/pagibig.png',   w: 36, h: 36 },
-  'PhilHealth':                 { src: '/logos/philhealth.png', w: 100, h: 23 },
+  'PhilHealth':                 { src: '/logos/philhealth.png', w: 40, h: 40 },
 };
 
 // ─── Types ───────────────────────────────────────────────────────────────────

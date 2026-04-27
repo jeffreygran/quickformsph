@@ -662,7 +662,7 @@ function PrivacyNoticeModal({ onAck }: { onAck: () => void }) {
         </div>
         <div className="p-5 space-y-3">
           <p className="text-sm text-gray-700 leading-relaxed">
-            Your details are used only to prefill the official form and create your PDF, and the process runs offline so you can safely disconnect from the internet.
+            Your details are used only to fill the form and generate your PDF, all processed offline so you can safely disconnect from the internet.
           </p>
           <Link
             href="/privacy"

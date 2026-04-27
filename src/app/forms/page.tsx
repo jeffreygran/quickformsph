@@ -9,7 +9,7 @@ import DonateButton from '@/components/DonateButton';
 const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
   'Bureau of Internal Revenue': { src: '/logos/bir.png',       w: 40, h: 40 },
   'Pag-IBIG Fund':              { src: '/logos/pagibig.png',   w: 40, h: 40 },
-  'PhilHealth':                 { src: '/logos/philhealth.png', w: 110, h: 25 },
+  'PhilHealth':                 { src: '/logos/philhealth.png', w: 40, h: 40 },
 };
 
 export default function FormsPage() {
