@@ -44,7 +44,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self'",
-              "connect-src 'self'",
+              "connect-src 'self' https://quickformsphstor.blob.core.windows.net",
               "worker-src 'self' blob:",  // Local Mode v2.0: service worker for offline cache
               "frame-ancestors 'none'",
               "object-src 'none'",

@@ -51,7 +51,7 @@ export default function AdminLoginPage() {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
             <Image
-              src="/quickformsph-logo-transparent-slogan.png"
+              src="/quickformsph-logo-transparent-slogan2.png"
               alt="QuickFormsPH"
               width={200}
               height={54}

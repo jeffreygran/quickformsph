@@ -19,6 +19,7 @@ import {
   precacheFormTemplate,
   markLocalModeReady,
   setPrivacyAck,
+  hasPrivacyAck,
   INITIAL_PROGRESS,
   type LocalModeProgress,
   type LocalModeStatus,
@@ -30,7 +31,7 @@ const OFFLINE_ASSETS = [
   '/logos/bir.png',
   '/logos/pagibig.png',
   '/logos/philhealth.png',
-  '/quickformsph-logo-transparent-slogan.png',
+  '/quickformsph-logo-transparent-slogan2.png',
   '/quickformsph-logo-transparent.png',
   '/quickformsph-logo.png',
 ];
@@ -52,7 +53,10 @@ export default function LocalModeOverlay({ pdfPath, formName, formCode, onActiva
   const [phase, setPhase] = useState<Phase>('downloading');
   const [progress, setProgress] = useState<LocalModeProgress>(INITIAL_PROGRESS);
   const [error, setError] = useState<string | null>(null);
-  const [consentChecked, setConsentChecked] = useState(false);
+  const [consentChecked, setConsentChecked] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') return hasPrivacyAck();
+    return false;
+  });
   const [verifyOffline, setVerifyOffline]   = useState(false);
   const [onlineError, setOnlineError]       = useState(false);
   const [checking, setChecking]             = useState(false);

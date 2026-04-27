@@ -189,9 +189,14 @@ function ChoiceScreen({
         {onClose && (
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/20 hover:bg-black/30 text-white text-lg leading-none transition-colors"
+            className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/10 hover:bg-black/25 text-white transition-colors"
             aria-label="Close"
-          >×</button>
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="2" y1="2" x2="12" y2="12"/>
+              <line x1="12" y1="2" x2="2" y2="12"/>
+            </svg>
+          </button>
         )}
         {/* Logo — anchored to banner bottom, half overlaps into white */}
         <div className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 z-10">
@@ -216,49 +221,38 @@ function ChoiceScreen({
 
         {/* Layout C — Horizontal Pill Stack */}
 
-        {/* Demo pill — hidden when user already has access */}
-        {!existingToken && (
-          <button
-            type="button"
-            onClick={onDemo}
-            className="flex items-center gap-3 w-full rounded-full px-5 py-3 mb-2 border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 active:scale-[.98] transition-all text-left"
-          >
-            <span className="text-[22px] flex-shrink-0" aria-hidden>🧪</span>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-gray-800 leading-tight">Demo</div>
-              <div className="text-[10px] text-gray-400 leading-tight">Try it out, first</div>
-            </div>
-            <span className="text-gray-300 text-base">›</span>
-          </button>
-        )}
-
-        {/* Pay / Proceed pill */}
-        {existingToken ? (
+        {/* Pay / Proceed pill — only shown when token already exists */}
+        {existingToken && (
           <button
             type="button"
             onClick={onProceed}
-            className="flex items-center gap-3 w-full rounded-full px-5 py-3 mb-2 bg-gradient-to-r from-green-500 to-emerald-600 shadow-[0_4px_20px_rgba(34,197,94,0.35)] hover:shadow-[0_6px_28px_rgba(34,197,94,0.45)] hover:-translate-y-0.5 active:scale-[.98] transition-all text-left border-0"
+            className="flex flex-col justify-center items-center w-1/2 mx-auto rounded-full px-5 h-[58px] mb-2 bg-gradient-to-r from-green-500 to-emerald-600 shadow-[0_4px_20px_rgba(34,197,94,0.35)] hover:shadow-[0_6px_28px_rgba(34,197,94,0.45)] hover:-translate-y-0.5 active:scale-[.98] transition-all text-center border-0"
           >
-            <span className="text-[22px] flex-shrink-0" aria-hidden>✅</span>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-white leading-tight">Proceed</div>
-              <div className="text-[10px] text-white/70 leading-tight">{timeLeft}</div>
-            </div>
-            <span className="text-white/40 text-base">›</span>
+            <div className="text-[15px] font-bold text-white leading-tight">Proceed</div>
+            <div className="text-[10px] text-white/70 leading-tight subtitle-reveal-1300">{timeLeft}</div>
           </button>
-        ) : (
-          <button
-            type="button"
-            onClick={onPay}
-            className="flex items-center gap-3 w-full rounded-full px-5 py-3 mb-2 bg-gradient-to-r from-blue-500 to-blue-600 shadow-[0_4px_20px_rgba(59,130,246,0.35)] hover:shadow-[0_6px_28px_rgba(59,130,246,0.45)] hover:-translate-y-0.5 active:scale-[.98] transition-all text-left border-0"
-          >
-            <span className="text-[22px] flex-shrink-0" aria-hidden>💚</span>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-white leading-tight">Donate ₱5 — Full Access</div>
-              <div className="text-[10px] text-white/70 leading-tight">24-hr access · Instant unlock</div>
-            </div>
-            <span className="text-white/40 text-base">›</span>
-          </button>
+        )}
+
+        {/* Demo + Donate side by side */}
+        {!existingToken && (
+          <div className="flex gap-2 w-full mb-2">
+            <button
+              type="button"
+              onClick={onDemo}
+              className="flex flex-col justify-center items-center flex-1 rounded-full px-3 h-[58px] border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 active:scale-[.98] transition-all text-center"
+            >
+              <div className="text-[15px] font-bold text-gray-800 leading-tight">Demo</div>
+              <div className="text-[10px] text-gray-400 leading-tight subtitle-reveal-1300">Try it out, first</div>
+            </button>
+            <button
+              type="button"
+              onClick={onPay}
+              className="flex flex-col justify-center items-center flex-1 rounded-full px-3 h-[58px] bg-gradient-to-r from-blue-500 to-blue-600 shadow-[0_4px_20px_rgba(59,130,246,0.35)] hover:shadow-[0_6px_28px_rgba(59,130,246,0.45)] hover:-translate-y-0.5 active:scale-[.98] transition-all text-center border-0"
+            >
+              <div className="text-[15px] font-bold text-white leading-tight">Donate ₱5</div>
+              <div className="text-[10px] text-white/70 leading-tight subtitle-reveal-1300">24-hr access</div>
+            </button>
+          </div>
         )}
 
         {/* Promo link — hidden when user already has access */}

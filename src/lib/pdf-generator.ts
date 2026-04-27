@@ -2935,45 +2935,46 @@ const BIR1904_SKIP_VALUES: Record<string, string[]> = {
 };
 void BIR1904_PAGE_H;
 
-// ─── BIR-1902 — Individuals Earning Purely Compensation (R10 v4) ─────────────
-// BIR Oct-2025: each item has a gray label-strip (~10pt) at the TOP of its row
-// followed by a wider WHITE data area below. The data area extends from the
-// label-strip bottom down to just before the NEXT item's label. To place text
-// near the bottom of the data area (visually "in" the cell), we use the NEXT
-// item's label_top minus 4pt as the baseline.
+// ─── BIR-1902 — Individuals Earning Purely Compensation (R10 v5) ─────────────
+// BIR Oct-2025: each item has a gray label-strip + white DATA area. For
+// free-text fields we baseline near the bottom of the data area (just before
+// the next label-strip). For chevron / checkbox items (5, 7, 8, 22 preferred,
+// 23) we use BIR1902_CHECKBOX_COORDS to place an X mark at the chosen option.
 const BIR1902_PAGE_H = 936.0;
 const yBeforeNext = (nextLabelTop: number) => BIR1902_PAGE_H - (nextLabelTop - 4);
-// For sub-rows inside a single item (e.g., address rows, name rows) the same
-// rule applies using the next sub-row's label-strip top.
 const yAt = (baselineTop: number) => BIR1902_PAGE_H - baselineTop;
 
 const BIR1902_FIELD_COORDS: CoordsMap = {
-  // Item 2 — PCN. Label top=142.4. Next label (item 6) at 209.1.
-  // Free-text into wide data area; baseline near bottom of area.
-  philsys_pcn:        { page: 0, x: 282, y: yBeforeNext(170), fontSize: 10, maxWidth: 140 },
+  // Item 2 — PCN (label_top=142.4 x0=282; next item 3 at 171.5).
+  // PCN data area is to the RIGHT of the bold "2 PhilSys..." label; renders inline.
+  // Drop y to yAt(165) so text-top sits in the white area below the gray label-strip
+  // (was yAt(154) which overlapped the label text).
+  philsys_pcn:        { page: 0, x: 460, y: yAt(152), fontSize: 6, maxWidth: 130 },
 
-  // Item 3 — TIN. Label top=171.5. Next (item 6) at 209.1.
-  tin:                { page: 0, x: 24,  y: yBeforeNext(209), fontSize: 10, maxWidth: 240 },
-  // Item 5 — Taxpayer Type. Same row.
-  taxpayer_type:      { page: 0, x: 354, y: yBeforeNext(209), fontSize: 9,  maxWidth: 240 },
+  // Item 3 — TIN: 12 digits with last 5 reserved (pre-printed gray "00000" at top=192.6).
+  // User-entered 12 digits go in the digit-box row at top≈199. Render via boxCenters
+  // for digit-by-digit placement (was freeform; digits were overflowing separators).
+  // Empirical cell centers from 300dpi vertical-edge detection of blank form
+  // (12 cells, uniform ~14.3pt spacing from x=39 to x=198). See L-BIR1902-R11-01.
+  tin:                { page: 0, x: 0, y: yAt(202), fontSize: 9,
+                        boxCenters: [39, 53.1, 67.7, 82.5, 96.8, 111.2, 125.6, 140.1, 154.4, 168.8, 183.2, 197.8] },
 
-  // Item 6 — Last/First names. Label top=209.1. Next sub-row at 248.1.
-  // Two-row item: row1 data above row2; place baseline before row2 caption.
-  last_name:          { page: 0, x: 24,  y: yAt(243),         fontSize: 10, maxWidth: 263 },
-  first_name:         { page: 0, x: 308, y: yAt(243),         fontSize: 10, maxWidth: 280 },
+  // Item 6 — Last/First names (label-strip top=209.1, captions at top=219).
+  last_name:          { page: 0, x: 24,  y: yAt(243), fontSize: 10, maxWidth: 263 },
+  first_name:         { page: 0, x: 308, y: yAt(243), fontSize: 10, maxWidth: 280 },
 
-  // Item 7 sub-row — Middle/Suffix/Gender. Label-strip at top=248.1. Next (8) at 280.9.
+  // Item 7 sub-row — Middle/Suffix (label-strip top=248.1).
   middle_name:        { page: 0, x: 24,  y: yBeforeNext(280), fontSize: 10, maxWidth: 263 },
   name_suffix:        { page: 0, x: 308, y: yBeforeNext(280), fontSize: 10, maxWidth: 38  },
-  gender:             { page: 0, x: 368, y: yBeforeNext(280), fontSize: 9,  maxWidth: 224 },
 
-  // Item 8 — Civil Status. Label top=280.9. Next (9/10) at 295.4. Inline (single strip).
-  civil_status:       { page: 0, x: 397, y: yAt(290),         fontSize: 9,  maxWidth: 80  },
-
-  // Item 9 — DOB. Label top=295.4. Next (11) at 324.
-  date_of_birth:      { page: 0, x: 24,  y: yBeforeNext(324), fontSize: 10, maxWidth: 130 },
-  // Item 10 — Place of Birth. Same row.
-  place_of_birth:     { page: 0, x: 165, y: yBeforeNext(324), fontSize: 9,  maxWidth: 425 },
+  // Item 9 — DOB MM/DD/YYYY (label_top=295.4; 10 grid-cells with pre-printed
+  // slashes in cells 3 and 6 → 8 user-digit cells (MM, DD, YYYY).
+  // Empirical cell centers from 300dpi rect extraction (uniform 14.3pt grid from x=25).
+  // Skips slash cells at cx≈53 and cx≈96. See L-BIR1902-R11-01.
+  date_of_birth:      { page: 0, x: 0, y: yAt(322), fontSize: 10,
+                        boxCenters: [25, 39.1, 67.7, 81.7, 110.5, 124.8, 139, 153.4] },
+  // Item 10 — Place of Birth (same row, freeform after digit-box area).
+  place_of_birth:     { page: 0, x: 175, y: yAt(322), fontSize: 9,  maxWidth: 415 },
 
   // Item 11 — Mother. Label 324. Next (12) at 352.6.
   mothers_maiden_name:{ page: 0, x: 24,  y: yBeforeNext(352), fontSize: 9,  maxWidth: 560 },
@@ -2984,9 +2985,7 @@ const BIR1902_FIELD_COORDS: CoordsMap = {
   citizenship:        { page: 0, x: 24,  y: yBeforeNext(409), fontSize: 9,  maxWidth: 280 },
   other_citizenship:  { page: 0, x: 312, y: yBeforeNext(409), fontSize: 9,  maxWidth: 280 },
 
-  // Item 15 — Local Address (5 sub-rows). Each sub-label-strip is at:
-  // 419.5, 448.1, 476.6, 505.2, 533.8. Next sub-row label_top = previous + 28.6.
-  // After last sub-row (533.8), next item (16) at 563.7.
+  // Item 15 — Local Address (5 sub-rows).
   local_unit:         { page: 0, x: 24,  y: yBeforeNext(448), fontSize: 9,  maxWidth: 165 },
   local_building:     { page: 0, x: 209, y: yBeforeNext(448), fontSize: 9,  maxWidth: 380 },
   local_lot:          { page: 0, x: 24,  y: yBeforeNext(476), fontSize: 9,  maxWidth: 165 },
@@ -2998,45 +2997,82 @@ const BIR1902_FIELD_COORDS: CoordsMap = {
   local_province:     { page: 0, x: 24,  y: yBeforeNext(563), fontSize: 9,  maxWidth: 495 },
   local_zip:          { page: 0, x: 540, y: yBeforeNext(563), fontSize: 10, maxWidth: 50  },
 
-  // Item 16 — Foreign Address. Label 563.7. Next (17/18/19/20) at 592.3.
+  // Item 16 — Foreign Address. Label 563.7. Next at 592.3.
   foreign_address:    { page: 0, x: 24,  y: yBeforeNext(592), fontSize: 9,  maxWidth: 565 },
 
-  // Item 21 — ID details (Type/Number/Effectivity/Expiry). Label 611.2. Next sub at 649 (Issuer).
-  id_type:            { page: 0, x: 24,  y: yBeforeNext(649), fontSize: 9,  maxWidth: 165 },
-  id_number:          { page: 0, x: 195, y: yBeforeNext(649), fontSize: 9,  maxWidth: 165 },
-  id_effectivity:     { page: 0, x: 368, y: yBeforeNext(649), fontSize: 9,  maxWidth: 110 },
-  id_expiry:          { page: 0, x: 484, y: yBeforeNext(649), fontSize: 9,  maxWidth: 108 },
+  // Item 21 — ID details (label_top=611.2; data row top≈632, sub-row Issuer at 649).
+  id_type:            { page: 0, x: 24,  y: yAt(645), fontSize: 9,  maxWidth: 165 },
+  id_number:          { page: 0, x: 195, y: yAt(645), fontSize: 9,  maxWidth: 165 },
+  // Effectivity/Expiry are MM/DD/YYYY 8-digit boxes. Renderer strips slashes.
+  id_effectivity:     { page: 0, x: 0, y: yAt(645), fontSize: 9,
+                        boxCenters: [375, 389, 407, 421, 439, 453, 467, 481] },
+  id_expiry:          { page: 0, x: 0, y: yAt(645), fontSize: 9,
+                        boxCenters: [490, 504, 522, 536, 554, 568, 582, 596] },
 
-  // Item 21 cont. Issuer/Place. Sub-label-strip at 649. Next (22) at 669.
-  id_issuer:          { page: 0, x: 80,  y: yBeforeNext(669), fontSize: 9,  maxWidth: 195 },
-  id_place_issue:     { page: 0, x: 282, y: yBeforeNext(669), fontSize: 9,  maxWidth: 110 },
+  // Item 21 cont. Issuer/Place. Sub-row top=649.4 with italic caption at 657.
+  // Render value below caption (top ~665).
+  id_issuer:          { page: 0, x: 80,  y: yAt(665), fontSize: 9, maxWidth: 195 },
+  id_place_issue:     { page: 0, x: 282, y: yAt(666), fontSize: 9, maxWidth: 110 },
 
-  // Item 22 — Preferred Contact Type. Label 669. Sub-row of Landline/Fax/Mobile at ~679.
-  preferred_contact_type: { page: 0, x: 24,  y: yBeforeNext(679), fontSize: 8, maxWidth: 22 },
-  // Sub-row Landline/Fax/Mobile (label-strip 679). Email row label at ~715.
-  contact_landline:   { page: 0, x: 50,  y: yBeforeNext(715), fontSize: 9,  maxWidth: 152 },
-  contact_fax:        { page: 0, x: 238, y: yBeforeNext(715), fontSize: 9,  maxWidth: 152 },
-  contact_mobile:     { page: 0, x: 425, y: yBeforeNext(715), fontSize: 9,  maxWidth: 152 },
-  // Email row. Label-strip ~715. Next item (23) at 751.9.
-  contact_email:      { page: 0, x: 130, y: yBeforeNext(752), fontSize: 9,  maxWidth: 460 },
+  // Item 22 — Landline/Fax/Mobile (sub-row top=683 with italic captions on same strip).
+  // Email row label-strip ~top=697. Value baseline below caption row.
+  contact_landline:   { page: 0, x: 24,  y: yAt(706), fontSize: 9, maxWidth: 178 },
+  contact_fax:        { page: 0, x: 212, y: yAt(706), fontSize: 9, maxWidth: 178 },
+  contact_mobile:     { page: 0, x: 400, y: yAt(706), fontSize: 9, maxWidth: 192 },
+  // Email value (label "Email Address" at top=712 left cell with checkbox; value box right).
+  contact_email:      { page: 0, x: 168, y: yAt(723), fontSize: 9, maxWidth: 422 },
 
-  // Item 23 — Spouse Employment Status. Label 751.9. Next (24) at 768.4.
-  spouse_employment_status: { page: 0, x: 440, y: yAt(763), fontSize: 8, maxWidth: 152 },
+  // Item 24 — Spouse Last/First. Label-strip top=768.4. Next sub at 805.9.
+  spouse_last_name:   { page: 0, x: 24,  y: yAt(800), fontSize: 10, maxWidth: 250 },
+  spouse_first_name:  { page: 0, x: 296, y: yAt(800), fontSize: 10, maxWidth: 295 },
 
-  // Item 24 — Spouse Last/First. Label 768.4. Next sub at 805.9.
-  spouse_last_name:   { page: 0, x: 24,  y: yAt(800),         fontSize: 10, maxWidth: 250 },
-  spouse_first_name:  { page: 0, x: 296, y: yAt(800),         fontSize: 10, maxWidth: 295 },
-
-  // Item 24/25 — Spouse Middle/Suffix/SpouseTIN. Label 805.9. Next (26) at 837.2.
+  // Item 24/25 — Spouse Middle/Suffix/SpouseTIN. Label-strip top=805.9. Next (26) at 837.2.
   spouse_middle_name: { page: 0, x: 24,  y: yBeforeNext(837), fontSize: 10, maxWidth: 250 },
   spouse_suffix:      { page: 0, x: 296, y: yBeforeNext(837), fontSize: 10, maxWidth: 38  },
-  spouse_tin:         { page: 0, x: 354, y: yBeforeNext(837), fontSize: 10, maxWidth: 165 },
+  // Item 25 Spouse TIN — 12 digits with last 5 reserved (pre-printed "00000" at top=819).
+  // User-input 12 digit-boxes from x≈400..566 (~14pt spacing).
+  spouse_tin:         { page: 0, x: 0, y: yAt(829), fontSize: 9,
+                        boxCenters: [388, 402, 416, 434, 448, 462, 480, 494, 508, 526, 540, 554] },
 
   // Item 26 — Spouse Employer Name. Label 837.2. Next (27) at 868.8.
   spouse_employer_name: { page: 0, x: 24,  y: yBeforeNext(868), fontSize: 9,  maxWidth: 565 },
 
-  // Item 27 — Spouse Employer TIN. Label 868.8. End of fields; use +25 below.
-  spouse_employer_tin:{ page: 0, x: 238, y: yAt(893),         fontSize: 10, maxWidth: 110 },
+  // Item 27 — Spouse Employer TIN (label_top=868.8 x0=239.3).
+  // Data row top≈877; 12 digit-boxes from x≈368..534.
+  spouse_employer_tin:{ page: 0, x: 0, y: yAt(883), fontSize: 9,
+                        boxCenters: [358, 372, 386, 404, 418, 432, 450, 464, 478, 496, 510, 524] },
+};
+
+// Per-value chevron / checkbox coords. Each value places a check mark at the
+// corresponding chevron square. y values are pdf-lib baselines (bottom-up).
+const BIR1902_CHECKBOX_COORDS: Record<string, Record<string, { page?: number; x: number; y: number }>> = {
+  taxpayer_type: {
+    'Local Employee':         { x: 369, y: yAt(203) },
+    'Resident Alien':         { x: 425, y: yAt(203) },
+    'Special Non-Resident Alien': { x: 497, y: yAt(203) },
+  },
+  gender: {
+    'Male':   { x: 426, y: yAt(257) },
+    'Female': { x: 521, y: yAt(257) },
+  },
+  civil_status: {
+    'Single':            { x: 126, y: yAt(289) },
+    'Married':           { x: 198, y: yAt(289) },
+    'Widow/er':          { x: 285, y: yAt(289) },
+    'Legally Separated': { x: 388, y: yAt(289) },
+  },
+  preferred_contact_type: {
+    'Landline': { x: 30,  y: yAt(691) },
+    'Fax':      { x: 218, y: yAt(691) },
+    'Mobile':   { x: 405, y: yAt(691) },
+    'Email':    { x: 30,  y: yAt(720) },
+  },
+  spouse_employment_status: {
+    'Unemployed':                   { x: 167, y: yAt(760) },
+    'Employed in the Philippines':  { x: 239, y: yAt(760) },
+    'Employed Abroad':              { x: 325, y: yAt(760) },
+    'Engaged in Business':          { x: 428, y: yAt(760) },
+  },
 };
 
 const BIR1902_SKIP_VALUES: Record<string, string[]> = {
@@ -3182,6 +3218,7 @@ export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   'bir-1902': {
     fieldCoords: BIR1902_FIELD_COORDS,
     skipValues: BIR1902_SKIP_VALUES,
+    checkboxCoords: BIR1902_CHECKBOX_COORDS,
     copyYOffsets: [0],
   },
 };

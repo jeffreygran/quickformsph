@@ -20,7 +20,7 @@ const GCASH_NAME   = process.env.NEXT_PUBLIC_GCASH_NAME   ?? 'JE****Y JO*N G.';
 const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
   'Bureau of Internal Revenue': { src: '/logos/bir.png',       w: 36, h: 36 },
   'Pag-IBIG Fund':              { src: '/logos/pagibig.png',   w: 36, h: 36 },
-  'PhilHealth':                 { src: '/logos/philhealth.png', w: 72, h: 22 },
+  'PhilHealth':                 { src: '/logos/philhealth.png', w: 100, h: 23 },
 };
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -75,7 +75,16 @@ export default function FormWizardPage() {
   // to generate the PDF entirely in-browser. After activation a green banner
   // stays at the top of the page.
   const [localModeActive, setLocalModeActive] = useState(false);
+  const [gateKey, setGateKey] = useState(0);
   // Always start fresh — never skip the overlay on re-entry.
+
+  // Returns to the PaymentGate "How would you like to access?" screen (used in Demo mode)
+  const handleReturnToGate = () => {
+    if (form?.slug) clearDraft(form.slug);
+    setIsDemoMode(false);
+    setLocalModeActive(false);
+    setGateKey((k) => k + 1);
+  };
 
   // Blank PDF viewer
   const [showBlankViewer, setShowBlankViewer] = useState(false);
@@ -89,7 +98,7 @@ export default function FormWizardPage() {
 
   // Populate today's date for the date field
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayMaskedDate();
     setValues((v) => ({ ...v, date: v.date ?? today }));
   }, []);
 
@@ -161,7 +170,7 @@ export default function FormWizardPage() {
         home_tel: '028123-4567', biz_tel: '028765-4321',
         bank_name: 'BDO Unibank', bank_account_no: '001234567890',
         bank_branch: 'Quezon Ave. Branch', bank_address: '123 Quezon Ave., Quezon City',
-        date: new Date().toISOString().split('T')[0],
+        date: todayMaskedDate(),
       },
       {
         mp2_account_no: '02-9876-5432-1', last_name: 'REYES', first_name: 'MARIA',
@@ -172,7 +181,7 @@ export default function FormWizardPage() {
         home_tel: '', biz_tel: '',
         bank_name: 'Bank of the Philippine Islands (BPI)', bank_account_no: '9876543210',
         bank_branch: 'Bonifacio Global City Branch', bank_address: '32nd St., BGC, Taguig',
-        date: new Date().toISOString().split('T')[0],
+        date: todayMaskedDate(),
       },
     ];
     const pmrfSamples = [
@@ -484,7 +493,7 @@ export default function FormWizardPage() {
           // dep3_*: blank — only 1 child in this persona.
           dep3_last: '', dep3_first: '', dep3_middle: '',
           dep3_sex: '', dep3_relationship: '', dep3_dob: '', dep3_nationality: '',
-          signature_printed_name: 'JOHN WILLIAM ANDERSON SMITH', signature_date: new Date().toISOString().split('T')[0],
+          signature_printed_name: 'JOHN WILLIAM ANDERSON SMITH', signature_date: todayMaskedDate(),
         },
         {
           // ── Sample 2: Japanese SRRV retiree, existing PhilHealth member
@@ -505,7 +514,7 @@ export default function FormWizardPage() {
           dep2_sex: '', dep2_relationship: '', dep2_dob: '', dep2_nationality: '',
           dep3_last: '', dep3_first: '', dep3_middle: '',
           dep3_sex: '', dep3_relationship: '', dep3_dob: '', dep3_nationality: '',
-          signature_printed_name: 'HIROSHI TANAKA', signature_date: new Date().toISOString().split('T')[0],
+          signature_printed_name: 'HIROSHI TANAKA', signature_date: todayMaskedDate(),
         },
         {
           // ── Sample 3: FULL — Spanish national, BOTH ACR I-card and SRRV
@@ -528,7 +537,7 @@ export default function FormWizardPage() {
           dep2_sex: 'F', dep2_relationship: 'Parent', dep2_dob: '08/25/1958', dep2_nationality: 'SPANISH',
           dep3_last: 'GARCIA', dep3_first: 'JAVIER LUIS', dep3_middle: 'RODRIGUEZ',
           dep3_sex: 'M', dep3_relationship: 'Sibling', dep3_dob: '12/03/1990', dep3_nationality: 'SPANISH',
-          signature_printed_name: 'MARIA ELENA RODRIGUEZ GARCIA', signature_date: new Date().toISOString().split('T')[0],
+          signature_printed_name: 'MARIA ELENA RODRIGUEZ GARCIA', signature_date: todayMaskedDate(),
         },
       ],
 
@@ -618,7 +627,7 @@ export default function FormWizardPage() {
           new_cell_phone: '09171234567', new_email: 'juan.delacruz@gmail.com',
           preferred_mailing: 'Present Home Address',
           others_from: '', others_to: '',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
         },
         {
           mid_no: '9876-5432-1098', housing_account_no: 'HL-2024-001234',
@@ -635,7 +644,7 @@ export default function FormWizardPage() {
           new_cell_phone: '09281234567', new_email: 'anna.santos@gmail.com',
           preferred_mailing: 'Permanent Home Address',
           others_from: '', others_to: '',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
         },
         {
           // ── Sample 3: FULL — comprehensive update post-marriage. Member is
@@ -669,7 +678,7 @@ export default function FormWizardPage() {
           preferred_mailing: 'Present Home Address',
           // Others update — Place of Birth correction (administrative/PSA)
           others_from: 'Place of Birth: CEBU', others_to: 'Place of Birth: CEBU CITY, CEBU',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
         },
       ],
 
@@ -697,7 +706,7 @@ export default function FormWizardPage() {
           loan_purpose: 'Educational Expenses',
           beneficiary_last: 'MENDOZA', beneficiary_first: 'LORNA', beneficiary_ext: 'N/A', beneficiary_middle: 'SANTOS',
           student_id_no: '2024-STU-001234', loan_term: 'Twenty-four (24) Months',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
           // Step 6 Previous Employment (2 of 3 rows filled per ZERO-blanks rule)
           prev_emp1_name: 'PHILIPPINE LONG DISTANCE TELEPHONE COMPANY',
           prev_emp1_address: 'RAMON COJUANGCO BUILDING, MAKATI AVENUE, MAKATI CITY',
@@ -729,7 +738,7 @@ export default function FormWizardPage() {
           beneficiary_last: 'GARCIA', beneficiary_first: 'ELENA', beneficiary_ext: 'N/A', beneficiary_middle: 'REYES',
           // student_id_no blank — Medical loan, not Educational.
           student_id_no: '', loan_term: 'Twelve (12) Months',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
           // Step 6 Previous Employment (1 of 3 rows filled — early-career job)
           prev_emp1_name: 'METROPOLITAN BANK & TRUST CO.',
           prev_emp1_address: 'METROBANK PLAZA, GIL PUYAT AVE, MAKATI CITY',
@@ -760,7 +769,7 @@ export default function FormWizardPage() {
           beneficiary_last: 'VILLANUEVA', beneficiary_first: 'DIANA ROSE', beneficiary_ext: 'N/A', beneficiary_middle: 'NAVARRO',
           student_id_no: '', // HMO loan, not Educational
           loan_term: 'Thirty-six (36) Months',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
           // Step 6 Previous Employment (ALL 3 rows filled per FULL persona)
           prev_emp1_name: 'BANK OF THE PHILIPPINE ISLANDS',
           prev_emp1_address: 'BPI HEAD OFFICE, AYALA AVENUE, MAKATI CITY',
@@ -794,7 +803,7 @@ export default function FormWizardPage() {
           employer_address_line: 'BDO CORPORATE CENTER, ORTIGAS', employer_subdivision: 'ORTIGAS CENTER', employer_barangay: 'BRGY. SAN ANTONIO', employer_city: 'PASIG', employer_province: 'METRO MANILA (NCR)', employer_zip: '1605',
           employee_id_no: 'BD-2023-9876', date_of_employment: '01/15/2019',
           source_of_fund: 'Salary', payroll_bank_name: 'BDO Unibank — Ortigas Branch',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
           source_of_referral: 'Employer/Fund Coordinator',
         },
         {
@@ -815,7 +824,7 @@ export default function FormWizardPage() {
           employer_address_line: 'MIA ROAD, PASAY CITY', employer_subdivision: 'NAIA COMPLEX', employer_barangay: 'BRGY. 183', employer_city: 'PASAY', employer_province: 'METRO MANILA (NCR)', employer_zip: '1300',
           employee_id_no: 'CEB-2018-4567', date_of_employment: '06/01/2018',
           source_of_fund: 'Salary', payroll_bank_name: 'BPI — Cebu City Branch',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
           source_of_referral: 'Pag-IBIG Fund Website',
         },
         {
@@ -837,7 +846,7 @@ export default function FormWizardPage() {
           employer_address_line: 'SPB TOWER, MAGSAYSAY AVE', employer_subdivision: 'POBLACION COMMERCIAL DISTRICT', employer_barangay: 'BRGY. POBLACION', employer_city: 'DAVAO CITY', employer_province: 'DAVAO DEL SUR', employer_zip: '8000',
           employee_id_no: 'SPB-2005-00123', date_of_employment: '03/01/2005',
           source_of_fund: 'Salary', payroll_bank_name: 'Southern Philippine Bank — Main Branch',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
           source_of_referral: 'Referral',
         },
       ],
@@ -864,7 +873,7 @@ export default function FormWizardPage() {
           employer_business_tel: '026321-1111', employer_email: 'hr@torresconstruction.ph',
           position_dept: 'Senior Engineer / Engineering Dept', preferred_time_contact: '9:00 AM - 5:00 PM',
           place_assignment: 'Mandaluyong Main Office', years_employment: '8', no_dependents: '2',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
         },
         {
           // ── Sample B: Jose Ramon Flores Jr. · Brother co-borrower (30%
@@ -886,7 +895,7 @@ export default function FormWizardPage() {
           employer_business_tel: '028765-9999', employer_email: 'hr@techph.com',
           position_dept: 'IT Manager / Technology Dept', preferred_time_contact: '8:00 AM - 5:00 PM',
           place_assignment: 'Quezon City Head Office', years_employment: '6', no_dependents: '1',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
         },
         {
           // ── Sample C: FULL — Maria Theresa Reyes · Spouse co-borrower (50%
@@ -909,7 +918,7 @@ export default function FormWizardPage() {
           employer_business_tel: '028888-8888', employer_email: 'hr@globalbank.ph',
           position_dept: 'Branch Manager / Retail Banking', preferred_time_contact: '8:00 AM - 6:00 PM',
           place_assignment: 'Makati Main Branch', years_employment: '10', no_dependents: '3',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
         },
       ],
 
@@ -938,7 +947,7 @@ export default function FormWizardPage() {
           employer_email: 'hr@metrobank.com.ph',
           position_dept: 'Senior Accountant / Finance Division', preferred_time_contact: '9:00 AM - 5:00 PM',
           place_assignment: 'Makati Head Office', years_employment: '10',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
           // Spouse block (Married)
           spouse_last_name: 'FLORES', spouse_first_name: 'ROBERTO', spouse_ext_name: 'N/A', spouse_middle_name: 'NAVARRO',
           spouse_dob: '08/12/1972', spouse_citizenship: 'FILIPINO', spouse_tin: '987654321000',
@@ -972,7 +981,7 @@ export default function FormWizardPage() {
           employer_email: 'hr@cduhosp.ph',
           position_dept: 'Registered Nurse / ICU Dept', preferred_time_contact: '8:00 AM - 4:00 PM',
           place_assignment: 'Cebu City Main Campus', years_employment: '5',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
           // Spouse block (Married)
           spouse_last_name: 'AQUINO', spouse_first_name: 'MARK ANTHONY', spouse_ext_name: 'N/A', spouse_middle_name: 'REYES',
           spouse_dob: '04/22/1985', spouse_citizenship: 'FILIPINO', spouse_tin: '111222333000',
@@ -1006,7 +1015,7 @@ export default function FormWizardPage() {
           employer_email: 'hr@globalbank.ph',
           position_dept: 'Branch Manager / Retail Banking', preferred_time_contact: '8:00 AM - 6:00 PM',
           place_assignment: 'Makati Main Branch', years_employment: '10',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
           // Spouse block (Married)
           spouse_last_name: 'REYES', spouse_first_name: 'JOHN PAUL', spouse_ext_name: 'N/A', spouse_middle_name: 'GARCIA',
           spouse_dob: '02/14/1985', spouse_citizenship: 'FILIPINO', spouse_tin: '789456123000',
@@ -1041,7 +1050,7 @@ export default function FormWizardPage() {
           employer_address_line: 'SPB TOWER, MAGSAYSAY AVE', occupation: 'Bank Manager',
           employer_subdivision: 'POBLACION COMMERCIAL DISTRICT', employer_barangay: 'BRGY. POBLACION', employer_city: 'DAVAO CITY', employer_province: 'DAVAO DEL SUR', employer_zip: '8000',
           position_dept: 'Manager / Branch Banking', years_employment: '15',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
         },
         {
           // ── Sample B: Pedro Jose S. Reyes Sr. · Makati operations director
@@ -1063,7 +1072,7 @@ export default function FormWizardPage() {
           employer_address_line: 'AYALA AVE', occupation: 'Operations Director',
           employer_subdivision: 'AYALA TRIANGLE', employer_barangay: 'BRGY. LEGAZPI VILLAGE', employer_city: 'MAKATI CITY', employer_province: 'METRO MANILA (NCR)', employer_zip: '1226',
           position_dept: 'Operations Director / Corporate Affairs', years_employment: '18',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
         },
         {
           // ── Sample C: FULL — Maria Carla T. Dela Vega · CFO at PhilCorp
@@ -1085,7 +1094,7 @@ export default function FormWizardPage() {
           tin: '654999333000', employer_address_line: 'EMERALD AVE, ORTIGAS CENTER', occupation: 'CFO',
           employer_subdivision: 'ORTIGAS CENTER', employer_barangay: 'BRGY. SAN ANTONIO', employer_city: 'PASIG', employer_province: 'METRO MANILA (NCR)', employer_zip: '1605',
           position_dept: 'Chief Financial Officer / Finance', years_employment: '12',
-          signature_date: new Date().toISOString().split('T')[0],
+          signature_date: todayMaskedDate(),
         },
       ],
 
@@ -1646,9 +1655,22 @@ export default function FormWizardPage() {
     const samples = samplesBySlug[slug] ?? hqpSamples;
     const idx = sampleIndex !== undefined ? sampleIndex % samples.length : Math.floor(Math.random() * samples.length);
     const pick = samples[idx];
-    setValues(pick as Record<string, string>);
+    // Apply field-level transforms (autoUppercase) so sample data matches what
+    // an end-user typing the same value would produce. Without this, samples
+    // declaring lowercase like `citizenship: 'Filipino'` would render in the
+    // PDF lowercase even though the schema marks the field autoUppercase.
+    const transformed: Record<string, string> = {};
+    for (const [key, val] of Object.entries(pick)) {
+      const field = form?.fields.find(f => f.id === key);
+      if (field?.autoUppercase && typeof val === 'string') {
+        transformed[key] = val.toUpperCase();
+      } else {
+        transformed[key] = val as string;
+      }
+    }
+    setValues(transformed);
     setCurrentStep(0);
-    saveDraft(slug, pick as Record<string, string>);
+    saveDraft(slug, transformed);
     setShowSamplePicker(false);
   }
 
@@ -1877,6 +1899,7 @@ export default function FormWizardPage() {
   if (!localModeActive) {
     return (
       <PaymentGate
+        key={gateKey}
         formName={form.name}
         formCode={form.code}
         agency={form.agency}
@@ -1944,18 +1967,15 @@ export default function FormWizardPage() {
           isDemoMode={isDemoMode}
           onDownload={handleLocalDownload}
           onBack={() => setMode('review')}
-          onSaveAndClose={() => { saveDraft(form.slug, values); router.push('/'); }}
-          onCloseSession={() => {
-            clearDraft(form.slug);
-            router.push('/');
-          }}
+          onSaveAndClose={() => { if (isDemoMode) { handleReturnToGate(); } else { saveDraft(form.slug, values); router.push('/'); } }}
+          onCloseSession={() => { if (isDemoMode) { handleReturnToGate(); } else { clearDraft(form.slug); router.push('/'); } }}
         />
         {showSuccessModal && (
           <SuccessCodeModal
             onDownloadAgain={handleLocalDownload}
             onClose={() => setShowSuccessModal(false)}
-            onSaveAndClose={() => { saveDraft(form.slug, values); router.push('/'); }}
-            onCloseSession={() => { clearDraft(form.slug); router.push('/'); }}
+            onSaveAndClose={() => { if (isDemoMode) { handleReturnToGate(); } else { saveDraft(form.slug, values); router.push('/'); } }}
+            onCloseSession={() => { if (isDemoMode) { handleReturnToGate(); } else { clearDraft(form.slug); router.push('/'); } }}
           />
         )}
       </>
@@ -1982,17 +2002,19 @@ export default function FormWizardPage() {
               />
             )}
             <div className="min-w-0">
-              <div className="text-xs font-mono text-gray-400 truncate">{form.code}</div>
-              <div className="text-xs font-medium text-gray-700 truncate">{form.name}</div>
+              <div className="text-xs text-gray-400 truncate">{form.name}</div>
+              <div className="text-lg font-bold text-gray-900 truncate">{stepDef?.label ?? ''}</div>
             </div>
           </div>
           <button
             onClick={handleOpenBlankViewer}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700 hover:underline transition-colors whitespace-nowrap"
             title="View blank PDF form"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+            {/* Adobe PDF logo (flat, light gray) */}
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="2" y="2" width="20" height="20" rx="3" fill="currentColor"/>
+              <text x="12" y="16" textAnchor="middle" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="8" fill="#ffffff">PDF</text>
             </svg>
             PDF
           </button>
@@ -2049,19 +2071,13 @@ export default function FormWizardPage() {
 
       {/* Step content */}
       <main className="mx-auto max-w-lg px-4 pb-32">
-        <div className="mt-2 mb-4">
-          <h2 className="text-base font-bold text-gray-900">
-            Step {currentStep + 1}: {stepDef.label}
-            {slug === 'hqp-pff-356' && currentStep === 2 && (
-              <span className="ml-2 text-xs font-normal text-gray-400">(Optional)</span>
-            )}
-          </h2>
-          {slug === 'hqp-pff-356' && currentStep === 2 && (
-            <p className="text-xs text-gray-500 mt-0.5">
-              Leave blank if you don&apos;t want to prefill bank info.
+        {slug === 'hqp-pff-356' && currentStep === 2 && (
+          <div className="mt-2 mb-4">
+            <p className="text-xs text-gray-500">
+              <span className="font-medium text-gray-600">Optional</span> — Leave blank if you don&apos;t want to prefill bank info.
             </p>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="space-y-4">
           {stepFields.map((field) => (
@@ -2219,7 +2235,7 @@ export default function FormWizardPage() {
           </div>
 
           {/* PDF canvas area */}
-          <div className="flex-1 overflow-auto bg-gray-950 flex justify-center p-4">
+          <div className="flex-1 overflow-auto bg-gray-950 flex justify-center items-start p-4">
             {blankPdfLoading && !blankPdfCanvas ? (
               <div className="flex flex-col items-center justify-center gap-3 text-gray-400">
                 <div className="w-8 h-8 border-2 border-gray-600 border-t-blue-400 rounded-full animate-spin" />
@@ -2235,8 +2251,14 @@ export default function FormWizardPage() {
                 <img
                   src={blankPdfCanvas}
                   alt={`Page ${blankPdfPage}`}
-                  className="block shadow-2xl rounded max-w-full"
+                  className="block shadow-2xl rounded"
                   style={{ imageRendering: 'crisp-edges' }}
+                  onLoad={(e) => {
+                    // PDF was rendered at scale = zoom × 2 (retina).
+                    // Display at half its natural width so visual size scales with the zoom slider.
+                    const img = e.currentTarget;
+                    img.style.width = `${img.naturalWidth / 2}px`;
+                  }}
                 />
               </div>
             ) : null}
@@ -2347,7 +2369,7 @@ function FieldInput({
           />
           {showAcList && (
             <ul
-              className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-lg border border-gray-300 bg-white shadow-lg dark:bg-gray-800 dark:border-gray-600"
+              className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-lg border border-gray-300 bg-white shadow-lg"
               role="listbox"
             >
               {acSuggestions.map((opt) => (
@@ -2355,7 +2377,7 @@ function FieldInput({
                   key={opt}
                   role="option"
                   aria-selected={value === opt}
-                  className="px-3 py-2 cursor-pointer text-sm hover:bg-blue-50 dark:hover:bg-gray-700"
+                  className="px-3 py-2 cursor-pointer text-sm text-gray-900 hover:bg-blue-50"
                   onMouseDown={(e) => {
                     // Use onMouseDown so it fires before the input's blur.
                     e.preventDefault();
@@ -2523,8 +2545,8 @@ function ReviewScreen({
               />
             )}
             <div className="min-w-0">
-              <div className="text-xs font-mono text-gray-400 truncate">{form.code}</div>
-              <div className="text-xs font-medium text-gray-700">Review Your Entries</div>
+              <div className="text-xs text-gray-400 truncate">{form.name}</div>
+              <div className="text-lg font-bold text-gray-900 truncate">Review Your Entries</div>
             </div>
           </div>
           <div className="text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
@@ -2666,15 +2688,13 @@ function PreviewScreen({
           ←
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-xs text-gray-400 truncate">{form.code}</div>
-          <div className="text-xs font-medium text-white">PDF Preview</div>
+          <div className="text-xs font-medium text-white">Back to Editor</div>
         </div>
-        <div className={isDemoMode
-          ? 'text-[10px] text-orange-400 bg-orange-400/10 border border-orange-400/30 px-2 py-1 rounded'
-          : 'text-[10px] text-green-400 bg-green-400/10 border border-green-400/30 px-2 py-1 rounded'
-        }>
-          {isDemoMode ? '[ Demo Mode ]' : '[ Full Version ]'}
-        </div>
+        {isDemoMode && (
+          <div className="text-[10px] text-orange-400 bg-orange-400/10 border border-orange-400/30 px-2 py-1 rounded">
+            [ Demo Mode ]
+          </div>
+        )}
       </header>
 
       {/* Preview image */}
@@ -2879,25 +2899,38 @@ function PaymentModal({
   const [manualRefBusy, setManualRefBusy] = useState(false);
   const [gcashCopied, setGcashCopied]     = useState(false);
   const [qrFullscreen, setQrFullscreen]   = useState(false);
+  const [qrPicker, setQrPicker]           = useState(false);
+  const [showQrPickerPopup, setShowQrPickerPopup] = useState(false);
   const [paymentMode, setPaymentMode]     = useState<'process' | 'upload_only'>('process');
+  const [showAttachBtn, setShowAttachBtn] = useState(false);
   // Live settings fetched from API (fall back to props)
   const [liveNumber, setLiveNumber] = useState(gcashNumberProp);
   const [liveName, setLiveName]     = useState(gcashNameProp);
   const [liveQrUrl, setLiveQrUrl]   = useState<string | null>(null);
+  const [liveMayaQrUrl, setLiveMayaQrUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch('/api/admin/gcash-settings')
       .then(r => r.ok ? r.json() : null)
-      .then((d: { gcash_number?: string; gcash_name?: string; qr_url?: string | null; payment_mode?: string } | null) => {
+      .then((d: { gcash_number?: string; gcash_name?: string; qr_url?: string | null; maya_qr_url?: string | null; payment_mode?: string } | null) => {
         if (!d) return;
         if (d.gcash_number) setLiveNumber(d.gcash_number);
         if (d.gcash_name)   setLiveName(d.gcash_name);
         setLiveQrUrl(d.qr_url ?? null);
+        setLiveMayaQrUrl(d.maya_qr_url ?? null);
         if (d.payment_mode === 'upload_only') setPaymentMode('upload_only');
       })
       .catch(() => { /* use prop defaults */ });
   }, []);
+
+  // Reveal attach button after 5 seconds
+  useEffect(() => {
+    if (step !== 'details') return;
+    setShowAttachBtn(false);
+    const t = setTimeout(() => setShowAttachBtn(true), 5000);
+    return () => clearTimeout(t);
+  }, [step]);
 
   const gcashNumber = liveNumber;
   const gcashName   = liveName;
@@ -2914,6 +2947,7 @@ function PaymentModal({
       }
     } catch { fallbackCopy(text); }
     setGcashCopied(true);
+    setShowAttachBtn(true);
   }
 
   function fallbackCopy(text: string) {
@@ -2932,6 +2966,11 @@ function PaymentModal({
   function handleUnderstood() {
     // Open GCash app now that user has read the instructions
     window.location.href = 'gcash://';
+    setGcashCopied(false);
+  }
+
+  function handleOpenMaya() {
+    window.open('https://www.maya.ph/', '_blank');
     setGcashCopied(false);
   }
 
@@ -2973,8 +3012,10 @@ function PaymentModal({
         }
       };
 
+      let uploadStep = 'init';
       try {
         // Step 1: request a SAS URL (or detect local backend)
+        uploadStep = 'sas';
         const sasRes = await fetch(
           `/api/payment/upload-screenshot/sas?mimeType=${encodeURIComponent(file.type)}`,
         );
@@ -2995,6 +3036,7 @@ function PaymentModal({
 
         if (sasData.backend === 'azure' && sasData.sasUrl && sasData.filename) {
           // Step 2: upload directly to Azure Blob (bypasses App Service compute)
+          uploadStep = 'put';
           const putRes = await fetch(sasData.sasUrl, {
             method: 'PUT',
             body: file,
@@ -3004,13 +3046,14 @@ function PaymentModal({
             },
           });
           if (!putRes.ok) {
-            setVerifyErrors(['Upload to storage failed. Please try again.']);
+            setVerifyErrors([`Upload to storage failed (${putRes.status}). Please try again.`]);
             setFailCount(c => c + 1);
             setStep('failed');
             return;
           }
 
           // Step 3: confirm upload and get access token
+          uploadStep = 'confirm';
           const confirmRes = await fetch('/api/payment/confirm-upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3019,11 +3062,13 @@ function PaymentModal({
           handleUploadResult(await confirmRes.json() as UploadResult);
         } else {
           // Local filesystem backend — fall back to proxy upload
+          uploadStep = 'proxy';
           const res = await fetch('/api/payment/upload-screenshot', { method: 'POST', body: fd });
           handleUploadResult(await res.json() as UploadResult);
         }
-      } catch {
-        setVerifyErrors(['Could not reach server. Please try again.']);
+      } catch (err) {
+        console.error('[upload] step=' + uploadStep, err);
+        setVerifyErrors([`Could not reach server (step: ${uploadStep}). Please try again.`]);
         setFailCount(c => c + 1);
         setStep('failed');
       }
@@ -3119,9 +3164,9 @@ function PaymentModal({
   return (
     <>
       {/* QR fullscreen overlay */}
-      {qrFullscreen && liveQrUrl && (
+      {qrFullscreen && (liveQrUrl || liveMayaQrUrl) && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-6"
+          className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/80 p-6 gap-4"
           onClick={() => setQrFullscreen(false)}
         >
           <button
@@ -3130,8 +3175,8 @@ function PaymentModal({
           >×</button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={liveQrUrl}
-            alt="GCash QR Code"
+            src={qrPicker ? liveMayaQrUrl! : (liveQrUrl ?? liveMayaQrUrl!)}
+            alt="QR Code"
             className="max-w-xs w-full rounded-2xl shadow-2xl"
             onClick={e => e.stopPropagation()}
           />
@@ -3142,16 +3187,11 @@ function PaymentModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
       <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#0b7c3e] to-[#00a651] px-5 py-4">
+        <div className="bg-[#16a34a] px-5 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">💚</span>
-              <div>
-                <div className="text-white font-bold text-sm">Support QuickFormsPH</div>
-              </div>
-            </div>
+            <div className="text-white font-bold text-base tracking-wide">Support QuickFormsPH</div>
             {step !== 'generating' && (
-              <button onClick={onClose} className="text-green-200 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center">×</button>
+              <button onClick={onClose} className="text-white/70 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center">×</button>
             )}
           </div>
         </div>
@@ -3162,20 +3202,16 @@ function PaymentModal({
             {/* Heartfelt note */}
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
               <p className="text-xs text-blue-800 leading-relaxed">
-                Built to help Filipinos fill out government forms more easily. Your ₱5 or any extra supports maintenance and future updates. Maraming salamat po. 🙏💚
+                Made to help Filipinos fill out government forms more easily. Your ₱5 or any amount helps support maintenance and future updates. <strong>Maraming salamat po. 🙏</strong>
               </p>
             </div>
 
             {/* GCash details */}
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2.5">
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">GCash Payment Details</div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Transfer Details</div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Number</span>
+                <span className="text-xs text-gray-500">Mobile No.</span>
                 <span className="text-sm font-black text-gray-900 font-mono tracking-wide">{gcashNumber}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Account Name</span>
-                <span className="text-sm font-semibold text-gray-900">{gcashName}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-500">Amount</span>
@@ -3185,77 +3221,137 @@ function PaymentModal({
                 </div>
               </div>
               {/* QR option */}
-              {liveQrUrl && (
-                <button
-                  onClick={() => setQrFullscreen(true)}
-                  className="mt-1 flex items-center gap-1.5 text-[11px] text-blue-600 font-semibold hover:underline"
-                >
-                  📷 Or pay via QR Code — tap to view full screen
-                </button>
+              {(liveQrUrl || liveMayaQrUrl) && (
+                <div className="mt-1 relative">
+                  <button
+                    onClick={() => {
+                      setShowAttachBtn(true);
+                      if (liveQrUrl && liveMayaQrUrl) {
+                        // Both available — show picker popup
+                        setShowQrPickerPopup(p => !p);
+                      } else {
+                        // Only one — go straight to fullscreen
+                        setQrPicker(!liveQrUrl);
+                        setQrFullscreen(true);
+                      }
+                    }}
+                    className="text-[11px] text-blue-600 font-semibold hover:underline"
+                  >
+                    Or pay via QR Code.
+                  </button>
+
+                  {/* Picker popup */}
+                  {showQrPickerPopup && liveQrUrl && liveMayaQrUrl && (
+                    <div className="absolute left-0 top-5 z-10 bg-white border border-gray-200 rounded-xl shadow-lg p-2 flex flex-col gap-1 min-w-[150px]">
+                      <button
+                        onClick={() => { setQrPicker(false); setQrFullscreen(true); setShowQrPickerPopup(false); }}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 text-xs font-semibold text-left text-gray-800 transition-colors"
+                      >
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-bold" style={{ backgroundColor: '#0062FF' }}>G</span>
+                        GCash QR
+                      </button>
+                      <button
+                        onClick={() => { setQrPicker(true); setQrFullscreen(true); setShowQrPickerPopup(false); }}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 text-xs font-semibold text-left text-gray-800 transition-colors"
+                      >
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-bold" style={{ backgroundColor: '#00C2A0' }}>M</span>
+                        Maya QR
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
             {/* Actions */}
             <div className="space-y-2">
-              {/* Flip card: Open GCash → copied info */}
-              <div style={{ perspective: '600px' }}>
-                <div
-                  style={{
-                    transition: 'transform 0.5s',
-                    transformStyle: 'preserve-3d',
-                    transform: gcashCopied ? 'rotateX(180deg)' : 'rotateX(0deg)',
-                    position: 'relative',
-                    minHeight: '48px',
-                  }}
+              {/* Open GCash / Copied state */}
+              {!gcashCopied ? (
+                <button
+                  onClick={handleOpenGcash}
+                  className="w-full rounded-lg bg-[#16a34a] py-3 text-sm font-semibold text-white hover:bg-[#15803d] transition-colors"
                 >
-                  {/* Front: Open GCash button */}
-                  <div style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+                  Copy Mobile No.
+                </button>
+              ) : (
+                <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2.5 text-xs text-green-800 leading-relaxed space-y-2">
+                  <p className="font-semibold">Mobile no. copied!</p>
+                  <p>Click an app below to send via <strong>Send Money</strong> and paste the number.</p>
+                  <div className="flex gap-2">
+                    {/* GCash — brand blue */}
                     <button
-                      onClick={handleOpenGcash}
-                      className="flex items-center justify-center gap-2 w-full rounded-xl bg-[#00a651] py-3 text-sm font-bold text-white hover:bg-[#008c44] transition-colors"
+                      onClick={handleUnderstood}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white transition-colors"
+                      style={{ backgroundColor: '#0062FF' }}
                     >
-                      📱 Open GCash
+                      <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="16" cy="16" r="16" fill="white"/>
+                        <text x="16" y="21" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#0062FF" fontFamily="Arial">G</text>
+                      </svg>
+                      GCash
+                    </button>
+                    {/* Maya — brand green */}
+                    <button
+                      onClick={handleOpenMaya}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white transition-colors"
+                      style={{ backgroundColor: '#00C2A0' }}
+                    >
+                      <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="16" cy="16" r="16" fill="white"/>
+                        <text x="16" y="21" textAnchor="middle" fontSize="13" fontWeight="bold" fill="#00C2A0" fontFamily="Arial">M</text>
+                      </svg>
+                      Maya
                     </button>
                   </div>
-                  {/* Back: info + Understood button that opens app */}
+                  {/* Attach screenshot — shown after copying */}
                   <div
                     style={{
-                      backfaceVisibility: 'hidden',
-                      WebkitBackfaceVisibility: 'hidden',
-                      transform: 'rotateX(180deg)',
-                      position: 'absolute',
-                      inset: 0,
+                      overflow: 'hidden',
+                      maxHeight: showAttachBtn ? '80px' : '0',
+                      opacity: showAttachBtn ? 1 : 0,
+                      transition: 'max-height 0.4s ease, opacity 0.4s ease',
                     }}
                   >
-                    <div className="rounded-xl bg-green-50 border border-green-200 px-3 py-2.5 text-xs text-green-800 leading-relaxed">
-                      <p className="font-semibold mb-0.5">📋 Number copied!</p>
-                      <p>The number <span className="font-mono font-bold">{gcashNumber}</span> has been copied. Tap <strong>Understood</strong> to open GCash, go to <strong>Send Money</strong>, and paste the number.</p>
-                      <button
-                        onClick={handleUnderstood}
-                        className="mt-2 w-full rounded-lg bg-green-600 text-white text-xs font-bold py-1.5 hover:bg-green-700 transition-colors"
-                      >
-                        ✅ Understood — Open GCash
-                      </button>
-                    </div>
+                    <label className="mt-1 flex items-center justify-center w-full rounded-lg border border-gray-300 bg-white hover:bg-gray-50 py-3 text-sm font-semibold text-gray-700 cursor-pointer transition-colors">
+                      Attach Transfer Screenshot
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                    </label>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Attach screenshot */}
-              <label className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 py-3 text-sm font-semibold text-blue-700 cursor-pointer transition-colors">
-                📎 Attach Payment Screenshot
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-              </label>
+              {/* Attach screenshot — shown after 5s when user hasn't tapped Open GCash */}
+              {!gcashCopied && (
+                <div
+                  style={{
+                    overflow: 'hidden',
+                    maxHeight: showAttachBtn ? '80px' : '0',
+                    opacity: showAttachBtn ? 1 : 0,
+                    transition: 'max-height 0.4s ease, opacity 0.4s ease',
+                  }}
+                >
+                  <label className="flex items-center justify-center w-full rounded-lg border border-gray-300 bg-white hover:bg-gray-50 py-3 text-sm font-semibold text-gray-700 cursor-pointer transition-colors">
+                    Attach Transfer Screenshot
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                  </label>
+                </div>
+              )}
 
               <button
                 onClick={onClose}
-                className="w-full rounded-xl border border-gray-200 py-2.5 text-xs text-gray-400 hover:bg-gray-50"
+                className="w-full rounded-lg py-2.5 text-xs text-gray-400 hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
@@ -3307,7 +3403,6 @@ function PaymentModal({
         {step === 'verified' && (
           <div className="p-5 space-y-4">
             <div className="flex flex-col items-center gap-2 text-center py-2">
-              <div className="text-3xl">✅</div>
               <div className="text-sm font-bold text-green-700">Payment Verified!</div>
               <div className="text-xs text-gray-500 text-center">
                 Your GCash receipt has been confirmed.<br />
@@ -3628,4 +3723,12 @@ function SuccessCodeModal({
       </div>
     </div>
   );
+}
+
+function todayMaskedDate(): string {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const yyyy = String(d.getFullYear());
+  return `${mm} / ${dd} / ${yyyy}`;
 }

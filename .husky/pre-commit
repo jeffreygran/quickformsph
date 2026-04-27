@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+# QuickFormsPH pre-commit gate.
+# Runs the same battery as CI before any commit lands:
+#   - tsc --noEmit  (catches type drift across the schema/renderer/page surface)
+#   - test:coverage (every FORMS field has fieldCoords/checkboxCoords/skipValues)
+#   - test:samples  (every required field non-empty + every dropdown value in enum)
+#   - test:smoke    (in-process PDF generation across all forms with random data)
+#
+# To skip in an emergency: `git commit --no-verify` (do NOT make this a habit).
+# See L-PRECOMMIT-01 in QuickFormsPH-PDFGenerationLearnings.md.
+
+set -e
+
+echo "▶ tsc --noEmit"
+npx tsc --noEmit
+
+echo "▶ npm test (coverage + samples + smoke)"
+npm test

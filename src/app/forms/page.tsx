@@ -9,7 +9,7 @@ import DonateButton from '@/components/DonateButton';
 const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
   'Bureau of Internal Revenue': { src: '/logos/bir.png',       w: 40, h: 40 },
   'Pag-IBIG Fund':              { src: '/logos/pagibig.png',   w: 40, h: 40 },
-  'PhilHealth':                 { src: '/logos/philhealth.png', w: 80, h: 24 },
+  'PhilHealth':                 { src: '/logos/philhealth.png', w: 110, h: 25 },
 };
 
 export default function FormsPage() {
@@ -31,19 +31,18 @@ export default function FormsPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* ── Header ── */}
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white shadow-sm">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-2.5">
           <Link href="/" className="flex items-center">
             <Image
-              src="/quickformsph-logo-transparent-slogan.png"
+              src="/quickformsph-logo-transparent-slogan2.png"
               alt="QuickFormsPH"
-              width={160}
-              height={44}
-              className="h-9 w-auto object-contain"
+              width={180}
+              height={48}
+              className="h-10 w-auto object-contain"
               priority
             />
           </Link>
           <div className="flex items-center gap-3">
-            <DonateButton />
             <Link href="/" className="text-xs font-medium text-blue-700 hover:text-blue-900 transition-colors">
               ← Back to Home
             </Link>
@@ -54,9 +53,12 @@ export default function FormsPage() {
       <main className="mx-auto w-full max-w-3xl px-4 py-10 flex-1">
         {/* Page heading */}
         <div className="mb-6">
-          <h1 className="text-2xl font-black text-gray-900 leading-tight mb-4">
-            Available Forms
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-black text-gray-900 leading-tight">
+              Available Forms
+            </h1>
+            <DonateButton />
+          </div>
 
           {/* Search */}
           <div className="relative">
@@ -128,8 +130,8 @@ export default function FormsPage() {
                           <span className="text-2xl">📄</span>
                         )}
                       </div>
-                      {/* Minimal light-gray badge */}
-                      <span className="text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 whitespace-nowrap">
+                      {/* Minimal light label — fades in after 1.3s */}
+                      <span className="meta-fade-in-1300 text-[10px] font-normal text-gray-400 whitespace-nowrap tracking-wide">
                         {form.agency}
                       </span>
                     </div>
@@ -140,19 +142,19 @@ export default function FormsPage() {
                       {form.name}
                     </h2>
 
-                    {/* Actions */}
+                    {/* Actions — Facebook-style flat buttons */}
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/forms/${form.slug}`}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-blue-700 hover:bg-blue-800 px-4 py-2.5 text-xs font-bold text-white transition-colors"
+                        className="inline-flex items-center justify-center rounded-md bg-blue-600 hover:bg-blue-700 active:bg-blue-800 px-4 py-1.5 text-sm font-semibold text-white transition-colors"
                       >
-                        ✏️ Fill Out Form
+                        Fill Out Form
                       </Link>
                       <button
                         onClick={() => setConfirmForm(form)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 px-4 py-2.5 text-xs font-semibold text-gray-600 transition-colors"
+                        className="inline-flex items-center justify-center rounded-md bg-gray-100 hover:bg-gray-200 active:bg-gray-300 px-4 py-1.5 text-sm font-semibold text-gray-700 transition-colors"
                       >
-                        ⬇️ Download Form
+                        Download Form
                       </button>
                     </div>
                   </div>

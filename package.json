@@ -1,6 +1,6 @@
 {
   "name": "quickformsph-dev",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -11,9 +11,11 @@
     "test:samples": "npx tsx scripts/check-sample-data.ts",
     "test:smoke": "npx tsx scripts/test-random-data.ts",
     "test:smoke:http": "npx tsx scripts/test-random-data.ts --http",
+    "audit:uppercase": "npx tsx scripts/audit-uppercase-leaks.ts",
     "docs:dictionaries": "npx tsx scripts/generate-field-dictionaries.ts",
     "docs:validate": "npx tsx scripts/generate-field-dictionaries.ts --strict",
-    "test": "npm run test:coverage && npm run test:samples && npm run test:smoke"
+    "test": "npm run test:coverage && npm run test:samples && npm run test:smoke",
+    "prepare": "husky"
   },
   "dependencies": {
     "@azure/storage-blob": "^12.31.0",
@@ -37,6 +39,7 @@
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
+    "husky": "^9.1.7",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"

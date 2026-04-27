@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>QuickFormsPH — Card Design Preview</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; }
+
+  /* ── Option A: Hard Offset Shadow (Brutalist-3D) ── */
+  .card-a {
+    background: #fff;
+    border: 2px solid #1d4ed8;
+    border-radius: 18px;
+    box-shadow: 5px 5px 0px #1d4ed8;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+  }
+  .card-a:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 8px 8px 0px #1d4ed8;
+  }
+  .card-a:active {
+    transform: translate(2px, 2px);
+    box-shadow: 3px 3px 0px #1d4ed8;
+  }
+
+  /* ── Option B: Deep Layered Soft Shadow (Floating) ── */
+  .card-b {
+    background: #fff;
+    border: 1px solid rgba(226,232,240,0.8);
+    border-radius: 20px;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.04),
+      0 4px 8px rgba(0,0,0,0.06),
+      0 12px 24px rgba(59,130,246,0.10),
+      0 24px 48px rgba(59,130,246,0.06);
+    transition: transform 0.2s cubic-bezier(0.16,1,0.3,1), box-shadow 0.2s cubic-bezier(0.16,1,0.3,1);
+    cursor: pointer;
+  }
+  .card-b:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.04),
+      0 8px 16px rgba(0,0,0,0.08),
+      0 20px 40px rgba(59,130,246,0.16),
+      0 32px 64px rgba(59,130,246,0.10);
+  }
+
+  /* ── Option C: Glass + Gradient Border (Premium) ── */
+  .card-c-wrap {
+    border-radius: 22px;
+    padding: 2px;
+    background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #34d399 100%);
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.06),
+      0 8px 20px rgba(99,102,241,0.14),
+      0 20px 40px rgba(99,102,241,0.08);
+    transition: transform 0.2s cubic-bezier(0.16,1,0.3,1), box-shadow 0.2s cubic-bezier(0.16,1,0.3,1);
+    cursor: pointer;
+  }
+  .card-c-wrap:hover {
+    transform: translateY(-5px) scale(1.01);
+    box-shadow:
+      0 4px 8px rgba(0,0,0,0.08),
+      0 16px 32px rgba(99,102,241,0.22),
+      0 32px 60px rgba(99,102,241,0.12);
+  }
+  .card-c {
+    background: rgba(255,255,255,0.97);
+    border-radius: 20px;
+    height: 100%;
+  }
+
+  /* Badge resets */
+  .badge-gray {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  /* Pill for option selection */
+  .opt-pill { cursor:pointer; transition: all .15s; }
+  .opt-pill.active { background:#1d4ed8; color:#fff; }
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen py-10 px-4">
+
+  <div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="mb-10 text-center">
+      <h1 class="text-2xl font-black text-gray-900 mb-1">Form Card Design Preview</h1>
+      <p class="text-sm text-gray-500">Hover over cards to see the elevation effect. Pick your favourite.</p>
+    </div>
+
+    <!-- ───────────── OPTION A ───────────── -->
+    <section class="mb-16">
+      <div class="flex items-center gap-3 mb-5">
+        <span class="inline-block text-xs font-black uppercase tracking-widest text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">Option A</span>
+        <div>
+          <span class="font-bold text-gray-900 text-sm">Hard Offset Shadow</span>
+          <span class="text-xs text-gray-500 ml-2">— Bold, tactile, brutalist-inspired 3D lift</span>
+        </div>
+      </div>
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+        <a href="#" class="card-a p-5 block no-underline">
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <img src="/logos/pagibig.png" alt="Pag-IBIG" width="40" height="40" class="object-contain h-10" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+            <span style="display:none" class="text-2xl">📄</span>
+            <span class="badge-gray">Pag-IBIG Fund</span>
+          </div>
+          <div class="text-xs font-mono text-gray-400 mb-0.5">HQP-PFF-356</div>
+          <h3 class="text-sm font-bold text-gray-900 leading-snug mb-3">Pag-IBIG Fund Membership Registration Form</h3>
+          <div class="flex items-center justify-between mt-auto">
+            <span class="text-xs text-gray-400">48 fields</span>
+            <span class="text-xs font-bold text-blue-700">Fill Now →</span>
+          </div>
+        </a>
+
+        <a href="#" class="card-a p-5 block no-underline">
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <img src="/logos/philhealth.png" alt="PhilHealth" width="80" height="24" class="object-contain h-10" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+            <span style="display:none" class="text-2xl">📄</span>
+            <span class="badge-gray">PhilHealth</span>
+          </div>
+          <div class="text-xs font-mono text-gray-400 mb-0.5">PMRF</div>
+          <h3 class="text-sm font-bold text-gray-900 leading-snug mb-3">PhilHealth Member Registration Form</h3>
+          <div class="flex items-center justify-between mt-auto">
+            <span class="text-xs text-gray-400">36 fields</span>
+            <span class="text-xs font-bold text-blue-700">Fill Now →</span>
+          </div>
+        </a>
+
+        <a href="#" class="card-a p-5 block no-underline">
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <img src="/logos/bir.png" alt="BIR" width="40" height="40" class="object-contain h-10" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+            <span style="display:none" class="text-2xl">📄</span>
+            <span class="badge-gray">Bureau of Internal Revenue</span>
+          </div>
+          <div class="text-xs font-mono text-gray-400 mb-0.5">BIR Form 1902</div>
+          <h3 class="text-sm font-bold text-gray-900 leading-snug mb-3">Application for Registration — Employees</h3>
+          <div class="flex items-center justify-between mt-auto">
+            <span class="text-xs text-gray-400">52 fields</span>
+            <span class="text-xs font-bold text-blue-700">Fill Now →</span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- ───────────── OPTION B ───────────── -->
+    <section class="mb-16">
+      <div class="flex items-center gap-3 mb-5">
+        <span class="inline-block text-xs font-black uppercase tracking-widest text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full">Option B</span>
+        <div>
+          <span class="font-bold text-gray-900 text-sm">Deep Layered Shadow</span>
+          <span class="text-xs text-gray-500 ml-2">— Soft, floating, blue-tinted elevation</span>
+        </div>
+      </div>
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+        <a href="#" class="card-b p-5 block no-underline">
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <img src="/logos/pagibig.png" alt="Pag-IBIG" width="40" height="40" class="object-contain h-10" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+            <span style="display:none" class="text-2xl">📄</span>
+            <span class="badge-gray">Pag-IBIG Fund</span>
+          </div>
+          <div class="text-xs font-mono text-gray-400 mb-0.5">HQP-PFF-356</div>
+          <h3 class="text-sm font-bold text-gray-900 leading-snug mb-3">Pag-IBIG Fund Membership Registration Form</h3>
+          <div class="flex items-center justify-between mt-auto">
+            <span class="text-xs text-gray-400">48 fields</span>
+            <span class="text-xs font-bold text-blue-700">Fill Now →</span>
+          </div>
+        </a>
+
+        <a href="#" class="card-b p-5 block no-underline">
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <img src="/logos/philhealth.png" alt="PhilHealth" width="80" height="24" class="object-contain h-10" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+            <span style="display:none" class="text-2xl">📄</span>
+            <span class="badge-gray">PhilHealth</span>
+          </div>
+          <div class="text-xs font-mono text-gray-400 mb-0.5">PMRF</div>
+          <h3 class="text-sm font-bold text-gray-900 leading-snug mb-3">PhilHealth Member Registration Form</h3>
+          <div class="flex items-center justify-between mt-auto">
+            <span class="text-xs text-gray-400">36 fields</span>
+            <span class="text-xs font-bold text-blue-700">Fill Now →</span>
+          </div>
+        </a>
+
+        <a href="#" class="card-b p-5 block no-underline">
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <img src="/logos/bir.png" alt="BIR" width="40" height="40" class="object-contain h-10" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+            <span style="display:none" class="text-2xl">📄</span>
+            <span class="badge-gray">Bureau of Internal Revenue</span>
+          </div>
+          <div class="text-xs font-mono text-gray-400 mb-0.5">BIR Form 1902</div>
+          <h3 class="text-sm font-bold text-gray-900 leading-snug mb-3">Application for Registration — Employees</h3>
+          <div class="flex items-center justify-between mt-auto">
+            <span class="text-xs text-gray-400">52 fields</span>
+            <span class="text-xs font-bold text-blue-700">Fill Now →</span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- ───────────── OPTION C ───────────── -->
+    <section class="mb-16">
+      <div class="flex items-center gap-3 mb-5">
+        <span class="inline-block text-xs font-black uppercase tracking-widest text-purple-700 bg-purple-50 border border-purple-200 px-3 py-1 rounded-full">Option C</span>
+        <div>
+          <span class="font-bold text-gray-900 text-sm">Gradient Border + Glow</span>
+          <span class="text-xs text-gray-500 ml-2">— Premium glass look with animated gradient border</span>
+        </div>
+      </div>
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+        <div class="card-c-wrap">
+          <a href="#" class="card-c p-5 block no-underline">
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <img src="/logos/pagibig.png" alt="Pag-IBIG" width="40" height="40" class="object-contain h-10" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+              <span style="display:none" class="text-2xl">📄</span>
+              <span class="badge-gray">Pag-IBIG Fund</span>
+            </div>
+            <div class="text-xs font-mono text-gray-400 mb-0.5">HQP-PFF-356</div>
+            <h3 class="text-sm font-bold text-gray-900 leading-snug mb-3">Pag-IBIG Fund Membership Registration Form</h3>
+            <div class="flex items-center justify-between mt-auto">
+              <span class="text-xs text-gray-400">48 fields</span>
+              <span class="text-xs font-bold text-blue-700">Fill Now →</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="card-c-wrap">
+          <a href="#" class="card-c p-5 block no-underline">
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <img src="/logos/philhealth.png" alt="PhilHealth" width="80" height="24" class="object-contain h-10" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+              <span style="display:none" class="text-2xl">📄</span>
+              <span class="badge-gray">PhilHealth</span>
+            </div>
+            <div class="text-xs font-mono text-gray-400 mb-0.5">PMRF</div>
+            <h3 class="text-sm font-bold text-gray-900 leading-snug mb-3">PhilHealth Member Registration Form</h3>
+            <div class="flex items-center justify-between mt-auto">
+              <span class="text-xs text-gray-400">36 fields</span>
+              <span class="text-xs font-bold text-blue-700">Fill Now →</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="card-c-wrap">
+          <a href="#" class="card-c p-5 block no-underline">
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <img src="/logos/bir.png" alt="BIR" width="40" height="40" class="object-contain h-10" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+              <span style="display:none" class="text-2xl">📄</span>
+              <span class="badge-gray">Bureau of Internal Revenue</span>
+            </div>
+            <div class="text-xs font-mono text-gray-400 mb-0.5">BIR Form 1902</div>
+            <h3 class="text-sm font-bold text-gray-900 leading-snug mb-3">Application for Registration — Employees</h3>
+            <div class="flex items-center justify-between mt-auto">
+              <span class="text-xs text-gray-400">52 fields</span>
+              <span class="text-xs font-bold text-blue-700">Fill Now →</span>
+            </div>
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Footer note -->
+    <div class="text-center text-xs text-gray-400 pb-8">
+      Tell <strong>@Gan</strong> which option (A, B, or C) you prefer — or mix elements from multiple options.
+    </div>
+  </div>
+
+</body>
+</html>

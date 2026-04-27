@@ -60,7 +60,7 @@ export default function AdminPage() {
         <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <Image
-              src="/quickformsph-logo-transparent-slogan.png"
+              src="/quickformsph-logo-transparent-slogan2.png"
               alt="QuickFormsPH"
               width={140}
               height={38}
@@ -660,20 +660,25 @@ function SettingsTab() {
   const [gcashNumber, setGcashNumber] = useState('');
   const [gcashName, setGcashName]     = useState('');
   const [qrUrl, setQrUrl]             = useState<string | null>(null);
+  const [mayaQrUrl, setMayaQrUrl]     = useState<string | null>(null);
   const [saving, setSaving]           = useState(false);
   const [saved, setSaved]             = useState(false);
   const [uploadBusy, setUploadBusy]   = useState(false);
   const [uploadMsg, setUploadMsg]     = useState('');
+  const [mayaUploadBusy, setMayaUploadBusy] = useState(false);
+  const [mayaUploadMsg, setMayaUploadMsg]   = useState('');
   const [loadError, setLoadError]     = useState('');
   const qrInputRef = useRef<HTMLInputElement>(null);
+  const mayaQrInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch('/api/admin/gcash-settings')
       .then(r => r.json())
-      .then((d: { gcash_number: string; gcash_name: string; qr_url: string | null; payment_mode: 'process' | 'upload_only' }) => {
+      .then((d: { gcash_number: string; gcash_name: string; qr_url: string | null; maya_qr_url?: string | null; payment_mode: 'process' | 'upload_only' }) => {
         setGcashNumber(d.gcash_number ?? '');
         setGcashName(d.gcash_name ?? '');
         setQrUrl(d.qr_url ?? null);
+        setMayaQrUrl(d.maya_qr_url ?? null);
       })
       .catch(() => setLoadError('Failed to load GCash settings'));
   }, []);
@@ -717,6 +722,32 @@ function SettingsTab() {
       setUploadMsg('QR removed.');
     } catch { setUploadMsg('Failed to remove QR.'); }
     finally { setUploadBusy(false); }
+  }
+
+  async function handleMayaQRUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMayaUploadBusy(true); setMayaUploadMsg('');
+    const fd = new FormData();
+    fd.append('qr', file);
+    try {
+      const res = await fetch('/api/admin/maya-qr', { method: 'POST', body: fd });
+      const data = await res.json() as { ok?: boolean; maya_qr_url?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? 'Upload failed');
+      setMayaQrUrl((data.maya_qr_url ?? '') + '?t=' + Date.now());
+      setMayaUploadMsg('Maya QR uploaded successfully!');
+    } catch (err) { setMayaUploadMsg(String(err)); }
+    finally { setMayaUploadBusy(false); if (mayaQrInputRef.current) mayaQrInputRef.current.value = ''; }
+  }
+
+  async function handleRemoveMayaQR() {
+    setMayaUploadBusy(true); setMayaUploadMsg('');
+    try {
+      await fetch('/api/admin/maya-qr', { method: 'DELETE' });
+      setMayaQrUrl(null);
+      setMayaUploadMsg('Maya QR removed.');
+    } catch { setMayaUploadMsg('Failed to remove Maya QR.'); }
+    finally { setMayaUploadBusy(false); }
   }
 
   async function handleChangePassword(e: React.FormEvent) {
@@ -815,9 +846,9 @@ function SettingsTab() {
         </form>
       </div>
 
-      {/* GCash Payment Settings */}
+      {/* eWallet Payment Settings */}
       <div className="rounded-2xl bg-white border border-gray-200 p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-900">GCash Payment Settings</h2>
+        <h2 className="text-sm font-semibold text-gray-900">eWallet Payment Settings</h2>
         {loadError && <p className="text-xs text-red-600">{loadError}</p>}
         <div className="space-y-3">
           <div>
@@ -867,7 +898,35 @@ function SettingsTab() {
         )}
       </div>
 
-      {/* Environment Info */}
+      {/* Maya QR Code */}
+      <div className="rounded-2xl bg-white border border-gray-200 p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-gray-900">Maya QR Code</h2>
+        <p className="text-xs text-gray-500">Upload a Maya QR code image as an alternative payment option.</p>
+        {mayaQrUrl ? (
+          <div className="space-y-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={mayaQrUrl} alt="Maya QR" className="w-40 h-40 object-contain border border-gray-200 rounded-xl bg-gray-50" />
+            <div className="flex gap-2">
+              <label className="btn-secondary py-2 px-4 text-xs cursor-pointer">
+                Replace QR
+                <input ref={mayaQrInputRef} type="file" accept="image/*" className="hidden" onChange={handleMayaQRUpload} disabled={mayaUploadBusy} />
+              </label>
+              <button onClick={handleRemoveMayaQR} disabled={mayaUploadBusy}
+                className="text-xs text-red-600 border border-red-200 rounded-xl px-4 py-2 hover:bg-red-50 disabled:opacity-50">Remove</button>
+            </div>
+          </div>
+        ) : (
+          <label className="flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 py-8 cursor-pointer transition-colors">
+            <span className="text-2xl">📷</span>
+            <span className="text-xs font-medium text-gray-500">{mayaUploadBusy ? 'Uploading…' : 'Click to upload Maya QR image'}</span>
+            <span className="text-[10px] text-gray-400">PNG, JPG, WEBP — max 2 MB</span>
+            <input ref={mayaQrInputRef} type="file" accept="image/*" className="hidden" onChange={handleMayaQRUpload} disabled={mayaUploadBusy} />
+          </label>
+        )}
+        {mayaUploadMsg && (
+          <p className={`text-xs ${mayaUploadMsg.includes('success') || mayaUploadMsg.includes('removed') ? 'text-green-600' : 'text-red-600'}`}>{mayaUploadMsg}</p>
+        )}
+      </div>
       <div className="rounded-2xl bg-white border border-gray-200 p-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-4">Environment Info</h2>
         <div className="space-y-2">

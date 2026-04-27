@@ -126,7 +126,7 @@ export default function ReferralPage() {
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white shadow-sm">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-2.5">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/quickformsph-logo-transparent-slogan.png" alt="QuickFormsPH" width={140} height={36} className="h-8 w-auto" />
+            <Image src="/quickformsph-logo-transparent-slogan2.png" alt="QuickFormsPH" width={140} height={36} className="h-8 w-auto" />
           </Link>
           <Link href="/" className="text-xs text-gray-500 hover:text-blue-700 transition-colors">← Back to Forms</Link>
         </div>
@@ -135,9 +135,6 @@ export default function ReferralPage() {
       <main className="mx-auto max-w-lg px-4 py-10">
         {/* Hero */}
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mb-4">
-            <span className="text-4xl">🤝</span>
-          </div>
           <h1 className="text-2xl font-black text-gray-900 mb-2">Refer a Friend</h1>
           <p className="text-sm text-gray-500">
             Refer <strong>{required}</strong> friends and earn a free promo code for QuickFormsPH.

@@ -35,13 +35,7 @@ export default function SuggestionModal({ onClose }: { onClose: () => void }) {
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="bg-blue-700 px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">💡</span>
-            <div>
-              <div className="text-white font-bold text-sm">Suggest a Form</div>
-              <div className="text-blue-200 text-[11px]">Which government form should we add next? Positive feedback welcome too!</div>
-            </div>
-          </div>
+          <div className="text-white font-bold text-sm">Share Your Feedback</div>
           <button onClick={onClose} className="text-blue-200 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center">×</button>
         </div>
 
@@ -62,17 +56,16 @@ export default function SuggestionModal({ onClose }: { onClose: () => void }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="field-label">Name <span className="font-normal text-gray-400">(optional)</span></label>
-                <input type="text" placeholder="Juan Dela Cruz" className="input-field" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
+                <input type="text" className="input-field" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
               </div>
               <div>
                 <label className="field-label">Email <span className="font-normal text-gray-400">(optional)</span></label>
-                <input type="email" placeholder="you@email.com" className="input-field" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} />
+                <input type="email" className="input-field" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} />
               </div>
             </div>
             <div>
-              <label className="field-label">Your Suggestion <span className="text-red-500">*</span></label>
+              <label className="field-label">Message <span className="text-red-500">*</span></label>
               <textarea
-                placeholder="e.g. BIR Form 2316, SSS Contribution Form, PhilHealth MDR… or just let us know if this helped you!"
                 className="input-field min-h-[90px] resize-none"
                 rows={3}
                 value={suggestion}
@@ -80,15 +73,12 @@ export default function SuggestionModal({ onClose }: { onClose: () => void }) {
                 maxLength={2000}
                 required
               />
-              <p className="mt-1.5 text-[11px] text-gray-400 leading-relaxed">
-                The site is still a work in progress, so some mistakes or incomplete parts may happen. Maraming salamat! 🙏
-              </p>
             </div>
             {error && <p className="text-xs text-red-500">{error}</p>}
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={onClose} className="btn-secondary flex-1 py-3 text-sm">Cancel</button>
               <button type="submit" disabled={submitting} className="btn-primary flex-1 py-3 text-sm disabled:opacity-60 flex items-center justify-center gap-2">
-                {submitting ? <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Submitting…</> : '📬 Send Suggestion'}
+                {submitting ? <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Submitting…</> : 'Share'}
               </button>
             </div>
           </form>

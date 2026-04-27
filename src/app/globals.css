@@ -139,6 +139,36 @@ html {
   animation: card-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+@keyframes fields-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fields-fade-in {
+  opacity: 0;
+  animation: fields-fade-in 1.2s ease-out 3s forwards;
+}
+.meta-fade-in {
+  opacity: 0;
+  animation: fields-fade-in 1s ease-out 1.8s forwards;
+}
+.meta-fade-in-1300 {
+  opacity: 0;
+  animation: fields-fade-in 0.8s ease-out 1.3s forwards;
+}
+
+/* Subtitle reveal: collapsed (0 height) → expanded with fade after 1.3s.
+   Pushes the main label apart from vertically-centered to top-stacked. */
+@keyframes subtitle-reveal {
+  from { opacity: 0; max-height: 0; margin-top: 0; }
+  to   { opacity: 1; max-height: 1.25rem; margin-top: 0.125rem; }
+}
+.subtitle-reveal-1300 {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  animation: subtitle-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.3s forwards;
+}
+
 @keyframes carousel-enter {
   from { opacity: 0; transform: translateX(44px); }
   to   { opacity: 1; transform: translateX(0); }

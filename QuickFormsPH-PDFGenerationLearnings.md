@@ -2251,6 +2251,79 @@ the field drives sub-field logic.
 
 ---
 
+## 🔴 MANDATORY RULE — "Fill with Sample Data" Must Populate **Every** Field
+
+**Standing instruction from user (2026-04-26):** the **Fill with Sample Data** /
+`autoPopulate()` feature must populate **every visible field on every step** of
+the form. **Zero blanks.** Reviewers/QA cannot validate alignment, overflow, or
+checkbox tick-rendering for fields that are empty in the sample.
+
+**Trigger incident (2026-04-26, PhilHealth PMRF):** Sample B set
+`mail_same_as_above='true'` and left all 9 `mail_*` fields blank. Step 3 in the
+UI then showed an entire empty mailing block, and the PDF could not be QA'd for
+the mailing rects. Sample A also had `mail_subdivision: ''` and both samples
+left dependent rows 3-4 blank. User flagged: *"where is Step 3? instruction is
+to fill up everything."*
+
+### Why blanks creep in
+
+1. **Cross-field auto-copy hooks bypass `autoPopulate`.** Hooks like the
+   `mail_same_as_above === 'true'` handler in `handleChange` only fire when
+   the user types or clicks. `autoPopulate()` writes via `setValues` directly,
+   so the copy never happens. **Always pre-populate every dependent field in
+   the sample literal**, even if a checkbox is logically supposed to mirror
+   another block.
+2. **Optional fields** (`required: false`) feel safe to leave empty. They are
+   not — empty optional fields hide rendering bugs in their rect.
+3. **Repeating row groups** (dependents 1-4, beneficiaries, employers) are
+   often only filled to row 1-2. Always fill **all rows** so per-row offsets
+   can be visually validated.
+4. **Conditional/skip-on-`""` dropdowns** (e.g., `member_type`,
+   `indirect_contributor`, `bank_name`'s `Other`) — at least one sample must
+   exercise a non-skip value for every such dropdown across the sample set.
+
+### Rule (apply to every form's `autoPopulate()` and FillwithSampleData doc)
+
+For each form, **every Sample (A, B, …) MUST satisfy all of:**
+
+- [ ] Every field defined in `src/data/forms.ts` for this slug has a value
+      (string, not `undefined`/missing).
+- [ ] Every wizard step renders with **no empty input** (whether required or
+      optional).
+- [ ] Every repeating row group is filled to its maximum (e.g., 4/4 dependents
+      for PMRF, 2/2 employers for BIR 1902, etc.).
+- [ ] Cross-field hook-driven blocks (mailing-same-as-permanent,
+      patient-is-member, etc.) are **explicitly mirrored in the sample
+      literal**, not left empty relying on a `handleChange` side-effect.
+- [ ] Across the full sample set for the form, at least one sample exercises
+      every non-skip value of every dropdown that has UI/render branching
+      (e.g., `civil_status=Married` so spouse fields show; `purpose=Updating`
+      vs `Registration`).
+- [ ] Skip values (`name_ext=N/A`, `bank_name=Other`/`""`, `member_type=""`)
+      may appear in **at most one** field per sample, never as a default for
+      the whole row.
+
+### Verification command (per form)
+
+```bash
+# Count keys in each sample object — must equal field count for the slug.
+node -e "
+const src = require('fs').readFileSync('src/app/forms/[slug]/page.tsx','utf8');
+// then count top-level keys in each '{ ... }' block under <slug>Samples
+"
+# Or visually: open /forms/<slug>, click each sample, walk Next/Back through
+# every step, confirm zero empty <input> / <select> / unchecked-but-required cb.
+```
+
+### Documentation requirement
+
+When you update `autoPopulate()` to fill a previously-blank field, also update
+[`docs/quickformsph/QuickFormsPH-FillwithSampleData.md`](./QuickFormsPH-FillwithSampleData.md)
+in the same commit. The doc is the source of truth for QA — a blank cell in
+the doc = a blank field in the form.
+
+---
+
 ## 🔴 MANDATORY QA DISCIPLINE — Zoom-Crop Visual Review (ALL FORMS)
 
 **Trigger incident (2026-04-24, BIR 2316 Round 2):** Agent declared "0 visual defects"
@@ -2581,3 +2654,477 @@ through pdftoppm and visually confirming the pre-print before chasing.
 These are minor cosmetic items — primary fields all align cleanly.
 
 *Added by: Mai, 2026-04-25, Session 3, after 1st-iteration band QA + 7 coord fixes.*
+
+---
+
+## Session 4 — BIR 1904 Round 5 (PCN + Q20 regression fix)
+
+### Context
+Three "fix" rounds (R2 → R3 → R4) progressively broke the BIR-1904 PCN (Q2) and Q20 ID block (`id_type` / `id_number` / `id_effectivity` / `id_expiry`) coordinates that had shipped working in R1 (commit `4ea8174`, release v2.0.0).
+
+| Round | PCN coords | Q20 coords | Result |
+|---|---|---|---|
+| R1 (4ea8174) | text x=260 y=bir1904Y(161.4) | text top=643.4 (27/195/355/470) | ✅ Correct |
+| R2 | boxCenters @ top=151.1 | boxCenters @ top=614 | ❌ PCN→header; Q20→label row |
+| R3 | text @ top=192 | text @ top=670 | ❌ PCN→Taxpayer Type; Q20→Q21 |
+| R4 | text x=365 y=bir1904Y(150.6) maxW=40 | maxWidth=0 (disabled) | ❌ PCN→label row; Q20 missing |
+| R5 (this) | restored R1 | restored R1 | ✅ Correct |
+
+### Lessons
+
+#### L-BIR1904-R5-01 — Always check git history before re-deriving working coords
+When the user says "the previous version was correct," the FIRST step is `git log --oneline -- <file>` and `git show <commit>:<file> | grep <field>`. R2/R3/R4 wasted three rounds re-deriving coords from pdfplumber rect output when commit `4ea8174` already had verified working coords.
+
+#### L-BIR1904-R5-02 — Cell-rect output is ambiguous; verify by reading printed words inside the rect
+On BIR-1904 page 1 there are several small rects in the y=140-200 band:
+- top=140-150 → "2 PhilSys Card Number (PCN) (If Applicable)" **label rect** (printed text inside).
+- top=151-161 → PCN **data rect** (empty inside) ← target.
+- top=192-207 → Taxpayer Type checkbox row (not a data cell).
+
+Algorithm: for each candidate rect, `page.crop(rect).extract_text()`. If non-empty → it's a label/checkbox row, not a data cell. Choose the empty one between the label and the next labeled section.
+
+#### L-BIR1904-R5-03 — Substring text-extraction is unreliable when overlay overlaps printed text
+When pdf-lib draws "1234567890123456" at x=260,y=777.6 on top of a rect that already has BIR's printed "(If Applicable)" hint text, pdfplumber's `extract_text` interleaves characters: e.g. `O12ne3-T4i5m6e` instead of "1234567890123456" or "One-Time". Substring search returns False even when the overlay is correctly positioned.
+
+**Use visual crops (`pdftoppm -r 160` + PIL `crop`) as the source of truth, not text-extraction substring checks.** Reserve `extract_words` for word-position diagnosis only.
+
+#### L-BIR1904-R5-04 — Segmented date cells: text-mode is acceptable but pipes show through
+Q20 effectivity/expiry are segmented MM/DD/YYYY cells. Rendering as text (R1 approach) writes "01/15/2023" on top of the cell separators so the slashes overlap with the "|" dividers visually. Acceptable for shipped form. boxCenters per digit would clean this up but R1 ships text-mode.
+
+#### L-INFRA-01 — Production deploy requires `next build` before `systemctl restart`
+`quickformsph.service` runs `next start` (production), which serves `.next/server/chunks/*.js`. Editing `src/lib/pdf-generator.ts` and only restarting the service has zero effect — the compiled chunk still has the old coords. After restart, verify with:
+```
+grep -ho "philsys_pcn:{[^}]*}" .next/server/chunks/*.js
+```
+The output must reflect the new coords.
+
+
+---
+
+## Session 5 — BIR 1904 Round 6 (PCN + Q20 dates: actual fix)
+
+### Context
+Round 5 "restored R1 coords from commit 4ea8174" but visual verification with the user revealed R1 was ALSO wrong:
+- `philsys_pcn` x=260 rendered **outside** the white box, on top of the printed label.
+- `id_effectivity` x=355 / `id_expiry` x=470 rendered **outside the left edge** of their date columns.
+
+### Root cause of R5 mistake
+Trusting "git history shipped commit" without independent visual verification. The shipped R1 had been wrong all along; the user's complaint in Round 5 was the FIRST time anyone visually inspected the output carefully.
+
+### Lessons
+
+#### L-BIR1904-R6-01 — PIXEL TRUTH > rect extraction > git history
+When in doubt about cell boundaries, scan the empty source PDF rendered as PNG for **wide horizontal runs of white pixels** at the data-row Y. This gave the unambiguous answer:
+```python
+img = np.array(Image.open(src_png).convert('L'))
+strip = img[y_top:y_bot, :]
+white = (strip > 220).all(axis=0)
+# find runs > N pixels → those are data cells
+```
+For BIR-1904 page 1:
+- PCN data cell: **x=218.4–434.7** (width 216, single wide cell — NOT 16 segmented digit boxes despite what the rect data suggested)
+- Q20 Effectivity column: **x=363.9–478.8** (with sub-separators at 392.4 and 421.2)
+- Q20 Expiry column: **x=479.1–593.7** (with sub-separators at 507.3 and 536.1)
+
+#### L-BIR1904-R6-02 — Centering text in a cell with `pdf-lib drawText`
+`pdf-lib.drawText({x, y, maxWidth})` is **left-aligned**. To center a string of width W in a cell of width C starting at X0:
+```
+x = X0 + (C - W) / 2
+```
+Estimate text width: `Helvetica fontSize` × `0.5..0.6` × char count for digits and letters (PCN 16 chars at fs=10 ≈ 96pt; date "MM/DD/YYYY" at fs=9 ≈ 50pt).
+
+#### L-BIR1904-R6-03 — Working coords (verified, R6)
+```ts
+philsys_pcn:     { x: 278, y: bir1904Y(168.3) + 4, fontSize: 10, maxWidth: 156 },
+id_type:         { x:  27, y: bir1904Y(641.9),     fontSize:  8, maxWidth: 160 },
+id_number:       { x: 195, y: bir1904Y(641.9),     fontSize:  8, maxWidth: 165 },
+id_effectivity:  { x: 396, y: bir1904Y(641.9),     fontSize:  9, maxWidth:  80 },
+id_expiry:       { x: 511, y: bir1904Y(641.9),     fontSize:  9, maxWidth:  80 },
+```
+Rendered word-positions (pdfplumber.extract_words) confirm all values fall **inside** their respective cell boundaries.
+
+
+---
+
+## Session 5 — BIR 1904 Round 7 (full-page x-alignment sweep)
+
+### Context
+After R6 fixed PCN + Q20, user inspected the rest of the form and reported new
+misalignments: Taxpayer's Name (Q7), Place of Birth (Q9), Local Residence
+Address (Q10) sub-rows, Unit/Room/Floor/Building No., Subdivision, Barangay,
+Town, City, Province, ZIP, Foreign Address (Q11), Contact (Q16), Email (Q17),
+Mother's/Father's name (Q18/Q19) — all had x-coords that placed text either
+clipping the left border of the cell or rendered into an adjacent cell.
+
+### Lessons
+
+#### L-BIR1904-R7-01 — Apply pixel-truth column scan to ALL multi-cell rows
+The R6 methodology must be applied to every data row, not just the ones that
+look obviously wrong. A horizontal scan that returns wide white-pixel runs at
+each row's typed-text Y band yields the exact `[x_start, x_end]` of every
+column. Add a 2-3pt left margin to avoid clipping the left border.
+
+```python
+def cells_at(y_top_pt, y_bot_pt, min_run_pt=15):
+    py0=int(y_top_pt*sy); py1=int(y_bot_pt*sy)
+    strip = img[py0:py1, :]
+    col_white = (strip > 200).all(axis=0)   # threshold 200, not 230
+    # collect runs of consecutive True columns wider than min_run_pt
+```
+
+For BIR-1904 page 1, scanning the typed-text band (slightly inside the
+gridline-to-gridline data row) gave:
+
+| Row (y-band, top-down) | Cells (x-start..x-end) |
+|---|---|
+| Q7A names (285.6-302.4) | 32-176, 191-335, 350-479, 494-521, 537-579 |
+| Q7B reg name (315-330) | 32-579 (wide) |
+| Q7C estate (345-358) | 32-579 (wide) |
+| Q9 place-of-birth (362-376) | 393-579 |
+| Q10 unit/bldg/lot/street (400-415) | 32-118, 133-291, 307-406, 422-579 |
+| Q10 subd/brgy/town (427-441) | 32-205, 220-392, 407-579 |
+| Q10 city/prov/zip (455-468) | 32-262, 278-493, 508-579 |
+| Q11 foreign addr (491-505) | 32-478 |
+| Q16/Q17 contact/email (558-572) | 32-190, 220-579 |
+| Q18/Q19 mother/father (586-601) | 27-306, 307-593 |
+
+#### L-BIR1904-R7-02 — Don't trust copy-pasted maxWidth either
+Several R1 maxWidth values were larger than the cell width (e.g. last_name
+maxWidth=156 but cell width=144). pdf-lib happily wraps to second line if a
+long value fits maxWidth but overflows the cell. Always set maxWidth to
+`cell_width - 2*margin`.
+
+#### L-BIR1904-R7-03 — Email cell starts at 220, not 308
+The R1 author appears to have eyeballed Q17 email by aligning it with Q19
+father's-name (which DOES start at 308). But Q17 email cell is wider (the
+divider between contact and email is at x=210), so email should start at
+x≈222, not x=308.
+
+#### L-BIR1904-R7-04 — Working coords (verified visually on personas A & B)
+See `BIR1904_FIELD_COORDS` in `src/lib/pdf-generator.ts` for the final values.
+All x positions = pixel-truth cell start + 2-3pt margin; maxWidth = cell width
+minus margin.
+
+
+## R8 — BIR-1904 gray-cell skip + BIR-only fields (2026-04-26)
+
+**Issues reported by user:**
+- Item 20 (ID Effectivity / Expiry dates) misaligned — text drawn over digit-box gridlines.
+- Items 23 / 25 / 27 TIN rows wrote characters onto **gray dash separator cells**.
+- Item 23 also wrote on top of **preprinted "0" cells** at the end.
+- Items 1, 3, 5, 6, suffix, 7B, 7C, 11, 12, 13 had no/empty data.
+
+**Fixes applied (`src/lib/pdf-generator.ts`, `src/data/forms.ts`):**
+1. Added 3 BIR-only digit-box fields: `date_of_registration` (Q1, 8 cells), `rdo_code` (Q3, 3 cells), `municipality_code` (Q12, 5 cells). Y formula: `936 - 168.3 + (16.5 - 10*0.7) / 2`.
+2. Converted `id_effectivity` (Q20a) and `id_expiry` (Q20b) from free-text to 8-cell `boxCenters` each. Cell centers measured by pixel-truth scan of source PDF (240 DPI column intensity classify W/G/B).
+3. Trimmed `spouse_tin` (Q23) from 16 to **8 cells** — drop gray dashes (idx 2/6/10) AND preprinted "0" cells (idx 11–15).
+4. Trimmed `spouse_employer_tin` (Q25) from 16 to **13 cells** — drop gray dashes only (idx 2/6/10); last 5 cells are user-fillable.
+5. Trimmed `wa_tin` (Q27) from 17 to **14 cells** — drop gray dashes (idx 3/7/11).
+6. Added field defs in `forms.ts` for Q1/Q3/Q12 with `hint: 'To be filled out by BIR'`.
+7. Added defaults `['']` in `BIR1904_SKIP_VALUES` so undefined values don't crash the renderer.
+
+**Lessons:**
+- **L-BIR1904-R8-01 — When a row has visible vertical gridlines, free-text rendering looks misaligned even if X is correct.** Always convert digit-box rows to `boxCenters` regardless of fontSize fit. User perceives "misaligned" when chars span multiple cells.
+- **L-BIR1904-R8-02 — TIN dash separator cells are GRAY-shaded, not white.** Pixel-classify W/G/B columns and include only W (>220 mean intensity) cells in `boxCenters` arrays.
+- **L-BIR1904-R8-03 — Some TIN rows have preprinted "0" cells at the tail (Q23 spouse_tin individual taxpayer format ends with five "0"s).** Skip those cells too — overlaying digits would double-print.
+- **L-BIR1904-R8-04 — BIR-only fields (Date of Registration, RDO Code, Municipality Code) still need coords + schema entries** so QA personas can populate them, even though end-users won't fill them.
+- **L-BIR1904-R8-05 — `BIR1904_SKIP_VALUES` defaults required for new field IDs** to prevent rendering errors when value is undefined.
+
+**Verified working coords (R8):**
+| Field | y formula | fontSize | cells |
+|---|---|---|---|
+| date_of_registration | 936 − 168.3 + (16.5 − 7) / 2 | 10 | 8 |
+| rdo_code | (same) | 10 | 3 |
+| municipality_code | 936 − 507.6 + (16.5 − 7) / 2 | 10 | 5 |
+| id_effectivity | 936 − 641.9 + (17.4 − 6.3) / 2 | 9 | 8 |
+| id_expiry | (same) | 9 | 8 |
+| spouse_tin | 936 − 699.8 + (17.8 − 7) / 2 | 10 | 8 |
+| spouse_employer_tin | 936 − 738.0 + (17.7 − 7) / 2 | 10 | 13 |
+| wa_tin | 936 − 847.2 + (17.7 − 7) / 2 | 10 | 14 |
+
+Visual verification: persona A (Filipino) and persona B (foreign national) PDFs regenerated; all top-of-form / Q11 / Q12 / Q13 / Q20 / Q23 / Q25 / Q27 cells render correctly with no overprinting on gray cells.
+
+## R9 — BIR-2316 visible-tick-mark sweep (2026-04-26)
+
+Applied R8 learnings (L-BIR1904-R8-01 "visible gridlines → digit-boxes") proactively to BIR-2316 _Certificate of Compensation Payment / Tax Withheld_ (`bir-2316`).
+
+**Scope:** Audited every box on page 1 with pixel-truth column-intensity scan. Found that 17 fields were rendered as free-text but had visible per-digit tick marks in the source PDF.
+
+**Fixes applied (`src/lib/pdf-generator.ts` → `BIR2316_FIELD_COORDS`):**
+| Field | Old | New | Cells |
+|---|---|---|---|
+| `year` | maxWidth 46 | boxCenters | 4 |
+| `period_from`, `period_to` | maxWidth 46 | boxCenters | 4 each |
+| `emp_tin_1/2/3` | maxWidth 26 (single string) | boxCenters | 3 each |
+| `emp_tin_branch` | maxWidth 48 | boxCenters | 5 |
+| `emp_rdo` | maxWidth 26 | boxCenters | 3 |
+| `emp_reg_zip` | maxWidth 34 | boxCenters | 4 |
+| `emp_local_zip` | maxWidth 34 | boxCenters | 4 |
+| `emp_dob` | maxWidth 95 | boxCenters | 8 |
+| `emp_contact` | maxWidth 135 | boxCenters | 11 |
+| `pres_emp_tin_1/2/3/branch` | maxWidth | boxCenters | 3/3/3/5 |
+| `pres_emp_zip` | maxWidth 34 | boxCenters | 4 |
+| `prev_emp_tin_1/2/3/branch` | maxWidth | boxCenters | 3/3/3/5 |
+| `prev_emp_zip` | maxWidth 34 | boxCenters | 4 |
+| `present_emp_date_signed` | maxWidth 95 | boxCenters | 8 |
+| `employee_date_signed` | maxWidth 95 | boxCenters | 8 |
+| `ctc_date_issued` | maxWidth 95 | boxCenters | 8 |
+
+Free-text fields kept as-is (no visible tick marks in source): `emp_name`, addresses (`emp_reg_address`, `emp_local_address`, `emp_foreign_address`, `pres_emp_address`, `prev_emp_address`, `pres_emp_name`, `prev_emp_name`), `min_wage_per_day/month`, `ctc_no`, `ctc_place`, `ctc_amount`, all Part IVA / IV-B amounts.
+
+**Lessons:**
+- **L-BIR2316-R9-01 — Always pixel-truth scan a NEW form before declaring it "done."** Do not trust the original calibration done with a single high-DPI eyeball pass; visible tick marks are easy to miss when the box is small. Use the W/G/B column-intensity classifier on a 240 DPI render.
+- **L-BIR2316-R9-02 — Multi-segment TINs are usually triple-sub-celled per segment.** A "TIN First 3" cell is *not* a single 3-char box; it is **three** 12-13pt sub-cells. Same pattern for ZIP (4), RDO (3), Period MM/DD (4), Date (8), Year (4).
+- **L-BIR2316-R9-03 — Contact number cells exist on BIR-2316.** It looks like a single rectangle at first glance but has 11 sub-cells. Phone format `0917-555-1234` → digit-strip to 11 chars → fits perfectly. Use boxCenters even for non-pure-digit fields; the renderer already strips non-digits.
+- **L-BIR2316-R9-04 — y-formula for boxCenters:** `y = pdf_y_cell_bottom + (cell_h − fontSize × 0.7) / 2`. Where `pdf_y_cell_bottom` is the *lower* y in PDF coords (measured from page bottom). For BIR-2316 most rows have cell_h ≈ 20pt, fontSize 9 or 10.
+- **L-BIR2316-R9-05 — Empty values render correctly with boxCenters** (renderer skips when string is empty after digit-strip). Persona B verified blank `emp_local_zip`/`min_wage` produce empty boxes with no spurious chars.
+
+**Pixel-truth verification rule (mandatory for new forms):**
+```python
+# Render source at 240 DPI grayscale → numpy.
+# For each suspect row, scan column means in y-strip.
+# W = col_mean ≥ 200 (white user cell); runs of 8-22pt wide → sub-cell centers.
+# Skip runs <8pt (gray dashes) or >22pt (single-segment / merged fields).
+```
+
+PDFs verified visually:
+- [bir-2316--A.pdf](projects/quickformsph-dev/public/generated/bir-2316--A.pdf) — full data, all 17 fields aligned in cells.
+- [bir-2316--B.pdf](projects/quickformsph-dev/public/generated/bir-2316--B.pdf) — sparse data (no min wage, no previous employer, no local address, no CTC amount), empty boxes correctly preserved.
+
+---
+
+## R10 — BIR-1902 MVP Scaffold (April 26, 2026)
+
+Implemented a free-text overlay scaffold for BIR-1902 (Application for Registration —
+Individuals Earning Purely Compensation Income, October 2025 ENCS).
+
+**Deliverables:**
+- Schema: `src/data/forms.ts` — `bir1902` (~50 fields, 5 steps) appended to `FORMS` array.
+- Coords: `src/lib/pdf-generator.ts` — `BIR1902_FIELD_COORDS`, `BIR1902_SKIP_VALUES`,
+  registered in `FORM_PDF_CONFIGS`.
+- Personas: `/tmp/bir1902_persona_{a,b}.json` (Filipino single / resident-alien married).
+- Generated PDFs: `public/generated/bir-1902--{A,B}.pdf`, both reachable at
+  `http://localhost:3400/generated/bir-1902--{A,B}.pdf`.
+
+**Known caveats (R10b backlog):**
+- Field positions are roughly correct for top-of-page items but several fields land
+  on neighbouring rows (e.g. last_name overlaps the TIN-row label, TIN value lands
+  in the PCN box). A second pass with precise pdfplumber row inspection is needed.
+- 40-cell name/address rows render as single free-text overlay; per-cell digit
+  placement deferred per user direction ("MVP first").
+
+**Lessons:**
+
+- **L-BIR1902-R10-01 — INVERTED color rule still applies.** ns=0.749 (gray) cells
+  are user-fillable; ns=1.0 (white) + preprinted "0" are agency-only. Same as 1904.
+
+- **L-BIR1902-R10-02 — y_pdf vs pdfplumber `top` confusion.** BIR1904's helper
+  `bir1904Y(cellBottom) = 936 - cellBottom + 3` takes pdfplumber `bottom` (top-down,
+  large = lower on page). When pre-computing field locations as
+  `y_pdf-from-bottom` (large = higher on page), DO NOT pipe those values through
+  the same helper — invert. Quick rule: in pdfplumber `top` and PDF-coord-from-bottom
+  satisfy `top + y_pdf ≈ pageHeight`. BIR-1902 helper rewritten as
+  `bir1902Y(yPdfTop) => yPdfTop - 13` to consume y_pdf-from-bottom directly,
+  with -13 placing the baseline ~box-height inside the cell.
+
+- **L-BIR1902-R10-03 — Pre-printed defaults: omit field, no SKIP_VALUES.**
+  Tax Type / Form Type / ATC / DLN / "New TIN to be issued" are all preprinted
+  by BIR. Don't add to schema. Don't add SKIP_VALUES. Just leave out.
+  Same applies to: registration_date, rdo_code, municipality_code.
+
+- **L-BIR1902-R10-04 — Static asset re-registration after API write.**
+  Next.js 14 production-mode caches `public/` asset list at build time.
+  PDFs written via /api/generate AFTER `next build` return HTTP 404 when fetched
+  via `/generated/...` URL. Workflow: (a) build empty, (b) generate PDFs once,
+  (c) `next build` again so Next picks up the new files, (d) restart service.
+  Or: use the /api/preview/[code] route handler instead of static URL.
+
+- **L-BIR1902-R10-05 — Subagent (Explore) is read-only.** Tasks that require
+  writing code must be done by the main agent. Subagents can design schemas,
+  produce code blocks as text, and analyse files, but cannot edit/save files.
+
+- **L-BIR1902-R10-06 — Inline label-strip cells need x AFTER label-text-end, not just below.**
+  BIR-1902 Item 2 (PCN) has its label `2 PhilSys Card Number (PCN)` at top=142.4 x0=282
+  with the data-area as a WHITE inline strip on the SAME row to the RIGHT of the label
+  (NOT a row below). Setting `x: 280` placed digits OVER the label text. Setting
+  `y: yAt(157)`+ pushed text BELOW into the next gray strip ("Part I - Taxpayer/
+  Employee Information"). Working coords: `x: 460, y: yAt(152), fontSize: 6`.
+  Verification rule: when a BIR label has high x0 (~250+), the data-area is INLINE
+  to the right of the label, not below it. Use small fontSize (6-7pt) since the
+  inline cell height is only ~10pt.
+
+- **L-BIR1902-R10-07 — TIN/DOB/Date-MMDDYYYY fields MUST use boxCenters; freeform x+maxWidth**
+  **dumps overflowing string into single position.** BIR-1902 v11 had `tin`/`date_of_birth`/
+  `id_effectivity`/`id_expiry`/`spouse_tin`/`spouse_employer_tin` as freeform `x`+`maxWidth`
+  fields. They rendered the entire 12-digit string contiguously, overflowing the form's
+  visible digit-box separators. Renderer at line 3307-3324 already supports `boxCenters`
+  with auto-strip of non-digits — just provide cx array with one entry per box.
+  Approximate cx for ~14pt-spacing rows (no rect-extraction needed for first iteration):
+    TIN row 12-box (x≈25..200):  `[33,47,61,79,93,107,125,139,153,171,185,199]`
+    DOB 8-box MMDDYYYY (x≈25..145): `[33,47,65,79,97,111,125,139]`
+  Iterate via zoom-crop bands per MANDATORY QA rule.
+
+- **L-BIR1902-R10-08 — Pre-printed reserved-zero boxes must be EXCLUDED from boxCenters.**
+  BIR Schemas like "TIN — 12 digits (5 trailing 0s are agency-reserved)" mean the form
+  PRE-PRINTS the last 5 boxes with "0,0,0,0,0" and only the first 7 are user-input.
+  But sample data may store full 12 digits. Decision: provide all 12 boxCenters and let
+  the user-data render across all 12 boxes (trailing 5 will overlap the pre-printed
+  zeros — acceptable since user's last 5 should be 0 anyway if data is well-formed).
+  If sample's last 5 ≠ 0, it's a data validation issue (flag for reviewer). Tightening
+  cx range to first 7 only would silently truncate well-formed 12-digit data.
+
+- **L-BIR1902-R10-v11 — Per-item alignment via `yBeforeNext`/`yAt` helpers from extracted label tops.**
+  After R10 v1-v5 left visible label/value overlap on items 1-7, 21, 22, 26-27, the v6-v11
+  refinement pass adopted a two-helper pattern in `pdf-generator.ts`:
+  ```ts
+  const yBeforeNext = (nextLabelTop: number) => 936 - (nextLabelTop - 4);
+  const yAt = (baselineTop: number) => 936 - baselineTop;
+  ```
+  Source-of-truth: extract every item's bold-digit `top` from the BIR PDF via
+  `pdfplumber.extract_words()` filtered to digit-text 1-27. Free-text values use
+  `yBeforeNext(nextItemTop)` to baseline near the bottom of the data area; inline
+  caption rows (Issuer, Mobile/Fax/Landline, Email, Spouse Last/First) use `yAt`
+  with the data-row top extracted from gray rect cells (ns=0.749) at the row's `top+h`.
+  Required for items where caption sits BELOW the data row inside the same gray strip.
+
+- **L-BIR1902-R10-v11 — Wire `BIR1902_CHECKBOX_COORDS` into `FORM_PDF_CONFIGS` for chevron items.**
+  BIR-1902 has 5 chevron-checkbox items (5 Taxpayer Type, 7 Gender, 8 Civil Status,
+  22 Preferred Contact Type, 23 Spouse Employment Status). Initially registered with
+  only `fieldCoords` + `skipValues` → values rendered as overlapping text strings on
+  the chevron labels. Fix: define `BIR1902_CHECKBOX_COORDS: Record<string, Record<value, {x,y}>>`
+  with one `(x,y)` per dropdown option (matching schema's `options:` array EXACTLY —
+  e.g., 'Employed in the Philippines' not 'Employed Locally') and add
+  `checkboxCoords: BIR1902_CHECKBOX_COORDS` to the slug's config entry. The renderer's
+  `checkboxEntry` lookup at line ~2770 then writes a ✓ glyph at the correct chevron.
+
+- **L-BIR1902-R10-v11 — `next build` fails with ENOENT on `.next/export-detail.json` and
+  `_not-found/page.js.nft.json` when service is running with `next start`.** The active
+  systemd service holds file handles in `.next/`; even after `rm -rf .next`, build's
+  static-export and trace-collection phases race. Workaround: `systemctl stop quickformsph`
+  → `rm -rf .next` → `npx next build` → `systemctl start quickformsph`. Do not rely on
+  `mkdir + touch` placeholder shims — the trace-collector recurses across all routes and
+  discovers more missing artifacts.
+
+### L-AUTOPOP-01 — `autoPopulate()` bypassed `field.autoUppercase` transform (2026-04-26)
+
+**Problem.** "Fill with sample data" wrote sample objects directly to form state via
+`setValues(pick)` without consulting the FormSchema. Lowercase sample literals like
+`citizenship: 'Filipino'` rendered into the PDF as-is even though the schema field
+declared `autoUppercase: true` — only manually-typed input went through the
+uppercase transform (in the input `onChange` handler at the input-element level).
+
+**Fix.** In `src/app/forms/[slug]/page.tsx` `autoPopulate()`, walk the picked
+sample row, look up each key's schema field via `form.fields.find(...)`, and apply
+`val.toUpperCase()` whenever `field.autoUppercase === true`. Pass the transformed
+object to both `setValues` and `saveDraft` so resumed drafts also stay consistent.
+
+**Ripple.** Applies to all forms whose schemas declare `autoUppercase`: BIR-1902,
+BIR-1904, BIR-2316, the Pag-IBIG HLF/SLF/PFF forms, etc. After the fix, all 15
+smoke tests still pass and PDFs are unchanged for samples that were already
+uppercase-cased; lowercase ones (e.g. lazy persona drafts) now self-correct.
+
+**Lesson.** Schema-driven UI transforms must be applied in **every** path that
+writes to form state (manual onChange, sample-fill, draft-resume, paste-handlers),
+not just the canonical input-element. When a transform belongs to the schema
+(`autoUppercase`, future `trim`, `digitsOnly`, etc.), centralise it in a helper
+like `applyFieldTransforms(field, value)` and call it from every write path.
+
+### L-BIR1902-R11-01 — Empirical cx derivation via pdfplumber rect + 300dpi edge detection (2026-04-27)
+
+**Symptom.** On BIR-1902 page 1 the TIN row (top≈199) and Date-of-Birth row (top≈305) digits drifted left of cell centers — the leading "0" of `'03/15/1995'` rendered so far left it appeared cut off, and TIN digit 12 collided with the form's pre-printed reserved-zero region.
+
+**Root cause.** The legacy `boxCenters` were hand-transcribed approximations (`tin: [33,47,61,79,93,107,125,139,153,171,185,199]` with non-uniform spacing 14/14/18/14/14/18/…). The form actually uses a **uniform 14.3pt cell grid** for these rows; the irregular spacing came from someone trying to compensate for an unrelated x0-vs-cx confusion.
+
+**Methodology (verified working).**
+1. **Open form via pdfplumber and dump rects** with `width ∈ [8,16]`, `height ∈ [7,16]` — the digit-cell rects are ~14pt × ~14pt; group by `top` (rounded to 1pt) to find rows.
+2. **Cross-check with image edge detection** — `pdftoppm -r 300` the blank form, slice a horizontal band around the row, compute column-mean darkness, apply a high-pass filter (`sharp = col_dark − gaussian_smooth(col_dark, σ=4)`), then peak-cluster within 8px to recover vertical-line positions in points (px/4.1667).
+3. For TIN row (top≈199-208), pdfplumber → 12 contiguous cells at uniform 14.3pt; image edge detection confirmed line edges at [31.8, 46.2, 60.0, 75.4, 89.6, 104.0, 118.3, 133.0, 147.2, 161.6, 175.9, 190.6] + extrapolated 205.0 → centers = midpoints.
+4. For DOB row (top≈305-315), the layout is **10 cells starting at x=25.0 with 14.3pt spacing**; cells at indices 2 and 5 are pre-printed "/" separator cells (skip when emitting digits). Digit cells = positions 0,1,3,4,6,7,8,9.
+
+**New cx values (in `BIR1902_FIELD_COORDS`):**
+- `tin.boxCenters` = `[39, 53.1, 67.7, 82.5, 96.8, 111.2, 125.6, 140.1, 154.4, 168.8, 183.2, 197.8]`
+- `date_of_birth.boxCenters` = `[25, 39.1, 67.7, 81.7, 110.5, 124.8, 139, 153.4]`
+
+**Earlier wrong assumption.** I previously claimed pdfplumber returned 0 vline edges in the TIN region and gave up. Wrong: pdfplumber returns ~6949 rects on page 1 (the form is rect-heavy, not line-heavy). **Always inspect rect output, not just `vlines`/`hlines`, when grids look empty.**
+
+**Untouched.** `id_effectivity`, `id_expiry`, `spouse_tin`, `spouse_employer_tin`, `philsys_pcn` already rendered correctly per visual QA, so their boxCenters were left as-is.
+
+**Sample-data validator hardening.** Discovered while running this pass: `scripts/check-sample-data.ts` was silently failing 8 forms with `todayMaskedDate is not defined` because samples now reference helper functions. Fixed by injecting stubs (`const todayMaskedDate = () => '01/01/2025'`) into the sandboxed `new Function` context. Validator now passes 2464 checks across 15 forms.
+
+### L-FIELDXFORM-01 — Centralise field-value transforms in `applyFieldTransforms` helper (2026-04-27)
+
+**Rule (applies to every new form intake).** When a `FormField` schema flag implies a value transformation (`autoUppercase` today; future: `trim`, `digitsOnly`, `padStart`, etc.), the transform MUST be applied through `src/lib/field-transforms.ts::applyFieldTransforms(field, value)`. **Never inline `value.toUpperCase()` (or similar) at a call site** — duplicate transforms drift apart. L-AUTOPOP-01 was caused exactly by this: the input `onChange` had `field.autoUppercase ? e.target.value.toUpperCase() : e.target.value`, but `autoPopulate()` wrote sample values via `setValues` directly, so samples rendered lowercase in the PDF.
+
+**Helper API.**
+```ts
+import { applyFieldTransforms, applyFieldTransformsRecord } from '@/lib/field-transforms';
+
+// Single value (input onChange, autocomplete pick, programmatic setter):
+onChange(applyFieldTransforms(field, rawValue));
+
+// Whole record (autoPopulate, bulk import, draft restore):
+const transformed = applyFieldTransformsRecord(form?.fields, sampleRecord);
+```
+
+**Adding a new transform flag.**
+1. Declare the flag on `FormField` in `src/data/forms.ts` (e.g. `digitsOnly?: boolean`).
+2. Add ONE branch inside `applyFieldTransforms` in `src/lib/field-transforms.ts`. Order matters if transforms compose — currently uppercase runs last so uppercased letters are never re-lowered.
+3. Update `scripts/generate-field-dictionaries.ts` to emit the new flag in the validation column.
+4. Add a sample-data check to `scripts/check-sample-data.ts` if the flag should reject malformed sample values.
+5. **Do NOT** add the transform anywhere else. Grep for the flag name to confirm: `grep -rn "field\.<flagName>" src/` should return only `field-transforms.ts`.
+
+**Call sites currently consolidated (2026-04-27).**
+- `src/app/forms/[slug]/page.tsx` autoPopulate (~line 1810) — uses `applyFieldTransformsRecord`
+- `src/app/forms/[slug]/page.tsx` input onChange (~line 2460) — uses `applyFieldTransforms`
+- `src/app/forms/[slug]/page.tsx` autocomplete onMouseDown (~line 2538) — uses `applyFieldTransforms`
+
+**Verification after refactor.** `npx tsc --noEmit` clean; `npm run test:samples` → 2464 field-checks pass across 15 forms; `next build` clean; production service active on port 3400.
+
+### L-PRECOMMIT-01 — Husky pre-commit gate runs tsc + npm test (2026-04-27)
+
+**Goal.** Block commits that introduce schema regressions, missing PDF coords, sample-data drift, or PDF-generation crashes. Catches the bug class fixed in L-AUTOPOP-01 / L-FIELDXFORM-01 / the 14-form sample sweep before they reach `main`.
+
+**Setup (one-time on a fresh clone).**
+```bash
+cd ~/projects/quickformsph-dev
+npm install            # `prepare` script runs `husky` automatically and wires .git/hooks
+```
+
+**Pre-commit hook (`.husky/pre-commit`).** Runs in this order, fail-fast:
+1. `npx tsc --noEmit` — catches type drift across `src/data/forms.ts` ↔ `src/lib/pdf-generator.ts` ↔ `src/app/forms/[slug]/page.tsx`.
+2. `npm test` which is the alias for:
+   - `test:coverage` — every `FormSchema.fields[].id` has a `fieldCoords` / `checkboxCoords` entry, or is whitelisted in `skipValues`.
+   - `test:samples` — every `required: true` field non-empty AND every `dropdown` value is in its `options` array. 2464 field-checks across 15 forms today.
+   - `test:smoke` — in-process `generatePDF()` for every form with deterministic random data; non-zero exit on any form crash.
+
+**Wall-clock cost.** ~12-18s on dev hardware. Acceptable. Smoke is the slowest contributor; if it grows past ~30s, split it into a pre-push hook instead.
+
+**Bypass.** `git commit --no-verify` exists as an emergency escape — flag any use in code review.
+
+**New-form-intake checklist (must satisfy before commit).**
+- [ ] `FORMS` entry in `src/data/forms.ts` with proper field types/required flags
+- [ ] `fieldCoords` (and/or `checkboxCoords` / `skipValues`) entry in `pdf-generator.ts` so `test:coverage` passes
+- [ ] At least 2 sample rows in `samplesBySlug` covering all required fields and dropdown enums
+- [ ] In-process render works (`test:smoke` PASS)
+- [ ] No raw `value.toUpperCase()` (or other transforms) inline — use `applyFieldTransforms` per L-FIELDXFORM-01
+
+**Verification today.** Hook executed locally end-to-end: tsc clean → coverage pass → samples 2464/2464 pass → smoke 15/15 PDFs generated successfully.
+
+### L-UPPERAUDIT-01 — autoUppercase lowercase-leak audit script (2026-04-27)
+
+**Purpose.** A one-shot audit + ongoing CI gate that flags every `samplesBySlug` literal in `src/app/forms/[slug]/page.tsx` whose value contains lowercase letters AND whose schema field is marked `autoUppercase: true`.
+
+**Why this matters even though runtime is correct.** After L-FIELDXFORM-01 made `applyFieldTransforms` the single source of truth for uppercasing, runtime behaviour is correct regardless of the source-literal casing. But mixed-case sample literals are misleading:
+1. Maintainers reading samples assume "what you see is what renders" — wrong.
+2. If anyone ever adds a code path that bypasses the helper (e.g. an export-to-CSV feature copying the raw record), the lowercase reappears.
+3. Diffs to "fix casing" become noisy because the casing is implicit, not declared.
+
+**Script.** `scripts/audit-uppercase-leaks.ts`, exposed via `npm run audit:uppercase`. Reuses the bracket-balanced literal extractor from `check-sample-data.ts`, evaluates each sample record, then for every field where `field.autoUppercase === true` checks `/[a-z]/.test(value)`. Exit 0 = clean, 1 = leaks.
+
+**Initial run (2026-04-27).** 141 leaks across 15 forms (706 value-checks). Most concentrated in address fields (`street`, `barangay`, `city`, `province`), facility names, and diagnosis text. Cleanup not yet performed — pending Mai review (some PHIC diagnosis strings may be deliberately title-case to match agency style guides; she should confirm before mass-uppercasing).
+
+**Wiring.**
+- `package.json`: added `"audit:uppercase": "npx tsx scripts/audit-uppercase-leaks.ts"` under scripts.
+- NOT (yet) included in pre-commit `npm test` — would block all current commits with 141 errors. Promote to the pre-commit chain after the cleanup pass.
+
+**New-form-intake rule.** When you add samples for a new form, run `npm run audit:uppercase` and fix any leak before committing. Once existing leaks are cleaned, this becomes part of the standard gate (move into the `test` alias).

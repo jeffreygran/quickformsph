@@ -322,7 +322,7 @@ export default function HomePage() {
             aria-label="QuickFormsPH"
           >
             <Image
-              src="/quickformsph-logo-transparent-slogan.png"
+              src="/quickformsph-logo-transparent-slogan2.png"
               alt="QuickFormsPH"
               width={180}
               height={48}
@@ -512,7 +512,10 @@ export default function HomePage() {
           {/* Search bar */}
           <div className="mx-auto mt-6 max-w-md">
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔍</span>
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
               <input
                 type="search"
                 placeholder="Search forms (e.g. MP2, Pag-IBIG, BIR…)"
@@ -552,7 +555,7 @@ export default function HomePage() {
               {a}
             </button>
           ))}
-          <span className="ml-auto flex-shrink-0 whitespace-nowrap rounded-full bg-gray-100 border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500">
+          <span className="ml-auto flex-shrink-0 whitespace-nowrap px-2 py-1.5 text-xs font-medium text-gray-400">
             {filtered.length} form{filtered.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -566,9 +569,9 @@ export default function HomePage() {
             <p className="text-sm">No forms match your search.</p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
             {search.trim() && visibleForms.map((form, i) => (
-              <div key={form.slug} className="form-card-animate" style={{ animationDelay: `${i * 50}ms` }}>
+              <div key={form.slug} className="form-card-animate h-full" style={{ animationDelay: `${i * 50}ms` }}>
                 <FormCard form={form} />
               </div>
             ))}
@@ -686,7 +689,7 @@ function PrivacyNoticeModal({ onAck }: { onAck: () => void }) {
 const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
   'Bureau of Internal Revenue': { src: '/logos/bir.png', w: 40, h: 40 },
   'Pag-IBIG Fund':              { src: '/logos/pagibig.png', w: 40, h: 40 },
-  'PhilHealth':                 { src: '/logos/philhealth.png', w: 80, h: 24 },
+  'PhilHealth':                 { src: '/logos/philhealth.png', w: 110, h: 25 },
 };
 
 // ─── FormCard ─────────────────────────────────────────────────────────────────
@@ -695,7 +698,7 @@ function FormCard({ form }: { form: FormSchema }) {
   return (
     <Link
       href={`/forms/${form.slug}`}
-      className="form-card p-5 block"
+      className="form-card p-5 flex flex-col h-full"
       onClick={() => trackEvent('form_view', form.slug)}
     >
       <div className="flex items-start justify-between gap-2">
@@ -706,15 +709,14 @@ function FormCard({ form }: { form: FormSchema }) {
             <span className="text-2xl">📄</span>
           )}
         </div>
-        <span className="rounded-full bg-blue-50 border border-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 uppercase tracking-wide whitespace-nowrap">{form.agency}</span>
+        <span className="px-1 py-0.5 text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap meta-fade-in">{form.agency}</span>
       </div>
       <div className="mt-3">
-        <div className="text-xs font-mono text-gray-400 mb-0.5">{form.code}</div>
-        <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-3">{form.name}</h3>
+        <div className="text-xs font-mono text-gray-400 mb-0.5 meta-fade-in">{form.code}</div>
+        <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-3 min-h-[3.75rem]">{form.name}</h3>
       </div>
-      <div className="mt-4 flex items-center justify-between">
-        <span className="text-xs text-gray-400">{form.fields.length} fields</span>
-        <span className="text-xs font-semibold text-blue-700">Fill Now →</span>
+      <div className="mt-auto pt-4 flex items-center justify-between">
+        <span className="text-xs text-gray-300 fields-fade-in">{form.fields.length} fields</span>
       </div>
     </Link>
   );

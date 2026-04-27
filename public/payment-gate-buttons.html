@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PaymentGate — Button Layout Options</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #e8f0fe 0%, #f0f9ff 50%, #e0f2fe 100%);
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #374151;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    opacity: .6;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .card-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #6b7280;
+    background: white;
+    border-radius: 999px;
+    padding: 4px 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+  /* Shared dialog card */
+  .dialog {
+    width: 340px;
+    background: white;
+    border-radius: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.13), 0 4px 16px rgba(0,0,0,.06);
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,.06);
+  }
+  /* Banner */
+  .banner {
+    width: 100%;
+    height: 110px;
+    background: linear-gradient(160deg, #3b82f6 0%, #60a5fa 60%, #93c5fd 100%);
+    background-image: url('/standard-banner.png');
+    background-size: cover;
+    background-position: top center;
+    position: relative;
+  }
+  .close-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(0,0,0,.2);
+    color: white;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border: none;
+  }
+  .logo-wrap {
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translate(-50%, 50%);
+    width: 60px; height: 60px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid #e5e7eb;
+  }
+  .logo-wrap img { width: 38px; height: 38px; object-fit: contain; }
+  .dialog-body { padding: 44px 24px 24px; text-align: center; }
+  .form-code { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #3b82f6; margin-bottom: 2px; }
+  .form-name { font-size: 13px; font-weight: 700; color: #111827; margin-bottom: 16px; line-height: 1.4; }
+  .access-title { font-size: 18px; font-weight: 600; color: #6b7280; margin-bottom: 18px; }
+
+  /* ── LAYOUT A: Gradient Hero Cards ──────────────────────────────── */
+  .la .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .la .btn {
+    border-radius: 18px; border: none; cursor: pointer;
+    padding: 16px 8px; display: flex; flex-direction: column;
+    align-items: center; gap: 6px;
+    transition: transform .15s, box-shadow .15s;
+    position: relative; overflow: hidden;
+  }
+  .la .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.15); }
+  .la .btn:active { transform: scale(.97); }
+  .la .btn-demo {
+    background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+    border: 1.5px solid #e5e7eb;
+  }
+  .la .btn-pay {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow: 0 4px 16px rgba(34,197,94,.35);
+  }
+  .la .btn-pay:hover { box-shadow: 0 8px 28px rgba(34,197,94,.45); }
+  .la .icon { font-size: 26px; }
+  .la .btn-label { font-size: 13px; font-weight: 800; }
+  .la .btn-demo .btn-label { color: #374151; }
+  .la .btn-pay .btn-label { color: white; }
+  .la .btn-sub { font-size: 10px; }
+  .la .btn-demo .btn-sub { color: #9ca3af; }
+  .la .btn-pay .btn-sub { color: rgba(255,255,255,.8); }
+  .la .promo { font-size: 11px; color: #9ca3af; margin-top: 12px; cursor: pointer; }
+  .la .promo:hover { color: #4b5563; text-decoration: underline; }
+
+  /* ── LAYOUT B: Asymmetric Dominant CTA ──────────────────────────── */
+  .lb .btn-demo-sm {
+    display: flex; align-items: center; gap: 10px;
+    border-radius: 14px; padding: 12px 16px;
+    background: #f9fafb; border: 1.5px solid #e5e7eb;
+    cursor: pointer; width: 100%; margin-bottom: 10px;
+    transition: background .15s, border-color .15s;
+    text-align: left;
+  }
+  .lb .btn-demo-sm:hover { background: #f3f4f6; border-color: #d1d5db; }
+  .lb .demo-icon { font-size: 22px; }
+  .lb .demo-text .t1 { font-size: 13px; font-weight: 700; color: #374151; }
+  .lb .demo-text .t2 { font-size: 10px; color: #9ca3af; }
+  .lb .btn-pay-big {
+    width: 100%; border-radius: 18px; padding: 18px 16px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 6px 24px rgba(16,185,129,.4);
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .lb .btn-pay-big:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(16,185,129,.5); }
+  .lb .btn-pay-big:active { transform: scale(.98); }
+  .lb .pay-icon { font-size: 28px; }
+  .lb .pay-text .t1 { font-size: 16px; font-weight: 800; color: white; text-align: left; }
+  .lb .pay-text .t2 { font-size: 11px; color: rgba(255,255,255,.75); text-align: left; }
+  .lb .promo { font-size: 11px; color: #9ca3af; margin-top: 12px; cursor: pointer; text-align: center; }
+  .lb .promo:hover { color: #4b5563; text-decoration: underline; }
+
+  /* ── LAYOUT C: Horizontal Pill Stack ────────────────────────────── */
+  .lc .btn-pill {
+    display: flex; align-items: center; gap: 14px;
+    border-radius: 999px; padding: 13px 20px;
+    cursor: pointer; width: 100%; margin-bottom: 8px;
+    transition: transform .12s, box-shadow .12s;
+    border: none; text-align: left;
+  }
+  .lc .btn-pill:last-of-type { margin-bottom: 0; }
+  .lc .btn-pill:hover { transform: scale(1.02); }
+  .lc .btn-pill:active { transform: scale(.98); }
+  .lc .pill-demo { background: #f3f4f6; border: 1.5px solid #e5e7eb; }
+  .lc .pill-pay {
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+    box-shadow: 0 4px 20px rgba(59,130,246,.35);
+  }
+  .lc .pill-pay:hover { box-shadow: 0 6px 28px rgba(59,130,246,.45); }
+  .lc .pill-icon { font-size: 22px; flex-shrink: 0; }
+  .lc .pill-demo .pill-label { color: #374151; font-size: 13px; font-weight: 700; }
+  .lc .pill-demo .pill-sub { color: #9ca3af; font-size: 10px; }
+  .lc .pill-pay .pill-label { color: white; font-size: 13px; font-weight: 700; }
+  .lc .pill-pay .pill-sub { color: rgba(255,255,255,.75); font-size: 10px; }
+  .lc .pill-arrow { margin-left: auto; color: #d1d5db; font-size: 14px; }
+  .lc .pill-pay .pill-arrow { color: rgba(255,255,255,.5); }
+  .lc .promo { font-size: 11px; color: #9ca3af; margin-top: 12px; cursor: pointer; text-align: center; }
+  .lc .promo:hover { color: #4b5563; text-decoration: underline; }
+
+  /* ── LAYOUT D: Badge + Icon Cards (3-option) ────────────────────── */
+  .ld .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .ld .btn-card {
+    border-radius: 18px; padding: 14px 8px 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    cursor: pointer; border: none;
+    transition: transform .12s, box-shadow .12s;
+    position: relative;
+  }
+  .ld .btn-card:hover { transform: translateY(-3px); }
+  .ld .btn-card:active { transform: scale(.97); }
+  .ld .card-demo {
+    background: white;
+    border: 1.5px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  .ld .card-demo:hover { box-shadow: 0 6px 20px rgba(0,0,0,.1); border-color: #d1d5db; }
+  .ld .card-pay {
+    background: linear-gradient(145deg, #ecfdf5, #d1fae5);
+    border: 2px solid #34d399;
+    box-shadow: 0 4px 16px rgba(52,211,153,.25);
+  }
+  .ld .card-pay:hover { box-shadow: 0 8px 28px rgba(52,211,153,.4); }
+  .ld .badge {
+    font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 999px; margin-bottom: 4px;
+  }
+  .ld .card-demo .badge { background: #f3f4f6; color: #6b7280; }
+  .ld .card-pay .badge { background: #d1fae5; color: #059669; }
+  .ld .big-icon { font-size: 28px; }
+  .ld .card-label { font-size: 13px; font-weight: 800; }
+  .ld .card-demo .card-label { color: #374151; }
+  .ld .card-pay .card-label { color: #065f46; }
+  .ld .card-sub { font-size: 9.5px; }
+  .ld .card-demo .card-sub { color: #9ca3af; }
+  .ld .card-pay .card-sub { color: #059669; }
+  .ld .btn-promo-full {
+    width: 100%; border-radius: 14px; padding: 11px 16px;
+    background: linear-gradient(90deg, #f8faff, #eff6ff);
+    border: 1.5px dashed #bfdbfe; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: background .15s; text-align: center;
+  }
+  .ld .btn-promo-full:hover { background: #eff6ff; border-color: #93c5fd; }
+  .ld .promo-icon { font-size: 16px; }
+  .ld .promo-text { font-size: 11px; font-weight: 600; color: #3b82f6; }
+</style>
+</head>
+<body>
+
+<h1>PaymentGate — Button Layout Options</h1>
+
+<div class="grid">
+
+  <!-- ── LAYOUT A ─────────────────────────────────────────────────── -->
+  <div class="card-wrap">
+    <div class="label">A — Gradient Hero Cards</div>
+    <div class="dialog la">
+      <div class="banner">
+        <button class="close-btn">×</button>
+        <div class="logo-wrap">
+          <img src="http://192.168.79.11:3400/logos/pagibig.png" alt="Pag-IBIG" />
+        </div>
+      </div>
+      <div class="dialog-body">
+        <div class="form-code">HQP-PFF-049</div>
+        <div class="form-name">Member's Change of Information Form (MCIF)</div>
+        <div class="access-title">How would you like to access?</div>
+        <div class="btn-grid">
+          <button class="btn btn-demo">
+            <span class="icon">🧪</span>
+            <span class="btn-label">Demo</span>
+            <span class="btn-sub">Try it out, first</span>
+          </button>
+          <button class="btn btn-pay">
+            <span class="icon">💚</span>
+            <span class="btn-label">Donate ₱5</span>
+            <span class="btn-sub">24-hr full access</span>
+          </button>
+        </div>
+        <div class="promo">I have a promo code.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LAYOUT B ─────────────────────────────────────────────────── -->
+  <div class="card-wrap">
+    <div class="label">B — Asymmetric Dominant CTA</div>
+    <div class="dialog lb">
+      <div class="banner">
+        <button class="close-btn">×</button>
+        <div class="logo-wrap">
+          <img src="http://192.168.79.11:3400/logos/pagibig.png" alt="Pag-IBIG" />
+        </div>
+      </div>
+      <div class="dialog-body">
+        <div class="form-code">HQP-PFF-049</div>
+        <div class="form-name">Member's Change of Information Form (MCIF)</div>
+        <div class="access-title">How would you like to access?</div>
+        <button class="btn-demo-sm">
+          <span class="demo-icon">🧪</span>
+          <div class="demo-text">
+            <div class="t1">Demo Mode</div>
+            <div class="t2">Try it out first, no commitment</div>
+          </div>
+        </button>
+        <button class="btn-pay-big">
+          <span class="pay-icon">💚</span>
+          <div class="pay-text">
+            <div class="t1">Donate ₱5 — Get Full Access</div>
+            <div class="t2">24-hour unlimited access · Instant</div>
+          </div>
+        </button>
+        <div class="promo">I have a promo code.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LAYOUT C ─────────────────────────────────────────────────── -->
+  <div class="card-wrap">
+    <div class="label">C — Horizontal Pill Stack</div>
+    <div class="dialog lc">
+      <div class="banner">
+        <button class="close-btn">×</button>
+        <div class="logo-wrap">
+          <img src="http://192.168.79.11:3400/logos/pagibig.png" alt="Pag-IBIG" />
+        </div>
+      </div>
+      <div class="dialog-body">
+        <div class="form-code">HQP-PFF-049</div>
+        <div class="form-name">Member's Change of Information Form (MCIF)</div>
+        <div class="access-title">How would you like to access?</div>
+        <button class="btn-pill pill-demo">
+          <span class="pill-icon">🧪</span>
+          <div>
+            <div class="pill-label">Demo</div>
+            <div class="pill-sub">Try it out, first</div>
+          </div>
+          <span class="pill-arrow">›</span>
+        </button>
+        <button class="btn-pill pill-pay">
+          <span class="pill-icon">💚</span>
+          <div>
+            <div class="pill-label">Donate ₱5 — Full Access</div>
+            <div class="pill-sub">24-hr access · Instant unlock</div>
+          </div>
+          <span class="pill-arrow">›</span>
+        </button>
+        <div class="promo">I have a promo code.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LAYOUT D ─────────────────────────────────────────────────── -->
+  <div class="card-wrap">
+    <div class="label">D — Badge Cards + Promo Row</div>
+    <div class="dialog ld">
+      <div class="banner">
+        <button class="close-btn">×</button>
+        <div class="logo-wrap">
+          <img src="http://192.168.79.11:3400/logos/pagibig.png" alt="Pag-IBIG" />
+        </div>
+      </div>
+      <div class="dialog-body">
+        <div class="form-code">HQP-PFF-049</div>
+        <div class="form-name">Member's Change of Information Form (MCIF)</div>
+        <div class="access-title">How would you like to access?</div>
+        <div class="btn-grid">
+          <button class="btn-card card-demo">
+            <span class="badge">Free</span>
+            <span class="big-icon">🧪</span>
+            <span class="card-label">Demo</span>
+            <span class="card-sub">Try it first</span>
+          </button>
+          <button class="btn-card card-pay">
+            <span class="badge">Recommended</span>
+            <span class="big-icon">💚</span>
+            <span class="card-label">Donate ₱5</span>
+            <span class="card-sub">24-hr full access</span>
+          </button>
+        </div>
+        <button class="btn-promo-full">
+          <span class="promo-icon">🎟️</span>
+          <span class="promo-text">I have a promo code</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -112,7 +112,7 @@ export default function JoinPage() {
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white shadow-sm">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-2.5">
           <Link href="/">
-            <Image src="/quickformsph-logo-transparent-slogan.png" alt="QuickFormsPH" width={140} height={36} className="h-8 w-auto" />
+            <Image src="/quickformsph-logo-transparent-slogan2.png" alt="QuickFormsPH" width={140} height={36} className="h-8 w-auto" />
           </Link>
           <Link href="/" className="text-xs text-gray-500 hover:text-blue-700 transition-colors">← Back to Forms</Link>
         </div>
