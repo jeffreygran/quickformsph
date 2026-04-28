@@ -957,82 +957,103 @@ const CF2_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number;
 //   PRC + Date Signed ........... top≈881 → y=127
 const CF3_PAGE_H = 1008.0;
 const CF3_FIELD_COORDS: CoordsMap = {
-  // ── Header row: HCI PAN + HCI Name ──
-  hci_pan:                   { page: 0, x:  60, y: CF3_PAGE_H - 175, maxWidth: 200 },
-  hci_name:                  { page: 0, x: 280, y: CF3_PAGE_H - 175, maxWidth: 320 },
+  // ── Q1 PAN + HCI Name (single label row + underline below) ──
+  // Row 1 (label):     "1. PhilHealth Accreditation No (PAN) - Institutional Health Care Provider:"
+  // Row 2 (underline): PAN | HCI Name share underline; PAN occupies left ~140pt, HCI name remainder.
+  hci_pan:                   { page: 0, x: 442, y: CF3_PAGE_H - 175, maxWidth:  85, fontSize: 7 },
+  hci_name:                  { page: 0, x:  60, y: CF3_PAGE_H - 215, maxWidth: 540 },
 
-  // ── Patient Name row (Last, First, Ext, Middle) ──
-  patient_last_name:         { page: 0, x:  60, y: CF3_PAGE_H - 218, maxWidth: 130 },
-  patient_first_name:        { page: 0, x: 195, y: CF3_PAGE_H - 218, maxWidth: 130 },
-  patient_name_ext:          { page: 0, x: 330, y: CF3_PAGE_H - 218, maxWidth:  40 },
-  patient_middle_name:       { page: 0, x: 380, y: CF3_PAGE_H - 218, maxWidth: 130 },
+  // ── Q2 Patient Name row (Last, First, Middle, Ext) ──
+  // Underline tops≈233, baselines≈242. y_pdflib = 1008 - 242 = 766.
+  patient_last_name:         { page: 0, x:  60, y: CF3_PAGE_H - 242, maxWidth: 130 },
+  patient_first_name:        { page: 0, x: 200, y: CF3_PAGE_H - 242, maxWidth: 130 },
+  patient_middle_name:       { page: 0, x: 340, y: CF3_PAGE_H - 242, maxWidth: 130 },
+  patient_name_ext:          { page: 0, x: 480, y: CF3_PAGE_H - 242, maxWidth:  40 },
 
-  // ── Chief Complaint (Q3) ──
-  chief_complaint:           { page: 0, x:  60, y: CF3_PAGE_H - 248, maxWidth: 540 },
+  // ── Q3 Chief Complaint (right-side boxed area, top-right of header band) ──
+  // Box top≈215 right column; box height ~40. Render at top of box.
+  chief_complaint:           { page: 0, x: 432, y: CF3_PAGE_H - 230, maxWidth: 165, fontSize: 7 },
 
-  // ── Q4 Date Admitted: split into _month/_day/_year + _hour/_min ──
-  date_admitted_month:       { page: 0, x: 110, y: CF3_PAGE_H - 263, maxWidth:  35 },
-  date_admitted_day:         { page: 0, x: 155, y: CF3_PAGE_H - 263, maxWidth:  35 },
-  date_admitted_year:        { page: 0, x: 200, y: CF3_PAGE_H - 263, maxWidth:  45 },
-  time_admitted_hour:        { page: 0, x: 320, y: CF3_PAGE_H - 263, maxWidth:  20 },
-  time_admitted_min:         { page: 0, x: 345, y: CF3_PAGE_H - 263, maxWidth:  20 },
+  // ── Q4 Date Admitted: split mm/dd/yyyy + Time hh:mm AM/PM ──
+  // Labels at top=258 ("Month Day Year" caption); underlines at top≈266.
+  // Boxes appear to end ≈275; baseline = 1008 - 273 = 735.
+  date_admitted_month:       { page: 0, x: 113, y: CF3_PAGE_H - 252, maxWidth:  20 },
+  date_admitted_day:         { page: 0, x: 156, y: CF3_PAGE_H - 252, maxWidth:  20 },
+  date_admitted_year:        { page: 0, x: 198, y: CF3_PAGE_H - 252, maxWidth:  35 },
+  time_admitted_hour:        { page: 0, x: 325, y: CF3_PAGE_H - 252, maxWidth:  20 },
+  time_admitted_min:         { page: 0, x: 357, y: CF3_PAGE_H - 252, maxWidth:  20 },
 
-  // ── Q5 Date Discharged ──
-  date_discharged_month:     { page: 0, x: 110, y: CF3_PAGE_H - 293, maxWidth:  35 },
-  date_discharged_day:       { page: 0, x: 155, y: CF3_PAGE_H - 293, maxWidth:  35 },
-  date_discharged_year:      { page: 0, x: 200, y: CF3_PAGE_H - 293, maxWidth:  45 },
-  time_discharged_hour:      { page: 0, x: 320, y: CF3_PAGE_H - 293, maxWidth:  20 },
-  time_discharged_min:       { page: 0, x: 345, y: CF3_PAGE_H - 293, maxWidth:  20 },
+  // ── Q5 Date Discharged + Time discharged ──
+  // Underlines at top≈296; baseline = 1008 - 303 = 705.
+  date_discharged_month:     { page: 0, x: 113, y: CF3_PAGE_H - 282, maxWidth:  20 },
+  date_discharged_day:       { page: 0, x: 156, y: CF3_PAGE_H - 282, maxWidth:  20 },
+  date_discharged_year:      { page: 0, x: 198, y: CF3_PAGE_H - 282, maxWidth:  35 },
+  time_discharged_hour:      { page: 0, x: 325, y: CF3_PAGE_H - 282, maxWidth:  20 },
+  time_discharged_min:       { page: 0, x: 357, y: CF3_PAGE_H - 282, maxWidth:  20 },
 
-  // ── Q6 History of Present Illness (free-text block) ──
-  history_of_present_illness:{ page: 0, x:  60, y: CF3_PAGE_H - 333, maxWidth: 540 },
+  // ── Q6 Brief History of Present Illness / OB History ──
+  // Label at top=314 → baseline ≈322. Empty narrative band below.
+  // First line of free-text starts ≈10pt below label baseline.
+  history_of_present_illness:{ page: 0, x:  60, y: CF3_PAGE_H - 350, maxWidth: 540, fontSize: 8 },
 
-  // ── Q7 Physical Examination ──
-  pe_general_survey:         { page: 0, x: 100, y: CF3_PAGE_H - 482, maxWidth: 400 },
-  vs_blood_pressure:         { page: 0, x: 100, y: CF3_PAGE_H - 507, maxWidth:  60 },
-  vs_cardiac_rate:           { page: 0, x: 175, y: CF3_PAGE_H - 507, maxWidth:  40 },
-  vs_respiratory_rate:       { page: 0, x: 232, y: CF3_PAGE_H - 507, maxWidth:  40 },
-  vs_temperature:            { page: 0, x: 320, y: CF3_PAGE_H - 507, maxWidth:  40 },
-  pe_heent:                  { page: 0, x: 100, y: CF3_PAGE_H - 535, maxWidth: 230 },
-  pe_chest_lungs:            { page: 0, x: 100, y: CF3_PAGE_H - 562, maxWidth: 230 },
-  pe_cvs:                    { page: 0, x: 100, y: CF3_PAGE_H - 588, maxWidth: 230 },
-  pe_abdomen:                { page: 0, x: 415, y: CF3_PAGE_H - 506, maxWidth: 185 },
-  pe_genitourinary:          { page: 0, x: 415, y: CF3_PAGE_H - 535, maxWidth: 185 },
-  pe_extremities:            { page: 0, x: 415, y: CF3_PAGE_H - 562, maxWidth: 185 },
+  // ── Q7 Physical Examination block ──
+  // Section header at top≈459. Sub-rows below.
+  pe_general_survey:         { page: 0, x: 100, y: CF3_PAGE_H - 489, maxWidth: 250, fontSize: 8 },
+  // Vital Signs strip — labels "BP:" "CR:" "RR:" "Temperature:" at tops≈501.
+  // Underlines just below labels at top≈506; baseline = 1008 - 511 = 497.
+  vs_blood_pressure:         { page: 0, x: 122, y: CF3_PAGE_H - 511, maxWidth:  55 },
+  vs_cardiac_rate:           { page: 0, x: 178, y: CF3_PAGE_H - 511, maxWidth:  35 },
+  vs_respiratory_rate:       { page: 0, x: 232, y: CF3_PAGE_H - 511, maxWidth:  35 },
+  vs_temperature:            { page: 0, x: 320, y: CF3_PAGE_H - 511, maxWidth:  40 },
+  // PE detail rows (HEENT, Chest/Lungs, CVS on left col @ x=100; Abdomen/GU/Ext on right col @ x=415)
+  // Row tops: HEENT≈530, Chest≈558, CVS≈585; Abdomen≈501, GU≈530, Ext≈558.
+  pe_heent:                  { page: 0, x: 100, y: CF3_PAGE_H - 540, maxWidth: 230, fontSize: 8 },
+  pe_chest_lungs:            { page: 0, x: 100, y: CF3_PAGE_H - 568, maxWidth: 230, fontSize: 8 },
+  pe_cvs:                    { page: 0, x: 100, y: CF3_PAGE_H - 595, maxWidth: 230, fontSize: 8 },
+  pe_abdomen:                { page: 0, x: 415, y: CF3_PAGE_H - 511, maxWidth: 185, fontSize: 8 },
+  pe_genitourinary:          { page: 0, x: 415, y: CF3_PAGE_H - 540, maxWidth: 185, fontSize: 8 },
+  pe_extremities:            { page: 0, x: 415, y: CF3_PAGE_H - 568, maxWidth: 185, fontSize: 8 },
 
-  // ── Q8 Course in the Ward ──
-  course_in_the_ward:        { page: 0, x:  60, y: CF3_PAGE_H - 720, maxWidth: 540 },
+  // ── Q8 Course in the Wards ──
+  // Label "8. Course in the Wards" at top≈680. Empty narrative band below.
+  course_in_the_ward:        { page: 0, x:  60, y: CF3_PAGE_H - 700, maxWidth: 540, fontSize: 8 },
 
-  // ── Q9 Pertinent Laboratory Findings ──
-  pertinent_lab_findings:    { page: 0, x:  60, y: CF3_PAGE_H - 825, maxWidth: 540 },
+  // ── Q9 Pertinent Laboratory and Diagnostic Findings ──
+  // Label at top=808. First narrative line starts ≈12pt below.
+  pertinent_lab_findings:    { page: 0, x:  60, y: CF3_PAGE_H - 825, maxWidth: 540, fontSize: 8 },
 
   // ── Q10 Disposition: Transferred-HCI text + Expired-date (when applicable) ──
-  transferred_hci_name:      { page: 0, x: 240, y: CF3_PAGE_H - 970, maxWidth: 230 },
-  expired_date_month:        { page: 0, x: 510, y: CF3_PAGE_H - 970, maxWidth:  20 },
-  expired_date_day:          { page: 0, x: 535, y: CF3_PAGE_H - 970, maxWidth:  20 },
-  expired_date_year:         { page: 0, x: 560, y: CF3_PAGE_H - 970, maxWidth:  35 },
+  // Disposition label at top=940; checkboxes top≈939; conditional text fields
+  // appear inline-right of the boxes for Transferred ("to ___") and Expired ("on ___").
+  transferred_hci_name:      { page: 0, x: 270, y: CF3_PAGE_H - 970, maxWidth: 200, fontSize: 7 },
+  expired_date_month:        { page: 0, x: 525, y: CF3_PAGE_H - 970, maxWidth:  18 },
+  expired_date_day:          { page: 0, x: 548, y: CF3_PAGE_H - 970, maxWidth:  18 },
+  expired_date_year:         { page: 0, x: 571, y: CF3_PAGE_H - 970, maxWidth:  30 },
 
-  // ── Page 2: Diagnoses + Certification ──
-  admitting_diagnosis:       { page: 1, x:  60, y: CF3_PAGE_H -  85, maxWidth: 540 },
-  final_diagnosis:           { page: 1, x:  60, y: CF3_PAGE_H - 105, maxWidth: 540 },
+  // ── Q11/Q12 Diagnoses (Part I bottom band, between Q9 Lab and Q10 Disposition) ──
+  admitting_diagnosis:       { page: 0, x: 180, y: CF3_PAGE_H - 905, maxWidth: 420, fontSize: 8 },
+  final_diagnosis:           { page: 0, x: 180, y: CF3_PAGE_H - 925, maxWidth: 420, fontSize: 8 },
 
   // ── Q19 Certification of Attending Physician/Midwife (Page 2 footer) ──
-  attending_physician_name:  { page: 1, x:  60, y: CF3_PAGE_H - 870, maxWidth: 200 },
-  attending_physician_prc:   { page: 1, x: 270, y: CF3_PAGE_H - 870, maxWidth:  80 },
-  attending_physician_date_signed_month: { page: 1, x: 365, y: CF3_PAGE_H - 870, maxWidth: 18 },
-  attending_physician_date_signed_day:   { page: 1, x: 388, y: CF3_PAGE_H - 870, maxWidth: 18 },
-  attending_physician_date_signed_year:  { page: 1, x: 411, y: CF3_PAGE_H - 870, maxWidth: 35 },
+  // Cert header at top≈816; signature row at top≈881 ("Date Signed (Month/Day/Year)").
+  // Name line ~30pt above the date label.
+  attending_physician_name:  { page: 1, x:  60, y: CF3_PAGE_H - 875, maxWidth: 200 },
+  attending_physician_prc:   { page: 1, x: 270, y: CF3_PAGE_H - 875, maxWidth:  80 },
+  attending_physician_date_signed_month: { page: 1, x: 365, y: CF3_PAGE_H - 875, maxWidth: 18 },
+  attending_physician_date_signed_day:   { page: 1, x: 388, y: CF3_PAGE_H - 875, maxWidth: 18 },
+  attending_physician_date_signed_year:  { page: 1, x: 411, y: CF3_PAGE_H - 875, maxWidth: 35 },
 };
 
 // ── CF-3 disposition checkboxes (5-way: Improved | Transferred | HAMA | Absconded | Expired) ──
-// Checkbox row pdfplumber tops≈930-940. y_pdflib = 1008 - 940 + offset ≈ 70.
+// Checkbox squares pdfplumber tops≈938-948; printed labels at top=939.
+// Squares are ~10pt wide. Tick should center inside the square at y_pdflib ≈ 1008 - 945 + 3 = 66.
 const CF3_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number; page?: number }>> = {
   patient_disposition: {
-    'Improved':    { page: 0, x: 162, y: 67 },
-    'Transferred': { page: 0, x: 246, y: 67 },
-    'HAMA':        { page: 0, x: 336, y: 67 },
-    'Absconded':   { page: 0, x: 422, y: 67 },
-    'Expired':     { page: 0, x: 495, y: 67 },
+    'Improved':    { page: 0, x: 142, y: 64 },
+    'Transferred': { page: 0, x: 226, y: 64 },
+    'HAMA':        { page: 0, x: 316, y: 64 },
+    'Absconded':   { page: 0, x: 402, y: 64 },
+    'Expired':     { page: 0, x: 475, y: 64 },
   },
 };
 

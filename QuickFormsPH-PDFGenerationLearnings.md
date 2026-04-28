@@ -3689,3 +3689,74 @@ PMRF-FN is the **first A4 form** in QuickFormsPH (`PMRF_FN_PAGE_H = 841.9`). All
 - `sudo systemctl restart quickformsph` ✅ active.
 - `curl -sI http://localhost:3400/forms/philhealth-claim-form-3` → `HTTP/1.1 200 OK`.
 - @Mai PDF inspection: **PENDING** (handoff to Phase 2 QA loop).
+
+---
+
+## L-SMART-CF3-01 — CF-3 Phase 2 coord calibration after @Mai 4-band QA (2026-01-XX)
+
+**Context.** First Phase 2 ship after L-SMART-CF3-V0 onboarding. Three calibration
+iterations against 150 dpi pdftoppm renders of Sample A (Improved/NSD term)
+produced an acceptable v0 layout. Branches verified on Sample B (Transferred →
+PGH NICU LEVEL 3) and Sample C (Expired → date 01/21/2026).
+
+**Drift corrections applied to `CF3_FIELD_COORDS` (pdf-generator.ts).**
+
+| Field | Before | After | Note |
+|---|---|---|---|
+| `hci_pan` | x=60 y=−175 maxW=200 | x=442 y=−175 maxW=85 fontSize=7 | PAN belongs in the small box-grid right of label, not under it |
+| `hci_name` | x=280 y=−175 maxW=320 | x=60 y=−215 maxW=540 | HCI Name has its own underline row below PAN row |
+| `date_admitted_*` | y=−263 | y=−252 | Boxes were 11 pt lower than measured; same shift applied to `_discharged` (y=−282) |
+| `time_admitted_min` | x=348 maxW=20 | x=357 maxW=20 | hh-mm second box centered ~9 pt further right |
+| `course_in_the_ward` | y=−720 | y=−700 | Narrative band starts ~20 pt closer to label |
+| `pertinent_lab_findings` | y=−825 (ok) | y=−825 | confirmed unchanged |
+| `admitting_diagnosis` / `final_diagnosis` | page=1 y=−85/−105 | **page=0** y=−905/−925 | These belong to Part I bottom band (between Q9 Lab and Q10 Disposition), NOT Part II header |
+| `transferred_hci_name` | x=240 maxW=230 | x=270 maxW=200 fontSize=7 | tighter fit next to "Transferred" tick |
+| `expired_date_*` | x=510/535/560 | x=525/548/571 | small 15-pt shift right, narrower box widths |
+| `vs_blood_pressure` | x=100 | x=122 | Cleared "BP:" label overlap |
+| `pe_general_survey` | y=−482 | y=−489 | aligned with caption baseline |
+| Disposition tick offsets | x=162/246/336/422/495 y=67 | x=142/226/316/402/475 y=64 | shifted 20 pt left to land inside the box, not on the printed label |
+
+**Root-cause patterns (cascadable).**
+1. **pdfplumber `top` is the TOP of the first text glyph, not the underline.** The
+   actual PDF baseline for typed input is typically 8–14 pt BELOW that. For US Legal
+   1008-pt forms, plan `y_pdflib = 1008 − (top + 10)` as the first guess; refine in
+   ±5 pt steps via 150 dpi inspection.
+2. **PAN-style multi-cell box grids** sit RIGHT of their text label, not below it.
+   Always check whether the label sentence ends in `:` (label only — slot is right of it)
+   or in `:` followed by a long printed underline (slot is below).
+3. **Diagnosis lines on PhilHealth maternal forms** belong to Part I bottom strip,
+   NOT to Part II MCP page top. Confirm with form section numbering (Q11/Q12 are still
+   Part I).
+4. **Disposition tick coords** must be inside the empty checkbox square, not on the
+   adjacent printed text label. For CF-3 the squares are ~14 pt wide; aim for
+   x = label_x − 22 pt, y = page_h − square_top − 4 pt.
+
+**Known limitations (carry to next Phase 2 round).**
+- **Multi-line wrap missing.** Long-text fields (`history_of_present_illness`,
+  `course_in_the_ward`, `pertinent_lab_findings`) currently truncate to a single
+  line with `…` ellipsis. The narrative bands are ~140 pt tall and could fit ~12
+  lines at fontSize=8 — needs a `textareaWrap` primitive in `pdf-generator.ts`.
+- **AM/PM ticks not yet drawn.** Time fields write the hh-mm digits but the
+  AM/PM checkbox at the right of each time row stays empty. Needs a follow-up
+  primitive `amPmFromTime` (parse `hh:mm AM` → tick AM box).
+- Part II MCP entire surface still empty — same as v0 (gridRepeat / obstetricTuple
+  / bloodPressure / apgarScore / temperatureUnit / maternityEligibility primitives
+  still pending).
+
+**Verification.**
+- 3 personas generated to `.qa-output/cf-3/sample-{A,B,C}.pdf`.
+- Sample A: 4-band 150 dpi inspection → all Part I cells align within ±5 pt.
+- Sample B: `Transferred` tick lit, `transferred_hci_name = "PGH NICU LEVEL 3"` rendered.
+- Sample C: `Expired` tick lit, split `expired_date 01/21/2026` rendered.
+- Page 2 cert footer (name/PRC/date): aligned correctly across all three.
+- `npm run build` ✅ clean.
+
+**Cascade targets (apply before any new long-form PhilHealth PDF onboarding).**
+- Pattern 1 (top-vs-baseline offset) → bake into intake auto-extraction script as
+  `y_pdflib = page_h − (top + 10)` default.
+- Pattern 2 (PAN grid placement) → add a `boxGrid:true` hint in `CoordEntry` so
+  the dictionary auto-renders into multi-cell PAN boxes.
+- Pattern 3 (diagnosis line placement) → flag any Part I form with `Admitting
+  Diagnosis` / `Final Diagnosis` to verify they're on Part I bottom strip first.
+- Pattern 4 (checkbox tick offset) → use `boxCenters` array (already in CoordEntry)
+  for known-width squares instead of guessing fixed offsets.
