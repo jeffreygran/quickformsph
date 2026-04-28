@@ -819,6 +819,58 @@ export default function FormWizardPage() {
         },
       ],
 
+      // ── PhilHealth Claim Form 4 — Patient's Clinical Record (Feb 2020) ──
+      // v0 ONBOARDING (L-SMART-CF4-V0): 49 fields, 6-way disposition with
+      //   visibleWhen-gated Transferred / Expired branches. Single sample
+      //   exercises the IMPROVED branch (community-acquired pneumonia).
+      //   Full A/B/C personas live in scripts/gen-cf4-personas.ts.
+      'philhealth-claim-form-4': [
+        {
+          series_no: '0000123456789',
+          hci_name: 'MAKATI MEDICAL CENTER',
+          hci_pan: 'HCI-10-123456',
+          hci_address: '#2 AMORSOLO ST., LEGASPI VILLAGE, MAKATI CITY, METRO MANILA, 1229',
+          patient_last_name: 'DELA CRUZ', patient_first_name: 'JUAN',
+          patient_name_ext: 'N/A', patient_middle_name: 'SANTOS',
+          patient_pin: '01-234567890-1', patient_age: '56', patient_sex: 'Male',
+          chief_complaint: 'Productive cough x 5 days, fever, dyspnea on exertion',
+          admitting_diagnosis: 'Community-acquired pneumonia, moderate risk',
+          discharge_diagnosis: 'Community-acquired pneumonia, moderate risk — resolved',
+          case_rate_code_1: 'RVS J18.9',
+          case_rate_code_2: '',
+          date_admitted:   '03 / 18 / 2026', time_admitted:   '08 : 45 PM',
+          date_discharged: '03 / 23 / 2026', time_discharged: '10 : 30 AM',
+          history_of_present_illness:
+            'A 56-year-old hypertensive male presented with 5-day history of productive cough with yellowish sputum, fever, and progressive dyspnea on exertion. Self-medicated with paracetamol with no relief. Sought consult at OPD where chest x-ray showed right lower lobe consolidation; admitted for IV antibiotics and oxygen support.',
+          pertinent_past_medical_history:
+            'Hypertensive 8 years on losartan 50 mg OD; non-diabetic; no known asthma; no allergies; non-smoker for 5 years.',
+          obgyn_history: 'N/A — male patient',
+          referred_from_hci: 'No',
+          referring_hci_name: '', referring_reason: '',
+          pe_height_cm: '168', pe_weight_kg: '72',
+          pe_general_survey: 'Conscious, coherent, dyspneic on exertion, NICRD',
+          vs_blood_pressure: '130/80', vs_heart_rate: '102',
+          vs_respiratory_rate: '24', vs_temperature: '38.4',
+          pe_heent_others: 'No cervical lymphadenopathy; throat mildly erythematous',
+          pe_chest_lungs_others: 'Crackles right lower lung field; no wheezes',
+          pe_cvs_others: 'Tachycardic; regular rhythm; no murmurs',
+          pe_abdomen_others: 'Soft, non-tender, normoactive bowel sounds',
+          pe_genitourinary_others: 'Unremarkable',
+          pe_skin_extremities_others: 'No edema; full and equal pulses',
+          pe_neuro_others: 'GCS 15; no focal deficits',
+          course_in_the_ward:
+            'Started on ceftriaxone 2 g IV q24h + azithromycin 500 mg PO OD per CAP-MR pathway. O2 via nasal cannula titrated to SpO2 >= 95%. Defervesced day 2; weaned off oxygen day 3; shifted to PO cefuroxime day 4. Discharged improved on cefuroxime BID for 7 more days; follow-up at OPD in 1 week with repeat CXR.',
+          surgical_procedure_rvs: '',
+          drugs_medicines_summary:
+            'Ceftriaxone 2g IV q24h x 4d -- P3,200; Azithromycin 500mg PO OD x 5d -- P520; Cefuroxime 500mg BID x 7d (TTOH) -- P680; Paracetamol 500mg q4h PRN -- P120; D5NSS 1L x 3 -- P270.',
+          patient_disposition: 'IMPROVED',
+          transferred_hci_name: '', expired_date: '',
+          attending_physician_name: 'JUAN P. DELA CRUZ, MD',
+          attending_physician_prc: '0123456',
+          attending_physician_date_signed: '03 / 23 / 2026',
+        },
+      ],
+
       // ── PhilHealth PMRF (Foreign National) ───────────────────────────────
       // L-SMART-PMRF-FN-01: combined `dob`, `documentation_type` gate,
       // `is_mononymous` toggle, `phPhone` mask. Personas exercise all three

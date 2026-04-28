@@ -1081,6 +1081,214 @@ const CF3_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number;
   },
 };
 
+// ── PhilHealth Claim Form 4 calibrated coordinates ───────────────────────────
+// Phase 2 calibration (L-SMART-CF4-01). 2-page Letter-Long 612×936.
+// Methodology: pdfplumber word + line geometry pass. Every text baseline is
+// anchored on the H-line below its row (text baseline = 936 - line_top + 1).
+//
+// Page 1 row structure (anchors are H-line tops from pdfplumber):
+//   148.9  Series#  band (boxes 110.6-148.9)
+//   159.7  HCI Name + Accred Number (label band)
+//   186.8  HCI Name / 12. PAN row → baseline above
+//   209.5  Address label band
+//   218.3  Address column-headers strip
+//   229.1  Address data row (Bldg/Street/Brgy/Province/Zip) → baseline above
+//   250.0  Patient Name + PIN label band → baseline above (= name input line)
+//   260.8  Sub-labels Last|First|Middle (left only)
+//   271.4  PIN data row (right column) → Age baseline above
+//   292.5  Chief Complaint (left) + Sex (right) → input above
+//   313.6  8a Case Rate Code (right only) → above
+//   334.6  Admitting/Discharge Diag (left) + 8b Case Rate (right) → above
+//   355.5  Date Admitted + Time Admitted → digit baseline above
+//   376.6  Date Discharged + Time Discharged → digit baseline above
+//   387.4  III. Reason for Admission header bar
+//   486.0  HPI band (98pt) → wrap from top
+//   569.2  Pertinent Past Medical band (83pt)
+//   ~605   3. Pertinent Signs/Symptoms grid (Phase 3 — not rendered in v1)
+//   740.0  4. Referred + 5. PE label band
+//   779.8  PE vitals + per-system Others
+//   895.9  page bottom
+//
+// Page 2 row structure:
+//   ~366.5 separator (PE continued ends, IV. Course begins)
+//   382.3-525.1  IV. Course in the Ward band (142pt)
+//   525.1-541.3  Surgical Procedure / RVS row
+//   541.3-655.9  V. Drugs/Medicines band (114pt)
+//   671.9-790.7  VI. Outcome 6-cell strip (V-dividers @ 114, 228, 281, 352, 477)
+//   790.7-805.1  Specify reason / Receiving HCI line
+//   824.4-836.1  Date Signed (3 segments split by V at 147, 313, 382)
+//   878.4        Signature row (printed name + PRC)
+const CF4_PAGE_H = 936.0;
+const CF4_FIELD_COORDS: CoordsMap = {
+  // ── Header ──
+  // Series# 15 boxes between x=376.6..538.0 at top 110.6-148.9 (~10.6pt/cell)
+  series_no: { page: 0, x: 380, y: CF4_PAGE_H - 148.9 + 1, maxWidth: 158, fontSize: 7 },
+
+  // ── I. HCI Information ──
+  // Row 1: HCI Name (left, x≈45-340) + Accred Number (right, x≈350-540)
+  hci_name: { page: 0, x:  45, y: CF4_PAGE_H - 186.8 + 1, maxWidth: 290, fontSize: 9 },
+  hci_pan:  { page: 0, x: 470, y: CF4_PAGE_H - 186.8 + 1, maxWidth:  70, fontSize: 9 },
+  // Row 3: Address (x=42-540, single line above 229.1 H-line)
+  hci_address: { page: 0, x: 45, y: CF4_PAGE_H - 229.1 + 1, maxWidth: 495, fontSize: 8 },
+
+  // ── II. Patient's Data ──
+  // Patient Name row: "1. Name of Patient" label top=231.4; sub-labels
+  // "Last/First/Middle Name" at top=252; V-dividers ("I" glyphs) at x=150.9 / 264.3.
+  // Fill ON the row underline at top=260.8 → y=677.2.
+  patient_last_name:   { page: 0, x:  46, y: CF4_PAGE_H - 260.8 + 2, maxWidth: 102, fontSize: 9 },
+  patient_first_name:  { page: 0, x: 154, y: CF4_PAGE_H - 260.8 + 2, maxWidth: 108, fontSize: 9 },
+  patient_name_ext:    { page: 0, x: 268, y: CF4_PAGE_H - 260.8 + 2, maxWidth:  46, fontSize: 9 },
+  patient_middle_name: { page: 0, x: 318, y: CF4_PAGE_H - 260.8 + 2, maxWidth:  82, fontSize: 9 },
+  // PIN: right column under "2. PIN" label top=231.4; PIN value cell sits
+  //   between top dividers 229.1 and 250.0. Fill ON underline 250.0 → y=688.
+  patient_pin: { page: 0, x: 405, y: CF4_PAGE_H - 250.0 + 2, maxWidth: 135, fontSize: 9 },
+  // Age: right col label "3.Age" at top=252; Age value cell sits between 250.0
+  //   and 271.4. Fill ON 271.4 → y=666.6.
+  patient_age: { page: 0, x: 442, y: CF4_PAGE_H - 271.4 + 2, maxWidth:  56, fontSize: 9 },
+
+  // ── 5/6/7/8: Chief Complaint, Diagnoses, Case Rate ──
+  // Chief Complaint (left, x=45-400) baseline above 292.5: y=644.5
+  chief_complaint: { page: 0, x: 46, y: CF4_PAGE_H - 292.5 + 1, maxWidth: 350, fontSize: 8 },
+  // Admitting Diagnosis (left, x=45-218) baseline above 334.6: y=602.4
+  admitting_diagnosis: { page: 0, x: 46, y: CF4_PAGE_H - 334.6 + 1, maxWidth: 170, fontSize: 8 },
+  // Discharge Diagnosis (middle, x=219-400) baseline above 334.6
+  discharge_diagnosis: { page: 0, x: 220, y: CF4_PAGE_H - 334.6 + 1, maxWidth: 175, fontSize: 8 },
+  // 8a Case Rate Code (right, x=403-540, baseline above 313.6): y=623.4
+  case_rate_code_1: { page: 0, x: 405, y: CF4_PAGE_H - 313.6 + 1, maxWidth: 135, fontSize: 8 },
+  // 8b Case Rate Code (baseline above 334.6): y=602.4
+  case_rate_code_2: { page: 0, x: 405, y: CF4_PAGE_H - 334.6 + 1, maxWidth: 135, fontSize: 8 },
+
+  // ── 9a/9b Date+Time Admitted (row 334.6-355.5) ──
+  // Per-digit boxes anchored on bottom line 355.5: y=581.5
+  // Box centers extracted from char positions in row top 344-350:
+  //   month: x≈120,131  | day: x≈153,164  | year: x≈170,180,190,200
+  //   time hour: x≈420,432  | min: x≈451,463
+  date_admitted_month: { page: 0, x: 119, y: CF4_PAGE_H - 355.5 + 1, maxWidth: 25, fontSize: 9, align: 'center', boxCenters: [125, 134] },
+  date_admitted_day:   { page: 0, x: 150, y: CF4_PAGE_H - 355.5 + 1, maxWidth: 25, fontSize: 9, align: 'center', boxCenters: [156, 165] },
+  date_admitted_year:  { page: 0, x: 170, y: CF4_PAGE_H - 355.5 + 1, maxWidth: 50, fontSize: 9, align: 'center', boxCenters: [173, 184, 195, 206] },
+  time_admitted_hour:  { page: 0, x: 415, y: CF4_PAGE_H - 355.5 + 1, maxWidth: 30, fontSize: 9, align: 'center', boxCenters: [420, 432] },
+  time_admitted_min:   { page: 0, x: 446, y: CF4_PAGE_H - 355.5 + 1, maxWidth: 30, fontSize: 9, align: 'center', boxCenters: [452, 464] },
+
+  // ── 10a/10b Date+Time Discharged (row 355.5-376.6) ──
+  // Baseline above 376.6: y=560.4
+  date_discharged_month: { page: 0, x: 119, y: CF4_PAGE_H - 376.6 + 1, maxWidth: 25, fontSize: 9, align: 'center', boxCenters: [125, 134] },
+  date_discharged_day:   { page: 0, x: 150, y: CF4_PAGE_H - 376.6 + 1, maxWidth: 25, fontSize: 9, align: 'center', boxCenters: [156, 165] },
+  date_discharged_year:  { page: 0, x: 170, y: CF4_PAGE_H - 376.6 + 1, maxWidth: 50, fontSize: 9, align: 'center', boxCenters: [173, 184, 195, 206] },
+  time_discharged_hour:  { page: 0, x: 415, y: CF4_PAGE_H - 376.6 + 1, maxWidth: 30, fontSize: 9, align: 'center', boxCenters: [420, 432] },
+  time_discharged_min:   { page: 0, x: 446, y: CF4_PAGE_H - 376.6 + 1, maxWidth: 30, fontSize: 9, align: 'center', boxCenters: [452, 464] },
+
+  // ── III. Reason for Admission ──
+  // HPI band 387.4-486.0 (~98pt). Label band ~13pt at top. Text from top≈400 down.
+  history_of_present_illness: {
+    page: 0, x: 45, y: CF4_PAGE_H - 401, maxWidth: 495,
+    maxHeight: 83, lineHeight: 9, fontSize: 8, wrap: true,
+  },
+  // Pertinent Past Medical band 486.0-569.2 (~83pt). Label ~14pt top → usable ~68pt.
+  pertinent_past_medical_history: {
+    page: 0, x: 45, y: CF4_PAGE_H - 502, maxWidth: 495,
+    maxHeight: 65, lineHeight: 9, fontSize: 8, wrap: true,
+  },
+  // OB/GYN: SINGLE-LINE input around top=580 (placeholder "G P ( - - ) LMP: D NA")
+  obgyn_history: { page: 0, x: 45, y: CF4_PAGE_H - 580, maxWidth: 380, fontSize: 8 },
+
+  // ── 4. Referred from another HCI (row 740.0-779.8) ──
+  // "Yes, Specify Reason" underline at top=761.8 (x=325-528)
+  referring_reason:   { page: 0, x: 327, y: CF4_PAGE_H - 761.8 + 1, maxWidth: 200, fontSize: 8 },
+  // "Name of Originating HCI" underline at top=779.8 (x=72-540)
+  referring_hci_name: { page: 0, x: 215, y: CF4_PAGE_H - 779.8 + 1, maxWidth: 320, fontSize: 8 },
+
+  // ── 5. PE on Admission (row top=782+) ──
+  // Vitals row at top=830.9 / 841.0 (BP|HR|RR|Temp underlines).
+  // Height/Weight on right column at top=802.6 / 814.9.
+  // General Survey label at top≈790-800, "Awake and alert" / "Altered sensorium" checkbox row at top=802.
+  pe_height_cm:       { page: 0, x: 460, y: CF4_PAGE_H - 802.6 + 1, maxWidth:  35, fontSize: 8 },
+  pe_weight_kg:       { page: 0, x: 460, y: CF4_PAGE_H - 814.9 + 1, maxWidth:  35, fontSize: 8 },
+  pe_general_survey:  { page: 0, x: 165, y: CF4_PAGE_H - 802.6 + 1, maxWidth: 220, fontSize: 7 },
+  vs_blood_pressure:  { page: 0, x: 148, y: CF4_PAGE_H - 841.0 + 1, maxWidth:  55, fontSize: 8 },
+  vs_heart_rate:      { page: 0, x: 250, y: CF4_PAGE_H - 841.0 + 1, maxWidth:  35, fontSize: 8 },
+  vs_respiratory_rate:{ page: 0, x: 370, y: CF4_PAGE_H - 841.0 + 1, maxWidth:  30, fontSize: 8 },
+  vs_temperature:     { page: 0, x: 425, y: CF4_PAGE_H - 841.0 + 1, maxWidth:  70, fontSize: 8 },
+  // HEENT Others: page 1, second-to-last underline near top=895.9 / 878
+  pe_heent_others:    { page: 0, x: 80, y: CF4_PAGE_H - 891, maxWidth: 460, fontSize: 7 },
+
+  // ── Page 2 — PE continued ──
+  // Per-system "Others" underlines (short, x=149-265 → centered "Others:"):
+  pe_chest_lungs_others:      { page: 1, x:  85, y: CF4_PAGE_H - 124.4 + 1, maxWidth: 455, fontSize: 7 },
+  pe_cvs_others:              { page: 1, x:  85, y: CF4_PAGE_H - 171.0 + 1, maxWidth: 455, fontSize: 7 },
+  pe_abdomen_others:          { page: 1, x:  85, y: CF4_PAGE_H - 217.4 + 1, maxWidth: 455, fontSize: 7 },
+  pe_genitourinary_others:    { page: 1, x:  85, y: CF4_PAGE_H - 250.0 + 1, maxWidth: 455, fontSize: 7 },
+  pe_skin_extremities_others: { page: 1, x:  85, y: CF4_PAGE_H - 310.1 + 1, maxWidth: 455, fontSize: 7 },
+  pe_neuro_others:            { page: 1, x:  85, y: CF4_PAGE_H - 356.6 + 1, maxWidth: 455, fontSize: 7 },
+
+  // ── IV. Course in the Ward (page 2, band 382.3-525.1, ~142pt) ──
+  // Label "IV. COURSE IN THE WARD" at top≈370; text from top≈396 down
+  course_in_the_ward: {
+    page: 1, x: 45, y: CF4_PAGE_H - 396, maxWidth: 495,
+    maxHeight: 125, lineHeight: 9, fontSize: 8, wrap: true,
+  },
+  // Surgical Procedure / RVS — underline area near 525.1: y=411.9
+  surgical_procedure_rvs: { page: 1, x: 220, y: CF4_PAGE_H - 525.1 + 1, maxWidth: 320, fontSize: 8 },
+
+  // ── V. Drugs/Medicines (page 2, band 541.3-655.9, ~114pt) ──
+  // Header labels at top≈547 ; data from top≈565 down
+  drugs_medicines_summary: {
+    page: 1, x: 45, y: CF4_PAGE_H - 565, maxWidth: 495,
+    maxHeight: 88, lineHeight: 9, fontSize: 7, wrap: true,
+  },
+
+  // ── VI. Outcome — handled via CF4_CHECKBOX_COORDS ──
+  // "Specify reason:" inline underline on the disposition row (top=812).
+  // Label sits at x≈378; underline runs x≈410-540, baseline above 818.
+  transferred_hci_name: { page: 1, x: 432, y: CF4_PAGE_H - 818 + 1, maxWidth: 108, fontSize: 7 },
+  // EXPIRED branch: schema uses a single `expired_date`; expandCombinedDates
+  // splits it into _month/_day/_year. CF-4 has no dedicated "Date of Expiration"
+  // cell — the EXPIRED date is recorded in the Date Signed footer band, so we
+  // overlap these coords with attending_physician_date_signed_* (same value).
+  expired_date_month: { page: 1, x: 422, y: CF4_PAGE_H - 872, maxWidth: 28, fontSize: 9 },
+  expired_date_day:   { page: 1, x: 455, y: CF4_PAGE_H - 872, maxWidth: 28, fontSize: 9 },
+  expired_date_year:  { page: 1, x: 490, y: CF4_PAGE_H - 872, maxWidth: 38, fontSize: 9 },
+
+  // ── VII. Certification ──
+  // Date Signed: month/day/year sub-labels at top=878 located at x=424.4,
+  //   457.1, 500.4 respectively. The cell underlines sit at top≈872; text
+  //   baseline just above → y_pdf = 936 - 872 = 64.
+  attending_physician_date_signed_month: { page: 1, x: 422, y: CF4_PAGE_H - 872, maxWidth: 28, fontSize: 9 },
+  attending_physician_date_signed_day:   { page: 1, x: 455, y: CF4_PAGE_H - 872, maxWidth: 28, fontSize: 9 },
+  attending_physician_date_signed_year:  { page: 1, x: 490, y: CF4_PAGE_H - 872, maxWidth: 38, fontSize: 9 },
+  // Signature row — printed name above signature underline at top=878.4 (x=109-282)
+  // PRC license sits to the right (no native underline; we estimate).
+  attending_physician_name: { page: 1, x: 110, y: CF4_PAGE_H - 878.4 + 1, maxWidth: 175, fontSize: 8 },
+  attending_physician_prc:  { page: 1, x: 295, y: CF4_PAGE_H - 878.4 + 1, maxWidth: 100, fontSize: 8 },
+};
+
+// ── CF-4 checkbox coordinate map ─────────────────────────────────────────────
+// Calibrated 2026-04-28 (L-SMART-CF4-01). Sex squares are the small "D" glyphs
+// at top=276.4 (x=450.6 = Male square, x=482.6 = Female square).
+// Tick centers in pdflib y = 936 - top_centerline = 936 - 282 = 654.
+const CF4_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number; page?: number }>> = {
+  patient_sex: {
+    'Male':   { page: 0, x: 453, y: CF4_PAGE_H - 285 },
+    'Female': { page: 0, x: 484, y: CF4_PAGE_H - 285 },
+  },
+  // Referred from another HCI: NO box at x≈418, YES box at x≈455 in row top=752 (between 740 and 761.8)
+  referred_from_hci: {
+    'No':  { page: 0, x: 421, y: CF4_PAGE_H - 758 },
+    'Yes': { page: 0, x: 455, y: CF4_PAGE_H - 758 },
+  },
+  // Outcome strip — labels at top=812 (IMPROVED x=61.8, RECOVERED x=112.9,
+  // HAMA("HAMNDAMA") x=169.8, EXPIRED x=226.7, ABSCONDED x=273.2,
+  // TRANSFERRED x=329.0). Each label has a small printed checkbox glyph just
+  // LEFT of it (~10pt before x0). Tick centre in y at row vertical-mid ≈ 818.
+  patient_disposition: {
+    'IMPROVED':    { page: 1, x:  50, y: CF4_PAGE_H - 818 },
+    'RECOVERED':   { page: 1, x: 101, y: CF4_PAGE_H - 818 },
+    'HAMA':        { page: 1, x: 158, y: CF4_PAGE_H - 818 },
+    'EXPIRED':     { page: 1, x: 215, y: CF4_PAGE_H - 818 },
+    'ABSCONDED':   { page: 1, x: 261, y: CF4_PAGE_H - 818 },
+    'TRANSFERRED': { page: 1, x: 317, y: CF4_PAGE_H - 818 },
+  },
+};
+
 // ── Per-form PDF config registry ─────────────────────────────────────────────
 
 // ── PhilHealth PMRF Foreign National calibrated coordinates ──────────────────
@@ -3383,6 +3591,33 @@ export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
     copyYOffsets: [0],
     checkboxCoords: CF3_CHECKBOX_COORDS,
   },
+  'philhealth-claim-form-4': {
+    fieldCoords: CF4_FIELD_COORDS,
+    skipValues: {
+      patient_name_ext: ['N/A'],
+      // Combined parents — split into _month/_day/_year/_hour/_min sub-coords:
+      date_admitted: [],
+      time_admitted: [],
+      date_discharged: [],
+      time_discharged: [],
+      expired_date: [],
+      attending_physician_date_signed: [],
+      // visibleWhen-gated fields:
+      transferred_hci_name: [''],
+      referring_hci_name: [''],
+      referring_reason:    [''],
+      // Phase 2 calibration backlog — sign/symptom + per-system PE checklist.
+      //   The CF-4 PDF has ~32 sign/symptom checkboxes (Altered mental sensorium,
+      //   Diarrhea, Hematemesis, Palpitations, …) and per-system PE checklists
+      //   (HEENT/Chest/CVS/Abdomen/GU/Skin/Neuro). v0 captures only the
+      //   free-text "Others" line per system; the boxes themselves remain
+      //   un-ticked until Phase 2 measures each rect. (None are in the v0
+      //   schema, so no skip entry is needed today — placeholder note kept for
+      //   the next maintainer.)
+    },
+    copyYOffsets: [0],
+    checkboxCoords: CF4_CHECKBOX_COORDS,
+  },
   'philhealth-pmrf-foreign-natl': {
     fieldCoords: PMRF_FN_FIELD_COORDS,
     // Note: empty array [] = UI-only / split-parent field.
@@ -3463,6 +3698,7 @@ function toWinAnsi(str: string): string {
     .replace(/\u2026/g, '...')  // …
     .replace(/\u2013/g, '-')    // –
     .replace(/\u2014/g, '--')   // —
+    .replace(/\u20B1/g, 'P')    // ₱ peso sign → 'P' (Helvetica WinAnsi)
     .replace(/[\u0100-\uFFFF]/g, '?'); // everything else outside latin-1
 }
 

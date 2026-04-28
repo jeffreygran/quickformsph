@@ -70,8 +70,11 @@ export default function FormsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search forms by name, code, or agency…"
-              className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
+              className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-24 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
             />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-300 font-medium tabular-nums">
+              Total: {FORMS.length}
+            </span>
           </div>
 
           {search.trim() && (
@@ -96,7 +99,7 @@ export default function FormsPage() {
                   key={form.slug}
                   className="form-list-item overflow-hidden"
                   style={{
-                    animationDelay: `${i * 1.2}s`,
+                    animationDelay: `${Math.min(i * 0.04, 0.3)}s`,
                     borderRadius: '20px',
                     background: '#fff',
                     border: '1px solid rgba(226,232,240,0.8)',

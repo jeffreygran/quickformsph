@@ -392,36 +392,36 @@ function ReadyState({
       </div>
 
       {/* Privacy first banner */}
-      <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-5">
+      <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-2">
         <p className="text-xs text-green-800 leading-relaxed">
           🔒 <strong>Privacy first:</strong> You can safely go offline — everything runs on your device.
         </p>
       </div>
 
-      {/* Offline / Online toggle — same row as label */}
-      <div className="flex items-center justify-center gap-3 mb-5">
-        <span className="text-sm text-gray-600 font-medium">Keep me</span>
+      {/* Offline / Online toggle — small, right-aligned BELOW the privacy card */}
+      <div className="flex items-center justify-end gap-2 mb-5 pr-1">
+        <span className="text-[11px] text-gray-500 font-medium">Keep me</span>
         <button
           type="button"
           role="switch"
           aria-checked={!verifyOffline}
           onClick={() => onVerifyOfflineChange(!verifyOffline)}
           className={
-            'relative inline-flex h-8 w-[108px] flex-shrink-0 rounded-full transition-colors duration-300 focus:outline-none ' +
+            'relative inline-flex h-5 w-[64px] flex-shrink-0 rounded-full transition-colors duration-300 focus:outline-none ' +
             (!verifyOffline ? 'bg-green-500' : 'bg-gray-400')
           }
         >
           <span
             className={
-              'absolute text-[11px] font-bold text-white top-1/2 -translate-y-1/2 select-none transition-all duration-300 ' +
-              (!verifyOffline ? 'left-3' : 'right-3')
+              'absolute text-[8px] font-bold text-white top-1/2 -translate-y-1/2 select-none transition-all duration-300 tracking-wide ' +
+              (!verifyOffline ? 'left-1.5' : 'right-1.5')
             }
           >
             {!verifyOffline ? 'ONLINE' : 'OFFLINE'}
           </span>
           <span
             className={
-              'absolute top-1 h-6 w-6 rounded-full bg-white shadow-md transition-all duration-300 ' +
+              'absolute top-1 h-3.5 w-3.5 rounded-full bg-white shadow-md transition-all duration-300 ' +
               (!verifyOffline ? 'right-1' : 'left-1')
             }
           />
