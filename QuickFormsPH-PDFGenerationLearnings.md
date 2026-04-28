@@ -4059,3 +4059,35 @@ centers = [(L+R)/2 for L,R in pairs]
   into Q9.
 - Q6 short narrative still single-line as expected (no padding artifact).
 - `npm run build` clean; 16/16 smoke tests pass.
+
+
+---
+
+## L-SMART-CF4-01 — CF-4 Phase 2 calibration: peso encoding + EXPIRED/TRANSFERRED branch coords
+
+**Form.** PhilHealth Claim Form 4 — Patient's Clinical Record (Feb 2020), 49 fields, 6-way disposition.
+**Page geometry.** 612 × 936 pt (Letter Long, same as CF-1/CF-2).
+
+**Three Phase 2 bugs surfaced via gen-cf4-personas A/B/C visual QA.**
+
+1. **Peso sign rendered as `?`.** Helvetica `StandardFonts.Helvetica` only encodes WinAnsi (latin-1, 0x00-0xFF). U+20B1 (₱) is outside that range and our `toWinAnsi()` catch-all maps it to `?`. Fix: explicit map `\u20B1 → 'P'` placed before the catch-all.
+
+2. **`expired_date_*` rendered on the disposition strip.** `expandCombinedDates(values)` splits the schema's single `expired_date` field into `_month/_day/_year`. The CF-4 coord map originally placed these at top=824 (the disposition row, between IMPROVED-...-TRANSFERRED). On Sample C (EXPIRED branch) this surfaced stray `01 / 27 / 2026` overlapping the outcome checkboxes. CF-4 has no separate "Date of Expiration" cell — the expiry date is recorded in the cert footer Date Signed band. Fix: re-anchor `expired_date_{month,day,year}` to overlap exactly with `attending_physician_date_signed_*` (top=872, x=422/455/490). Same value, same cells, no visible duplication.
+
+3. **`transferred_hci_name` overlapped the "VI. OUTCOME OF TREATMENT" header.** Originally anchored at top=805.1 with maxWidth=410; the band that "looked like" a Specify-reason underline was actually the section divider. Fix: re-anchor to top=818 (disposition row baseline), x=432, maxWidth=108, fontSize=7 — places the receiving-HCI text inline after "Specify reason:".
+
+**Pre-commit gates landed alongside fix.**
+- Added a CF-4 row to `samplesBySlug` in `src/app/forms/[slug]/page.tsx` (was falling through to hqpSamples and tripping `check-sample-data.ts` with `<form> required: <form> — no samplesBySlug entry`).
+- 17/17 forms pass `check-coords-coverage.ts`.
+- 17/17 smoke tests pass; visual QA on A (IMPROVED) / B (TRANSFERRED) / C (EXPIRED) all clean on page 2.
+
+**Reusable rule for future onboardings.**
+When a schema uses a single combined date/time field that the PDF generator splits into `_month/_day/_year` via `expandCombinedDates()`, every form that includes that field MUST provide coords for all three split fields — even when the form's source PDF has no dedicated cell for that date. Choose between two options:
+- **Overlap with another date field that holds the same semantic value** (CF-4 EXPIRED date == Date Signed).
+- **Add the split keys to `skipValues`** so they're suppressed at render time.
+
+Never leave the split keys at a previous form's coords (they will print at random page positions).
+
+**Carry-forward backlog (Phase 2.1).**
+- Page-1 cosmetic anchor refinements: HCI address sits slightly low (overlaps "II. PATIENT DATA" header on tight personas); patient names overlap the Last/First/Middle sub-labels by ~1 pt at fontSize=9.
+- Net-new primitives still pending: `signSymptomGrid` (32 named checkboxes), `peChecklistGrid` (per-system PE checklist), `drugsGrid` (3-col structured table), `amPmFromTime` (auto-tick AM/PM), `series_no` per-cell render (13 cells at top=148.9).
