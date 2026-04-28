@@ -3650,8 +3650,12 @@ export async function generatePDF(
     if (!page) continue;
 
     const fontSize = coords.fontSize ?? DEFAULT_FONT_SIZE;
-    const truncated = rawValue.length > 60 ? rawValue.slice(0, 60) + '...' : rawValue;
-    const text = toWinAnsi(truncated);
+    // No global character cap: long narratives (e.g. CF-3 history / course /
+    //   lab findings, maxWidth=540 fontSize=8) must reach the auto-fit branch
+    //   below, which scales down to fit and only tail-truncates if even 4pt
+    //   overflows. A pre-render slice(0,60) clobbered values that would have
+    //   fit the underline at the configured size. See L-SMART-CF3-03.
+    const text = toWinAnsi(rawValue);
 
     // ── Per-character box rendering (PIN, DOB digit boxes) ─────────────────
     if (coords.boxCenters) {

@@ -3858,3 +3858,38 @@ and the coord generator must respect that flag.
 - `textareaWrap` primitive still pending (HPI / course / lab still single-line).
 - `amPmFromTime` primitive still pending (AM/PM ticks unset).
 - Part II MCP primitives suite still pending.
+
+---
+
+## L-SMART-CF3-03 — Removed pre-render 60-char truncation cap
+
+**Symptom (@Mai).** "Why trim the value if it can still fit in the form area?"
+HPI value `"G4P3 (3003), delivered at home via TBA, with ongoing heavy vaginal
+bleeding and signs of hypovolemic shock on arrival."` (132 chars) was rendering
+as `"G4P3 (3003), delivered at home via TBA, with ongoing heavy v..."` even
+though the 540pt narrative band at fontSize=8 fits ~135 chars at native size
+and unlimited chars under auto-shrink.
+
+**Root cause (`src/lib/pdf-generator.ts` line ~3653).**
+A global pre-render cap was clipping every value before the auto-fit branch:
+```ts
+const truncated = rawValue.length > 60 ? rawValue.slice(0, 60) + '...' : rawValue;
+```
+This ran BEFORE the auto-fit logic that scales fontSize down to fit `maxWidth`
+and only tail-truncates if even 4pt overflows. So the cap was both redundant
+(auto-fit handles overflow correctly) AND harmful (clobbers values that would
+have rendered fine).
+
+**Fix.** Remove the cap. Trust the existing auto-fit branch:
+```ts
+const text = toWinAnsi(rawValue);
+```
+
+**Pattern 8 (cascadable).** Never apply pre-render character caps. The render
+loop must always see the full value so it can pick the largest legible
+fontSize. Truncation is a last-resort tail operation inside auto-fit, NOT a
+front-of-pipeline filter.
+
+**Verification.** Sample C HPI now renders complete on Q6 underline at native
+fontSize=8. No regression on PAN/checkbox/digit-box paths (`boxCenters` branch
+is unaffected; it strips `\D` independently).
