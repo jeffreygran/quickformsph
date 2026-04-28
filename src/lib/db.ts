@@ -125,6 +125,31 @@ export function getDB(): Database.Database {
 
     CREATE INDEX IF NOT EXISTS idx_analytics_type_time ON analytics_events (event_type, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_analytics_slug_time ON analytics_events (slug, event_type, created_at DESC);
+
+    -- Forms catalog (v2.0). Source of truth for the public catalog and the
+    -- "Soon" gating on the Forms Listing. Populated/refreshed by the scanner
+    -- (scripts/scan-forms.ts) which walks public/forms/ and
+    -- public/forms/NoFormEditor/.
+    CREATE TABLE IF NOT EXISTS forms (
+      id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug                TEXT    NOT NULL UNIQUE,
+      form_code           TEXT    NOT NULL UNIQUE,
+      form_name           TEXT    NOT NULL,
+      agency              TEXT    NOT NULL,
+      pdf_path            TEXT    NOT NULL,
+      source_url          TEXT,
+      has_form_editor     INTEGER NOT NULL DEFAULT 0,   -- 0/1 boolean
+      is_old_form_reported INTEGER NOT NULL DEFAULT 0,  -- 0/1 flag
+      up_vote             INTEGER NOT NULL DEFAULT 0,
+      is_paid             INTEGER NOT NULL DEFAULT 0,   -- reserved, default false
+      created_at          INTEGER NOT NULL,
+      updated_at          INTEGER NOT NULL,
+      deleted_at          INTEGER                       -- soft-delete (NULL = active)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_forms_visibility ON forms (has_form_editor, up_vote DESC);
+    CREATE INDEX IF NOT EXISTS idx_forms_agency     ON forms (agency);
+    CREATE INDEX IF NOT EXISTS idx_forms_active     ON forms (deleted_at);
   `);
 
   // ── Migration: if generated_pdfs still has ref_no/amount columns from the
@@ -560,3 +585,176 @@ export function getDashboardStats(period: 'day' | 'week' | 'month'): DashboardSt
   };
 }
 
+
+// ─── forms catalog (v2.0) ─────────────────────────────────────────────────────
+//
+// Source of truth for the public catalog (Landing + Forms Listing).
+// Populated by `scripts/scan-forms.ts` (also exposed at POST /api/admin/forms/scan).
+//
+// Folder convention under public/forms/:
+//   public/forms/*.pdf              → has_form_editor = 1
+//   public/forms/NoFormEditor/*.pdf → has_form_editor = 0
+//
+// Re-scans are idempotent: counters (up_vote, is_old_form_reported,
+// is_paid, created_at) are preserved on UPDATE.
+
+export interface FormCatalogRecord {
+  id: number;
+  slug: string;
+  form_code: string;
+  form_name: string;
+  agency: string;
+  pdf_path: string;
+  source_url: string | null;
+  has_form_editor: 0 | 1;
+  is_old_form_reported: 0 | 1;
+  up_vote: number;
+  is_paid: 0 | 1;
+  created_at: number;
+  updated_at: number;
+  deleted_at: number | null;
+}
+
+export interface FormCatalogUpsert {
+  slug: string;
+  form_code: string;
+  form_name: string;
+  agency: string;
+  pdf_path: string;
+  source_url?: string | null;
+  has_form_editor: 0 | 1;
+}
+
+/**
+ * Idempotent upsert keyed by `slug`. Preserves runtime counters
+ * (up_vote, is_old_form_reported, is_paid, created_at) on UPDATE.
+ * Always clears deleted_at so a previously soft-deleted PDF that
+ * returns to disk is reactivated.
+ */
+export function upsertFormCatalog(rec: FormCatalogUpsert): { inserted: boolean } {
+  const db  = getDB();
+  const now = Date.now();
+  const existing = db
+    .prepare('SELECT id FROM forms WHERE slug = ?')
+    .get(rec.slug) as { id: number } | undefined;
+
+  if (existing) {
+    db.prepare(`
+      UPDATE forms
+         SET form_code       = @form_code,
+             form_name       = @form_name,
+             agency          = @agency,
+             pdf_path        = @pdf_path,
+             source_url      = COALESCE(@source_url, source_url),
+             has_form_editor = @has_form_editor,
+             updated_at      = @updated_at,
+             deleted_at      = NULL
+       WHERE slug = @slug
+    `).run({ ...rec, source_url: rec.source_url ?? null, updated_at: now });
+    return { inserted: false };
+  }
+
+  db.prepare(`
+    INSERT INTO forms
+      (slug, form_code, form_name, agency, pdf_path, source_url,
+       has_form_editor, is_old_form_reported, up_vote, is_paid,
+       created_at, updated_at, deleted_at)
+    VALUES
+      (@slug, @form_code, @form_name, @agency, @pdf_path, @source_url,
+       @has_form_editor, 0, 0, 0,
+       @created_at, @updated_at, NULL)
+  `).run({
+    ...rec,
+    source_url: rec.source_url ?? null,
+    created_at: now,
+    updated_at: now,
+  });
+  return { inserted: true };
+}
+
+/** Soft-delete: row stays in DB so up_vote history is preserved. */
+export function softDeleteFormCatalog(slug: string): boolean {
+  const r = getDB()
+    .prepare('UPDATE forms SET deleted_at = ?, updated_at = ? WHERE slug = ? AND deleted_at IS NULL')
+    .run(Date.now(), Date.now(), slug);
+  return r.changes > 0;
+}
+
+export function getFormCatalogBySlug(slug: string): FormCatalogRecord | null {
+  return (
+    (getDB()
+      .prepare('SELECT * FROM forms WHERE slug = ?')
+      .get(slug) as FormCatalogRecord | undefined) ?? null
+  );
+}
+
+export function listFormCatalog(opts: {
+  onlyWithEditor?: boolean;
+  includeDeleted?: boolean;
+} = {}): FormCatalogRecord[] {
+  const where: string[] = [];
+  if (!opts.includeDeleted) where.push('deleted_at IS NULL');
+  if (opts.onlyWithEditor)  where.push('has_form_editor = 1');
+  const sql = `
+    SELECT * FROM forms
+    ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
+    ORDER BY has_form_editor DESC, up_vote DESC, form_name ASC
+  `;
+  return getDB().prepare(sql).all() as FormCatalogRecord[];
+}
+
+/** All slugs currently tracked (active only). Used by the scanner to detect removals. */
+export function listActiveFormSlugs(): string[] {
+  return (
+    getDB()
+      .prepare('SELECT slug FROM forms WHERE deleted_at IS NULL')
+      .all() as { slug: string }[]
+  ).map((r) => r.slug);
+}
+
+export function incrementFormUpvote(slug: string): number {
+  getDB()
+    .prepare('UPDATE forms SET up_vote = up_vote + 1, updated_at = ? WHERE slug = ?')
+    .run(Date.now(), slug);
+  return (
+    (getDB().prepare('SELECT up_vote FROM forms WHERE slug = ?').get(slug) as { up_vote: number } | undefined)
+      ?.up_vote ?? 0
+  );
+}
+
+export function setFormOldReported(slug: string, flag: boolean): boolean {
+  const r = getDB()
+    .prepare('UPDATE forms SET is_old_form_reported = ?, updated_at = ? WHERE slug = ?')
+    .run(flag ? 1 : 0, Date.now(), slug);
+  return r.changes > 0;
+}
+
+/** Patch any subset of editable form fields. Returns true if the row existed. */
+export function updateFormCatalog(
+  slug: string,
+  patch: Partial<{
+    form_name: string;
+    agency: string;
+    source_url: string | null;
+    has_form_editor: 0 | 1;
+    is_old_form_reported: 0 | 1;
+    is_paid: 0 | 1;
+    up_vote: number;
+  }>,
+): boolean {
+  const fields = Object.keys(patch);
+  if (fields.length === 0) return true;
+  const setSql = fields.map((f) => `${f} = @${f}`).join(', ');
+  const r = getDB()
+    .prepare(`UPDATE forms SET ${setSql}, updated_at = @updated_at WHERE slug = @slug`)
+    .run({ ...patch, slug, updated_at: Date.now() });
+  return r.changes > 0;
+}
+
+/** Clear the deleted_at flag (undo soft delete). */
+export function restoreFormCatalog(slug: string): boolean {
+  const r = getDB()
+    .prepare('UPDATE forms SET deleted_at = NULL, updated_at = ? WHERE slug = ?')
+    .run(Date.now(), slug);
+  return r.changes > 0;
+}

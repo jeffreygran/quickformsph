@@ -834,6 +834,7 @@ export default function FormWizardPage() {
           patient_name_ext: 'N/A', patient_middle_name: 'SANTOS',
           patient_pin: '01-234567890-1', patient_age: '56', patient_sex: 'Male',
           chief_complaint: 'Productive cough x 5 days, fever, dyspnea on exertion',
+          signs_symptoms: 'Fever, Dyspnea, Body weakness, Chest pain/discomfort, Anorexia',
           admitting_diagnosis: 'Community-acquired pneumonia, moderate risk',
           discharge_diagnosis: 'Community-acquired pneumonia, moderate risk — resolved',
           case_rate_code_1: 'RVS J18.9',

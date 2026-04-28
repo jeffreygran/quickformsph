@@ -7,7 +7,7 @@ import { FORMS } from '@/data/forms';
 
 const IS_DEV = process.env.NEXT_PUBLIC_APP_ENV === 'dev';
 
-type AdminTab = 'dashboard' | 'catalog' | 'upload' | 'storage' | 'settings' | 'suggestions' | 'refs' | 'security' | 'keys' | 'docs' | 'referral';
+type AdminTab = 'dashboard' | 'catalog' | 'forms' | 'upload' | 'storage' | 'settings' | 'suggestions' | 'refs' | 'security' | 'keys' | 'docs' | 'referral';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('dashboard');
@@ -30,6 +30,7 @@ export default function AdminPage() {
   const tabs: { id: AdminTab; icon: string; label: string }[] = [
     { id: 'dashboard',   icon: '📊', label: 'Dashboard' },
     { id: 'catalog',     icon: '📋', label: 'Form Catalog' },
+    { id: 'forms',       icon: '🗄️', label: 'Forms (DB)' },
     { id: 'upload',      icon: '⬆️', label: 'Upload PDF' },
     { id: 'storage',     icon: '💾', label: 'Storage Config' },
     { id: 'suggestions', icon: '💡', label: 'Suggestions' },
@@ -128,6 +129,7 @@ export default function AdminPage() {
         <main className="flex-1 p-6 overflow-y-auto">
           {tab === 'dashboard'   && <DashboardTab />}
           {tab === 'catalog'     && <CatalogTab />}
+          {tab === 'forms'       && <FormsCrudTab />}
           {tab === 'upload'      && <UploadTab />}
           {tab === 'storage'     && <StorageConfigTab />}
           {tab === 'suggestions' && <SuggestionsTab />}
@@ -517,16 +519,117 @@ function CatalogTab() {
 function UploadTab() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<string>('');
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [url, setUrl]                 = useState('');
+  const [urlFilename, setUrlFilename] = useState('');
+  const [importing, setImporting]     = useState(false);
 
   async function handleUpload() {
     if (!file) return;
     setUploading(true);
-    setResult('');
-    // TODO: implement /api/admin/upload endpoint
-    await new Promise((r) => setTimeout(r, 1500));
-    setResult('Upload endpoint not yet implemented. Place PDF manually at public/forms/');
-    setUploading(false);
+    setResult(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/forms/upload', { method: 'POST', body: fd });
+      const data = await res.json() as {
+        ok?: boolean;
+        error?: string;
+        filename?: string;
+        path?: string;
+        bytes?: number;
+        scan?: { inserted: number; updated: number; softDeleted: number };
+      };
+      if (!res.ok || !data.ok) {
+        setResult({ ok: false, text: data.error ?? `Upload failed (${res.status})` });
+      } else {
+        const kb = Math.round((data.bytes ?? 0) / 1024);
+        const s  = data.scan;
+        setResult({
+          ok: true,
+          text:
+            `✅ Saved as ${data.path} (${kb} KB). ` +
+            `Catalog: +${s?.inserted ?? 0} inserted, ${s?.updated ?? 0} updated. ` +
+            `Status: "Soon" (no FormEditor yet).`,
+        });
+        setFile(null);
+        const inputEl = document.getElementById('pdf-upload') as HTMLInputElement | null;
+        if (inputEl) inputEl.value = '';
+      }
+    } catch (err) {
+      setResult({ ok: false, text: err instanceof Error ? err.message : 'Network error' });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleRescan() {
+    setUploading(true);
+    setResult(null);
+    try {
+      const res  = await fetch('/api/admin/forms/scan', { method: 'POST' });
+      const data = await res.json() as { ok?: boolean; error?: string; scanned?: number; inserted?: number; updated?: number; softDeleted?: number };
+      if (!res.ok || !data.ok) {
+        setResult({ ok: false, text: data.error ?? `Scan failed (${res.status})` });
+      } else {
+        setResult({
+          ok: true,
+          text: `🔁 Scanned ${data.scanned} PDFs · +${data.inserted} new · ${data.updated} updated · ${data.softDeleted} removed.`,
+        });
+      }
+    } catch (err) {
+      setResult({ ok: false, text: err instanceof Error ? err.message : 'Network error' });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleImportUrl() {
+    if (!url.trim()) return;
+    setImporting(true);
+    setResult(null);
+    try {
+      const res  = await fetch('/api/admin/forms/import-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url.trim(), filename: urlFilename.trim() || undefined }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        error?: string;
+        diagnostics?: { received_content_type?: string; received_bytes?: number; head_snippet?: string; first_bytes_hex?: string };
+        filename?: string;
+        path?: string;
+        bytes?: number;
+        sourceUrl?: string;
+        slug?: string;
+        agency?: string;
+        formCode?: string;
+        scan?: { inserted: number; updated: number; softDeleted: number };
+      };
+      if (!res.ok || !data.ok) {
+        const diag = data.diagnostics
+          ? ` (content-type: ${data.diagnostics.received_content_type ?? '?'}, ${data.diagnostics.received_bytes ?? 0} B)`
+          : '';
+        setResult({ ok: false, text: (data.error ?? `Import failed (${res.status})`) + diag });
+      } else {
+        const kb = Math.round((data.bytes ?? 0) / 1024);
+        setResult({
+          ok: true,
+          text:
+            `✅ Imported ${data.path} (${kb} KB) from ${data.sourceUrl}. ` +
+            `Slug: ${data.slug}. ` +
+            `Catalog: +${data.scan?.inserted ?? 0} inserted, ${data.scan?.updated ?? 0} updated. ` +
+            `Status: "Soon" (no FormEditor yet) — source_url saved.`,
+        });
+        setUrl('');
+        setUrlFilename('');
+      }
+    } catch (err) {
+      setResult({ ok: false, text: err instanceof Error ? err.message : 'Network error' });
+    } finally {
+      setImporting(false);
+    }
   }
 
   return (
@@ -534,7 +637,9 @@ function UploadTab() {
       <div className="rounded-2xl bg-white border border-gray-200 p-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-1">Upload Government PDF</h2>
         <p className="text-xs text-gray-500 mb-4">
-          Upload the original flat PDF. Azure Document Intelligence will extract field positions.
+          Saved to <code className="bg-gray-100 px-1 rounded">public/forms/NoFormEditor/</code>{' '}
+          and added to the catalog as <strong>Soon</strong>. Promote to a fillable form by
+          ingesting via <em>Smart Assistance — Form Intake</em>.
         </p>
 
         <div
@@ -547,21 +652,30 @@ function UploadTab() {
           ) : (
             <>
               <div className="text-sm text-gray-600">Click to select PDF</div>
-              <div className="text-xs text-gray-400 mt-1">Max 20MB · PDF only</div>
+              <div className="text-xs text-gray-400 mt-1">
+                Max 25 MB · PDF only · name as <code>Agency - Code.pdf</code>
+              </div>
             </>
           )}
           <input
             id="pdf-upload"
             type="file"
-            accept=".pdf"
+            accept="application/pdf,.pdf"
             className="hidden"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
         </div>
 
         {result && (
-          <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800">
-            {result}
+          <div
+            className={
+              'mt-3 rounded-xl px-4 py-3 text-xs border ' +
+              (result.ok
+                ? 'bg-green-50 border-green-200 text-green-800'
+                : 'bg-red-50 border-red-200 text-red-800')
+            }
+          >
+            {result.text}
           </div>
         )}
 
@@ -570,14 +684,68 @@ function UploadTab() {
           disabled={!file || uploading}
           onClick={handleUpload}
         >
-          {uploading ? 'Uploading…' : '⬆️ Upload & Process'}
+          {uploading ? 'Uploading…' : '⬆️ Upload to NoFormEditor'}
+        </button>
+
+        <button
+          type="button"
+          className="w-full mt-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 text-xs font-medium py-2.5 disabled:opacity-50"
+          onClick={handleRescan}
+          disabled={uploading}
+        >
+          🔁 Rescan public/forms folders
+        </button>
+      </div>
+
+      {/* Import from URL */}
+      <div className="rounded-2xl bg-white border border-gray-200 p-6">
+        <h2 className="text-sm font-semibold text-gray-900 mb-1">Import from URL</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Paste the official PDF URL (e.g. from{' '}
+          <code className="bg-gray-100 px-1 rounded">gsis.gov.ph</code>,{' '}
+          <code className="bg-gray-100 px-1 rounded">philhealth.gov.ph</code>). The PDF is
+          downloaded to <code className="bg-gray-100 px-1 rounded">NoFormEditor/</code> and the
+          row's <code>source_url</code> is set automatically.
+        </p>
+
+        <label className="block text-[11px] font-semibold text-gray-600 mb-1">PDF URL</label>
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://www.gsis.gov.ph/downloads/forms/MPB%20Application%20Form.pdf"
+          className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:border-blue-500"
+          autoComplete="off"
+        />
+
+        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+          Save as (optional) <span className="text-gray-400 font-normal">— follow <code>Agency - Code.pdf</code></span>
+        </label>
+        <input
+          type="text"
+          value={urlFilename}
+          onChange={(e) => setUrlFilename(e.target.value)}
+          placeholder="GSIS - MPB Application Form.pdf"
+          className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+          autoComplete="off"
+        />
+
+        <button
+          type="button"
+          className="btn-primary w-full mt-4 disabled:opacity-50"
+          onClick={handleImportUrl}
+          disabled={!url.trim() || importing}
+        >
+          {importing ? 'Importing…' : '🌐 Fetch & Import'}
         </button>
       </div>
 
       <div className="rounded-2xl bg-blue-50 border border-blue-200 p-5 text-xs text-blue-800">
-        <strong>Manual upload:</strong> Place the PDF at{' '}
-        <code className="bg-blue-100 px-1 rounded">public/forms/hqp-pff-356.pdf</code> to enable
-        real PDF generation. The coordinate overlay will be applied automatically.
+        <strong>Filename tip:</strong> Use the format{' '}
+        <code className="bg-blue-100 px-1 rounded">Agency - Code.pdf</code>{' '}
+        (e.g.{' '}
+        <code className="bg-blue-100 px-1 rounded">PhilHealth - ClaimForm5.pdf</code>) so the
+        scanner can derive a clean slug, agency, and code automatically.
       </div>
     </div>
   );
@@ -2519,5 +2687,328 @@ function DocsTab() {
         />
       )}
     </div>
+  );
+}
+
+// ─── Forms CRUD Tab ───────────────────────────────────────────────────────────
+// CRUD over the SQLite `forms` table (see src/lib/db.ts).
+// List → edit modal → soft-delete / restore. Idempotent rescan available
+// from the Upload tab.
+
+interface FormRow {
+  id: number;
+  slug: string;
+  form_code: string;
+  form_name: string;
+  agency: string;
+  pdf_path: string;
+  source_url: string | null;
+  has_form_editor: 0 | 1;
+  is_old_form_reported: 0 | 1;
+  up_vote: number;
+  is_paid: 0 | 1;
+  created_at: number;
+  updated_at: number;
+  deleted_at: number | null;
+}
+
+function FormsCrudTab() {
+  const [rows, setRows]               = useState<FormRow[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [agencyFilter, setAgencyFilter] = useState<string>('');
+  const [search, setSearch]           = useState('');
+  const [editing, setEditing]         = useState<FormRow | null>(null);
+  const [toast, setToast]             = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res  = await fetch(`/api/admin/forms${includeDeleted ? '?includeDeleted=1' : ''}`);
+      const data = await res.json() as { ok: boolean; rows?: FormRow[]; error?: string };
+      if (!res.ok || !data.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setRows(data.rows ?? []);
+    } catch (err) {
+      setToast({ ok: false, text: err instanceof Error ? err.message : 'Load failed' });
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [includeDeleted]);
+
+  const agencies = Array.from(new Set(rows.map((r) => r.agency))).sort();
+  const filtered = rows.filter((r) => {
+    if (agencyFilter && r.agency !== agencyFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!r.form_name.toLowerCase().includes(q) &&
+          !r.form_code.toLowerCase().includes(q) &&
+          !r.slug.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  async function handleDelete(slug: string) {
+    if (!confirm(`Soft-delete "${slug}"? Counters preserved; restore later from this tab.`)) return;
+    const res = await fetch(`/api/admin/forms/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+    const d   = await res.json() as { ok?: boolean; error?: string };
+    if (!res.ok || !d.ok) {
+      setToast({ ok: false, text: d.error ?? 'Delete failed' });
+    } else {
+      setToast({ ok: true, text: `🗑 Soft-deleted ${slug}` });
+      load();
+    }
+  }
+
+  async function handleRestore(slug: string) {
+    const res = await fetch(`/api/admin/forms/${encodeURIComponent(slug)}/restore`, { method: 'POST' });
+    const d   = await res.json() as { ok?: boolean; error?: string };
+    if (!res.ok || !d.ok) {
+      setToast({ ok: false, text: d.error ?? 'Restore failed' });
+    } else {
+      setToast({ ok: true, text: `♻️ Restored ${slug}` });
+      load();
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2 bg-white border border-gray-200 rounded-2xl px-4 py-3">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search name, code, or slug…"
+          className="flex-1 min-w-[180px] text-xs border border-gray-200 rounded-lg px-3 py-2"
+        />
+        <select
+          value={agencyFilter}
+          onChange={(e) => setAgencyFilter(e.target.value)}
+          className="text-xs border border-gray-200 rounded-lg px-2 py-2"
+        >
+          <option value="">All agencies</option>
+          {agencies.map((a) => <option key={a} value={a}>{a}</option>)}
+        </select>
+        <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={includeDeleted}
+            onChange={(e) => setIncludeDeleted(e.target.checked)}
+          />
+          Show deleted
+        </label>
+        <button
+          onClick={load}
+          className="text-xs rounded-lg border border-gray-200 bg-white hover:bg-gray-50 px-3 py-2"
+        >
+          🔄 Refresh
+        </button>
+        <span className="text-[11px] text-gray-400 ml-auto">{filtered.length} of {rows.length} rows</span>
+      </div>
+
+      {toast && (
+        <div className={`rounded-xl px-4 py-2 text-xs border ${toast.ok ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+          {toast.text}
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-x-auto">
+        <table className="min-w-full text-xs">
+          <thead className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-500">
+            <tr>
+              <th className="px-3 py-2 text-left">Form</th>
+              <th className="px-3 py-2 text-left">Agency</th>
+              <th className="px-3 py-2 text-left">Code</th>
+              <th className="px-3 py-2 text-center">Editor</th>
+              <th className="px-3 py-2 text-center">Old?</th>
+              <th className="px-3 py-2 text-center">Paid</th>
+              <th className="px-3 py-2 text-right">Upvotes</th>
+              <th className="px-3 py-2 text-left">Source</th>
+              <th className="px-3 py-2 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && (
+              <tr><td colSpan={9} className="px-3 py-8 text-center text-gray-400">Loading…</td></tr>
+            )}
+            {!loading && filtered.length === 0 && (
+              <tr><td colSpan={9} className="px-3 py-8 text-center text-gray-400">No forms.</td></tr>
+            )}
+            {filtered.map((r) => (
+              <tr key={r.id} className={`border-t border-gray-100 ${r.deleted_at ? 'opacity-50' : ''}`}>
+                <td className="px-3 py-2">
+                  <div className="font-medium text-gray-900">{r.form_name}</div>
+                  <div className="text-[10px] text-gray-400 font-mono">{r.slug}</div>
+                </td>
+                <td className="px-3 py-2 text-gray-700">{r.agency}</td>
+                <td className="px-3 py-2 font-mono text-gray-600">{r.form_code}</td>
+                <td className="px-3 py-2 text-center">
+                  {r.has_form_editor
+                    ? <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-semibold">LIVE</span>
+                    : <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-semibold">SOON</span>}
+                </td>
+                <td className="px-3 py-2 text-center">{r.is_old_form_reported ? '🟠' : '—'}</td>
+                <td className="px-3 py-2 text-center">{r.is_paid ? '💰' : '—'}</td>
+                <td className="px-3 py-2 text-right font-semibold text-gray-700">{r.up_vote}</td>
+                <td className="px-3 py-2 max-w-[180px] truncate">
+                  {r.source_url
+                    ? <a href={r.source_url} target="_blank" rel="noreferrer noopener" className="text-blue-600 hover:underline">{new URL(r.source_url).hostname}</a>
+                    : <span className="text-gray-300">—</span>}
+                </td>
+                <td className="px-3 py-2 text-right whitespace-nowrap">
+                  {r.deleted_at ? (
+                    <button onClick={() => handleRestore(r.slug)} className="text-[11px] text-green-700 hover:underline">Restore</button>
+                  ) : (
+                    <>
+                      <button onClick={() => setEditing(r)} className="text-[11px] text-blue-600 hover:underline mr-3">Edit</button>
+                      <button onClick={() => handleDelete(r.slug)} className="text-[11px] text-red-600 hover:underline">Delete</button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {editing && (
+        <FormEditModal
+          row={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(updated) => {
+            setEditing(null);
+            setRows((prev) => prev.map((p) => p.slug === updated.slug ? updated : p));
+            setToast({ ok: true, text: `✏️ Saved ${updated.slug}` });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function FormEditModal({
+  row,
+  onClose,
+  onSaved,
+}: {
+  row: FormRow;
+  onClose: () => void;
+  onSaved: (r: FormRow) => void;
+}) {
+  const [formName,    setFormName]    = useState(row.form_name);
+  const [agency,      setAgency]      = useState(row.agency);
+  const [sourceUrl,   setSourceUrl]   = useState(row.source_url ?? '');
+  const [hasEditor,   setHasEditor]   = useState<boolean>(Boolean(row.has_form_editor));
+  const [isOld,       setIsOld]       = useState<boolean>(Boolean(row.is_old_form_reported));
+  const [isPaid,      setIsPaid]      = useState<boolean>(Boolean(row.is_paid));
+  const [upVote,      setUpVote]      = useState<number>(row.up_vote);
+  const [saving,      setSaving]      = useState(false);
+  const [error,       setError]       = useState<string>('');
+
+  async function save() {
+    setSaving(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/forms/${encodeURIComponent(row.slug)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          form_name: formName,
+          agency,
+          source_url: sourceUrl.trim() || null,
+          has_form_editor: hasEditor ? 1 : 0,
+          is_old_form_reported: isOld ? 1 : 0,
+          is_paid: isPaid ? 1 : 0,
+          up_vote: Number(upVote) || 0,
+        }),
+      });
+      const d = await res.json() as { ok?: boolean; row?: FormRow; error?: string };
+      if (!res.ok || !d.ok || !d.row) throw new Error(d.error ?? `HTTP ${res.status}`);
+      onSaved(d.row);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Edit form</h3>
+            <p className="text-[11px] text-gray-400 font-mono">{row.slug}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-lg leading-none">✕</button>
+        </div>
+
+        <Field label="Form name">
+          <input value={formName} onChange={(e) => setFormName(e.target.value)} className={inputCls} />
+        </Field>
+        <Field label="Agency">
+          <input value={agency} onChange={(e) => setAgency(e.target.value)} className={inputCls} />
+        </Field>
+        <Field label="Source URL (official PDF)">
+          <input
+            type="url"
+            value={sourceUrl}
+            placeholder="https://www.philhealth.gov.ph/downloads/…"
+            onChange={(e) => setSourceUrl(e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+
+        <div className="grid grid-cols-3 gap-3">
+          <Toggle label="Has FormEditor" checked={hasEditor} onChange={setHasEditor} />
+          <Toggle label="Old form reported" checked={isOld} onChange={setIsOld} />
+          <Toggle label="Paid form" checked={isPaid} onChange={setIsPaid} />
+        </div>
+
+        <Field label="Upvotes">
+          <input
+            type="number"
+            min={0}
+            value={upVote}
+            onChange={(e) => setUpVote(Math.max(0, Number(e.target.value) || 0))}
+            className={inputCls}
+          />
+        </Field>
+
+        <div className="text-[10px] text-gray-400">
+          Read-only: <span className="font-mono">{row.form_code}</span> ·{' '}
+          PDF: <span className="font-mono">{row.pdf_path}</span>
+        </div>
+
+        {error && <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2">{error}</div>}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button onClick={onClose} className="text-xs px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50">Cancel</button>
+          <button onClick={save} disabled={saving} className="btn-primary text-xs px-4 py-2">{saving ? 'Saving…' : 'Save changes'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const inputCls = 'w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500';
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="block text-[11px] font-semibold text-gray-600 mb-1">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex flex-col items-start gap-1 text-[11px] text-gray-600 cursor-pointer">
+      <span>{label}</span>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4" />
+    </label>
   );
 }

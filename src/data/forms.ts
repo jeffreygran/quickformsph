@@ -3612,6 +3612,7 @@ const philhealthClaimForm4 = {
         'pertinent_past_medical_history',
         'obgyn_history',
         'referred_from_hci', 'referring_hci_name', 'referring_reason',
+        'signs_symptoms',
       ],
     },
     {
@@ -3731,6 +3732,15 @@ const philhealthClaimForm4 = {
     { id: 'referring_reason', label: 'Reason for Referral',
       type: 'textarea', required: false, maxLength: 200,
       visibleWhen: { field: 'referred_from_hci', equals: 'Yes' }, step: 3 },
+    // 3. Pertinent Signs and Symptoms on Admission — comma-separated multi-tick.
+    //   Renderer (L-SMART-CF4-02) splits on ',' and ticks each matching label
+    //   in CF4_CHECKBOX_COORDS.signs_symptoms. 32 canonical labels in 4 cols × 8 rows.
+    { id: 'signs_symptoms',
+      label: '3. Pertinent Signs and Symptoms on Admission',
+      type: 'text', required: false, maxLength: 600,
+      placeholder: 'Fever, Vomiting, Body weakness',
+      hint: 'Comma-separated. Canonical labels: Altered mental sensorium, Abdominal cramp/pain, Anorexia, Bleeding gums, Body weakness, Blurring of vision, Chest pain/discomfort, Constipation, Cough, Diarrhea, Dizziness, Dysphagia, Dyspnea, Dysuria, Epistaxis, Fever, Frequency of urination, Headache, Hematemesis, Hematuria, Hemoptysis, Irritability, Jaundice, Lower extremity edema, Myalgia, Orthopnea, Pain, Palpitations, Seizures, Skin rashes, Stool bloody/black tarry/mucoid, Sweating, Urgency, Vomiting, Weight loss, Others.',
+      step: 3 },
 
     // ── Step 4: Physical Exam & Course ──
     { id: 'pe_height_cm', label: 'Height (cm)', type: 'text',

@@ -1304,6 +1304,59 @@ const CF4_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number;
     'AM': { page: 0, x: 451, y: CF4_PAGE_H - 366 },
     'PM': { page: 0, x: 475, y: CF4_PAGE_H - 366 },
   },
+  // 3. Pertinent Signs and Symptoms on Admission — 32 checkboxes in 4 cols × 8 rows.
+  //   Source PDF 'D' glyphs (checkbox markers, Helvetica) measured at:
+  //     col x = 47, 160, 267, 375 (tick offset +5 → 52, 165, 272, 380)
+  //     row top = 595.4, 610.5, 624.9, 640.0, 655.2, 669.6, 684.7, 699.4
+  //   Tick character baseline sits ~3pt above the box top → y = page_h - top + 3.
+  //   Labels are matched case-sensitively against comma-split rawValue.
+  signs_symptoms: {
+    // Row 1 (top=595.4, y=343.6)
+    'Altered mental sensorium': { page: 0, x:  52, y: CF4_PAGE_H - 595.4 - 9 },
+    'Diarrhea':                 { page: 0, x: 165, y: CF4_PAGE_H - 595.4 - 9 },
+    'Hematemesis':              { page: 0, x: 272, y: CF4_PAGE_H - 595.4 - 9 },
+    'Palpitations':             { page: 0, x: 380, y: CF4_PAGE_H - 595.4 - 9 },
+    // Row 2 (top=610.5)
+    'Abdominal cramp/pain':     { page: 0, x:  52, y: CF4_PAGE_H - 610.5 - 9 },
+    'Dizziness':                { page: 0, x: 165, y: CF4_PAGE_H - 610.5 - 9 },
+    'Hematuria':                { page: 0, x: 272, y: CF4_PAGE_H - 610.5 - 9 },
+    'Seizures':                 { page: 0, x: 380, y: CF4_PAGE_H - 610.5 - 9 },
+    // Row 3 (top=624.9)
+    'Anorexia':                 { page: 0, x:  52, y: CF4_PAGE_H - 624.9 - 9 },
+    'Dysphagia':                { page: 0, x: 165, y: CF4_PAGE_H - 624.9 - 9 },
+    'Hemoptysis':               { page: 0, x: 272, y: CF4_PAGE_H - 624.9 - 9 },
+    'Skin rashes':              { page: 0, x: 380, y: CF4_PAGE_H - 624.9 - 9 },
+    // Row 4 (top=640.0)
+    'Bleeding gums':            { page: 0, x:  52, y: CF4_PAGE_H - 640.0 - 9 },
+    'Dyspnea':                  { page: 0, x: 165, y: CF4_PAGE_H - 640.0 - 9 },
+    'Irritability':             { page: 0, x: 272, y: CF4_PAGE_H - 640.0 - 9 },
+    'Stool bloody/black tarry/mucoid': { page: 0, x: 380, y: CF4_PAGE_H - 640.0 - 9 },
+    // Row 5 (top=655.2; col-4 'Sweating' D glyph offset to 646.8 in source — use 655.2 row-line for consistency)
+    'Body weakness':            { page: 0, x:  52, y: CF4_PAGE_H - 655.2 - 9 },
+    'Dysuria':                  { page: 0, x: 165, y: CF4_PAGE_H - 655.2 - 9 },
+    'Jaundice':                 { page: 0, x: 272, y: CF4_PAGE_H - 655.2 - 9 },
+    'Sweating':                 { page: 0, x: 380, y: CF4_PAGE_H - 655.2 - 9 },
+    // Row 6 (top=669.6)
+    'Blurring of vision':       { page: 0, x:  52, y: CF4_PAGE_H - 669.6 - 9 },
+    'Epistaxis':                { page: 0, x: 165, y: CF4_PAGE_H - 669.6 - 9 },
+    'Lower extremity edema':    { page: 0, x: 272, y: CF4_PAGE_H - 669.6 - 9 },
+    'Urgency':                  { page: 0, x: 380, y: CF4_PAGE_H - 669.6 - 9 },
+    // Row 7 (top=684.7)
+    'Chest pain/discomfort':    { page: 0, x:  52, y: CF4_PAGE_H - 684.7 - 9 },
+    'Fever':                    { page: 0, x: 165, y: CF4_PAGE_H - 684.7 - 9 },
+    'Myalgia':                  { page: 0, x: 272, y: CF4_PAGE_H - 684.7 - 9 },
+    'Vomiting':                 { page: 0, x: 380, y: CF4_PAGE_H - 684.7 - 9 },
+    // Row 8 (top=699.4)
+    'Constipation':             { page: 0, x:  52, y: CF4_PAGE_H - 699.4 - 9 },
+    'Frequency of urination':   { page: 0, x: 165, y: CF4_PAGE_H - 699.4 - 9 },
+    'Orthopnea':                { page: 0, x: 272, y: CF4_PAGE_H - 699.4 - 9 },
+    'Weight loss':              { page: 0, x: 380, y: CF4_PAGE_H - 699.4 - 9 },
+    // Row 9 (top=715.3)
+    'Cough':                    { page: 0, x:  52, y: CF4_PAGE_H - 715.3 - 9 },
+    'Headache':                 { page: 0, x: 165, y: CF4_PAGE_H - 715.3 - 9 },
+    'Pain':                     { page: 0, x: 272, y: CF4_PAGE_H - 715.3 - 9 },
+    'Others':                   { page: 0, x: 380, y: CF4_PAGE_H - 715.3 - 9 },
+  },
 };
 
 // ── Per-form PDF config registry ─────────────────────────────────────────────
@@ -3899,6 +3952,7 @@ export async function generatePDF(
     if (skipList?.includes(rawValue)) continue;
 
     // ── Checkbox / radio-button fields ────────────────────────────────────
+    // Single-value match (e.g. patient_disposition='IMPROVED').
     const checkboxEntry = checkboxCoords[field.id]?.[rawValue];
     if (checkboxEntry) {
       const checkboxPage = pages[checkboxEntry.page ?? 0];
@@ -3912,6 +3966,28 @@ export async function generatePDF(
         });
       }
       continue; // skip regular text overlay for this field
+    }
+    // Multi-tick: comma-separated values map to multiple ticks (signs/symptoms,
+    // PE checklist, etc.). See L-SMART-CF4-02.
+    if (checkboxCoords[field.id] && rawValue.includes(',')) {
+      const labels = rawValue.split(',').map((s) => s.trim()).filter(Boolean);
+      let ticked = false;
+      for (const label of labels) {
+        const entry = checkboxCoords[field.id][label];
+        if (!entry) continue;
+        ticked = true;
+        const checkboxPage = pages[entry.page ?? 0];
+        for (const yOff of copyYOffsets) {
+          checkboxPage.drawText('\u2714', {
+            x: entry.x,
+            y: entry.y + yOff,
+            size: 9,
+            font: checkFont,
+            color: rgb(0, 0, 0),
+          });
+        }
+      }
+      if (ticked) continue;
     }
 
     const coords = fieldCoords[field.id];
