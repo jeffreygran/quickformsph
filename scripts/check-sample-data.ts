@@ -182,7 +182,20 @@ for (const form of FORMS) {
     for (const field of form.fields as FormField[]) {
       const value = sample[field.id];
       const isBlank = value === undefined || value === null || value === '';
-      if (field.required && isBlank) {
+
+      // Respect visibleWhen — a hidden field is not effectively required.
+      const vw: any = (field as any).visibleWhen;
+      let isVisible = true;
+      if (vw && typeof vw === 'object') {
+        const gateVal = sample[vw.field];
+        if ('equals' in vw) {
+          isVisible = (gateVal ?? '') === vw.equals;
+        } else if (Array.isArray(vw.equalsOneOf)) {
+          isVisible = vw.equalsOneOf.includes(gateVal);
+        }
+      }
+
+      if (field.required && isBlank && isVisible) {
         failures.push({ slug: form.slug, sampleIndex: idx, check: 'required', field: field.id, details: `required field is ${value === undefined ? 'missing' : 'empty'}` });
       }
       if (field.type === 'dropdown' && !isBlank && Array.isArray(field.options)) {

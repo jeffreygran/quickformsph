@@ -165,22 +165,41 @@ interface DashboardStats {
   totalFormViews: number;
   totalDemoClicks: number;
   totalPaymentSuccesses: number;
+  uniqueVisitors: number;
   claimedCodes: number;
   unclaimedCodes: number;
   dailyBuckets: DailyBucket[];
 }
 
-function useDashboardStats(period: Period) {
+function useDashboardStats(period: Period, refreshMs: number, refreshTick: number) {
   const [data, setData] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastFetchedAt, setLastFetchedAt] = useState<number>(0);
+
+  // Initial + period-change fetch
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     fetch(`/api/admin/analytics?period=${period}`)
       .then((r) => { if (!r.ok) throw new Error('not ok'); return r.json(); })
-      .then((d) => { setData(d as DashboardStats); setLoading(false); })
-      .catch(() => { setData(null); setLoading(false); });
-  }, [period]);
-  return { data, loading };
+      .then((d) => { if (!cancelled) { setData(d as DashboardStats); setLoading(false); setLastFetchedAt(Date.now()); } })
+      .catch(() => { if (!cancelled) { setData(null); setLoading(false); } });
+    return () => { cancelled = true; };
+  }, [period, refreshTick]);
+
+  // Background auto-refresh — silent (no spinner) so the dashboard doesn't flash on every poll.
+  useEffect(() => {
+    if (refreshMs <= 0) return;
+    const id = setInterval(() => {
+      fetch(`/api/admin/analytics?period=${period}`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => { if (d) { setData(d as DashboardStats); setLastFetchedAt(Date.now()); } })
+        .catch(() => { /* keep last good data */ });
+    }, refreshMs);
+    return () => clearInterval(id);
+  }, [period, refreshMs]);
+
+  return { data, loading, lastFetchedAt };
 }
 
 // Simple inline SVG bar chart (no deps)
@@ -237,9 +256,55 @@ function HBarRow({ label, value, max, color }: { label: string; value: number; m
   );
 }
 
+const REFRESH_OPTIONS: { label: string; ms: number }[] = [
+  { label: 'Disabled', ms: 0       },
+  { label: '5s',       ms: 5_000   },
+  { label: '30s',      ms: 30_000  },
+  { label: '1min',     ms: 60_000  },
+  { label: '30min',    ms: 1_800_000 },
+];
+const REFRESH_STORAGE_KEY = 'qfph_mc_refresh_ms';
+
 function DashboardTab() {
   const [period, setPeriod] = useState<Period>('week');
-  const { data, loading } = useDashboardStats(period);
+  const [refreshMs, setRefreshMs] = useState<number>(0);
+  const [refreshTick, setRefreshTick] = useState(0); // bump to force a fetch (manual refresh)
+  const { data, loading, lastFetchedAt } = useDashboardStats(period, refreshMs, refreshTick);
+
+  // Restore preferred refresh interval from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(REFRESH_STORAGE_KEY);
+      if (raw !== null) {
+        const n = Number(raw);
+        if (Number.isFinite(n) && REFRESH_OPTIONS.some((o) => o.ms === n)) {
+          setRefreshMs(n);
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleRefreshChange = (ms: number) => {
+    setRefreshMs(ms);
+    try { localStorage.setItem(REFRESH_STORAGE_KEY, String(ms)); } catch { /* ignore */ }
+  };
+
+  // "Last updated" relative-time label, refreshed every second so it stays live.
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    if (!lastFetchedAt) return;
+    const id = setInterval(() => forceTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [lastFetchedAt]);
+  const lastUpdatedLabel = lastFetchedAt
+    ? (() => {
+        const sec = Math.max(0, Math.floor((Date.now() - lastFetchedAt) / 1000));
+        if (sec < 5)   return 'just now';
+        if (sec < 60)  return `${sec}s ago`;
+        if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
+        return `${Math.floor(sec / 3600)}h ago`;
+      })()
+    : '—';
 
   const PERIOD_LABELS: Record<Period, string> = { day: 'Today', week: 'This Week', month: 'This Month' };
 
@@ -248,8 +313,8 @@ function DashboardTab() {
 
   return (
     <div className="space-y-6">
-      {/* Period Filter */}
-      <div className="flex items-center gap-2">
+      {/* Period Filter + Auto-Refresh */}
+      <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs text-gray-500 font-medium mr-1">Period:</span>
         {(['day', 'week', 'month'] as Period[]).map((p) => (
           <button
@@ -262,12 +327,48 @@ function DashboardTab() {
             {PERIOD_LABELS[p]}
           </button>
         ))}
+        <span className="ml-2 inline-flex items-center gap-1.5 text-xs text-gray-600">
+          <span className="font-medium text-gray-500">Total Forms:</span>
+          <span className="font-bold text-gray-900">{FORMS.length}</span>
+        </span>
+
+        {/* Auto-refresh control — pushed to the right */}
+        <div className="ml-auto flex items-center gap-2">
+          <label className="inline-flex items-center gap-1.5 text-xs text-gray-600">
+            <span className="font-medium text-gray-500">Auto-refresh:</span>
+            <select
+              value={refreshMs}
+              onChange={(e) => handleRefreshChange(Number(e.target.value))}
+              className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-colors"
+            >
+              {REFRESH_OPTIONS.map((o) => (
+                <option key={o.ms} value={o.ms}>{o.label}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => setRefreshTick((n) => n + 1)}
+            title="Refresh now"
+            className="inline-flex items-center justify-center h-7 w-7 rounded-full border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+            aria-label="Refresh now"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M21 12a9 9 0 1 1-3-6.7" />
+              <polyline points="21 4 21 10 15 10" />
+            </svg>
+          </button>
+          <span className="text-[10px] text-gray-400 tabular-nums whitespace-nowrap">
+            {refreshMs > 0 && <span className="mr-1 inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse align-middle" />}
+            {lastUpdatedLabel}
+          </span>
+        </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
         {[
-          { label: 'Total Forms',        value: FORMS.length,                       icon: '📋', color: 'bg-blue-50 text-blue-700',    noFilter: true },
+          { label: 'Unique Visitors',    value: loading ? '…' : (data?.uniqueVisitors        ?? 0), icon: '👥', color: 'bg-cyan-50 text-cyan-700'    },
           { label: 'Form Clicks',        value: loading ? '…' : (data?.totalFormViews        ?? 0), icon: '👆', color: 'bg-indigo-50 text-indigo-700' },
           { label: 'Demo Clicks',        value: loading ? '…' : (data?.totalDemoClicks       ?? 0), icon: '🧪', color: 'bg-violet-50 text-violet-700' },
           { label: 'Paid Users',         value: loading ? '…' : (data?.totalPaymentSuccesses ?? 0), icon: '💰', color: 'bg-green-50 text-green-700'  },
@@ -277,7 +378,7 @@ function DashboardTab() {
             <div className={`inline-flex rounded-xl p-2 text-lg ${s.color} mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-gray-900">{s.value}</div>
             <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
-            {!s.noFilter && <div className="text-[10px] text-gray-400 mt-0.5">{PERIOD_LABELS[period]}</div>}
+            <div className="text-[10px] text-gray-400 mt-0.5">{PERIOD_LABELS[period]}</div>
           </div>
         ))}
       </div>

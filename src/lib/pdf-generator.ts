@@ -484,10 +484,14 @@ const CF1_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number;
   },
 
   // ── Is patient the member? (2 checkboxes; boxes top=408.6 bot=420.9) ──
-  // y = 936 - 420.9 + (12.3 - 7)/2 = 518; Yes: x0=139.8, No: x0=232.6
-  patient_is_member: {
-    'Yes — I am the Patient':     { x: 142, y: 518 },
-    'No — Patient is a Dependent': { x: 235, y: 518 },
+  // y = 936 - 420.9 + (12.3 - 7)/2 = 518; Yes: x0=139.8, No: x0=232.6.
+  // CF-1 schema uses a boolean checkbox `patient_is_member` ('true' | '').
+  // The synthetic `patient_is_member_choice` key (populated in generatePDF
+  // before draw) maps the boolean to the printed labels so BOTH the Yes box
+  // (when ticked) and the No box (when unticked) get drawn correctly.
+  patient_is_member_choice: {
+    'Yes':     { x: 142, y: 518 },
+    'No':      { x: 235, y: 518 },
   },
 
   // ── Relationship to Member (3 checkboxes; boxes top=511.2 bot=523.5) ──
@@ -532,204 +536,196 @@ const CF1_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number;
 //   Cert section lines: top≈328, ~343, ~363, ~378, etc.
 
 const CF2_FIELD_COORDS: CoordsMap = {
+  // ── Calibrated 2026-04-28 from ClaimForm2_092018.pdf via pdfplumber.
+  // Method: extract underscore underline runs + per-digit box rects;
+  // text-baseline y = pageHeight(936) - underline_bot + 2.
+  //
   // ── Part I: HCI Information ──
-  // PAN fill line: underline top=202.9 bot=210.0 → y=936-210+3=729
-  hci_pan:          { page: 0, x: 310, y: 729, maxWidth: 280 },
-  // HCI Name fill line: underline top=219.4 bot=226.4 → y=936-226.4+3=712.6≈713
-  hci_name:         { page: 0, x:  34, y: 713, maxWidth: 570 },
-  // Address: "Building Number and Street" section, underline top=240.5 bot=247.5
-  // Cols: bldg_street x0≈127, city/mun x0≈338, province x0≈503
-  // y = 936-247.5+3=691.5≈692
-  hci_bldg_street:  { page: 0, x: 128, y: 692, maxWidth: 208 },
-  hci_city:         { page: 0, x: 338, y: 692, maxWidth: 162 },
-  hci_province:     { page: 0, x: 504, y: 692, maxWidth: 100, fontSize: 8 },
+  // PAN per-digit boxes: 9 cells at top=192.6 bot=204.9, x∈[330..440].
+  // The "HCI-" prefix is pre-printed; only the 9-char "NN-NNNNNN" tail is
+  // entered. The CF-2 normalizer strips "HCI-" before render.
+  hci_pan:           { page: 0, x: 330, y: 733, maxWidth: 110, fontSize: 10 },
+  // HCI Name single underline top=214.0 bot=220.9 → y=717
+  // Underline starts at x=174 (after the "2. Name of Health Care Institution:" label)
+  hci_name:          { page: 0, x: 175, y: 717, maxWidth: 415 },
+  // Address row (3 segs at bot=237.4 → y=701)
+  // bldg/street x=81-287, city x=296-440, province x=452-589
+  hci_bldg_street:   { page: 0, x:  82, y: 701, maxWidth: 205 },
+  hci_city:          { page: 0, x: 297, y: 701, maxWidth: 143 },
+  hci_province:      { page: 0, x: 453, y: 701, maxWidth: 137 },
 
   // ── Part II: Patient Name ──
-  // Name row underline top=300.5 bot=306.7 → y=636-306.7+3=632≈633
-  // 4 columns: Last x0≈163, First x0≈288, Ext x0≈390, Middle x0≈509
-  patient_last_name:   { page: 0, x: 164, y: 633, maxWidth: 122 },
-  patient_first_name:  { page: 0, x: 290, y: 633, maxWidth:  97 },
-  patient_name_ext:    { page: 0, x: 391, y: 633, maxWidth: 115 },
-  patient_middle_name: { page: 0, x: 510, y: 633, maxWidth:  82 },
+  // 4 segs at bot=283.9/285.0 → y=653
+  patient_last_name:    { page: 0, x: 126, y: 653, maxWidth: 109 },
+  patient_first_name:   { page: 0, x: 248, y: 653, maxWidth: 119 },
+  patient_name_ext:     { page: 0, x: 377, y: 653, maxWidth:  81 },
+  patient_middle_name:  { page: 0, x: 471, y: 653, maxWidth: 119 },
 
-  // ── Referring HCI (visible when YES) ──
-  // Referring HCI Name underline top=350.6 bot=356.7 → y=936-356.7+3=582≈582
-  // "Building Number and Street" + City/Mun + Province + Zip on same line
-  referring_hci_name:       { page: 0, x: 122, y: 582, maxWidth: 145 },
-  referring_hci_bldg_street:{ page: 0, x: 271, y: 582, maxWidth:  98 },
-  referring_hci_city:       { page: 0, x: 400, y: 582, maxWidth:  90 },
-  referring_hci_province:   { page: 0, x: 492, y: 582, maxWidth:  72, fontSize: 8 },
-  referring_hci_zip:        { page: 0, x: 566, y: 582, maxWidth:  28 },
+  // ── Referring HCI (visible when referred_by_hci=YES) ──
+  // 5 segs at bot=339.9 → y=598
+  referring_hci_name:        { page: 0, x: 113, y: 598, maxWidth: 147, fontSize: 8 },
+  referring_hci_bldg_street: { page: 0, x: 272, y: 598, maxWidth: 113, fontSize: 8 },
+  referring_hci_city:        { page: 0, x: 397, y: 598, maxWidth:  64, fontSize: 8 },
+  referring_hci_province:    { page: 0, x: 471, y: 598, maxWidth:  71, fontSize: 8 },
+  referring_hci_zip:         { page: 0, x: 552, y: 598, maxWidth:  37, fontSize: 8 },
 
   // ── Confinement Period: Date Admitted ──
-  // Underlines: month/day/year at top≈369 bot≈377 → y=936-377+3=562
-  // hour/min at top≈370 bot≈377
-  // month label x0≈200, day x0≈236, year x0≈280 (from words map)
-  // AM/PM checkboxes at x≈490 and x≈531
-  date_admitted_month: { page: 0, x: 200, y: 562, maxWidth: 34 },
-  date_admitted_day:   { page: 0, x: 236, y: 562, maxWidth: 34 },
-  date_admitted_year:  { page: 0, x: 272, y: 562, maxWidth: 50 },
-  time_admitted_hour:  { page: 0, x: 394, y: 562, maxWidth: 30 },
-  time_admitted_min:   { page: 0, x: 427, y: 562, maxWidth: 30 },
+  // Per-digit boxes at top=363.8 bot=369.6 → y=569 (text baseline above box)
+  // Month: x=198,210.3 (2 boxes); Day: x=229.7,242 (2); Year: x=261.4..298.3 (4)
+  // Time: Hour x=391.3,403.6; Min x=423,435.4
+  date_admitted_month: { page: 0, x: 199, y: 568, maxWidth: 24, fontSize: 9 },
+  date_admitted_day:   { page: 0, x: 231, y: 568, maxWidth: 24, fontSize: 9 },
+  date_admitted_year:  { page: 0, x: 262, y: 568, maxWidth: 49, fontSize: 9 },
+  time_admitted_hour:  { page: 0, x: 392, y: 568, maxWidth: 24, fontSize: 9 },
+  time_admitted_min:   { page: 0, x: 424, y: 568, maxWidth: 24, fontSize: 9 },
 
   // ── Confinement Period: Date Discharged ──
-  // Underlines: top≈385 bot≈393 → y=936-393+3=546
-  date_discharged_month: { page: 0, x: 200, y: 546, maxWidth: 34 },
-  date_discharged_day:   { page: 0, x: 236, y: 546, maxWidth: 34 },
-  date_discharged_year:  { page: 0, x: 272, y: 546, maxWidth: 50 },
-  time_discharged_hour:  { page: 0, x: 394, y: 546, maxWidth: 30 },
-  time_discharged_min:   { page: 0, x: 427, y: 546, maxWidth: 30 },
+  // Boxes at top=379.6 bot=385.5 → y=553
+  date_discharged_month: { page: 0, x: 199, y: 552, maxWidth: 24, fontSize: 9 },
+  date_discharged_day:   { page: 0, x: 231, y: 552, maxWidth: 24, fontSize: 9 },
+  date_discharged_year:  { page: 0, x: 262, y: 552, maxWidth: 49, fontSize: 9 },
+  time_discharged_hour:  { page: 0, x: 392, y: 552, maxWidth: 24, fontSize: 9 },
+  time_discharged_min:   { page: 0, x: 424, y: 552, maxWidth: 24, fontSize: 9 },
 
   // ── Expired date/time ──
-  // Date/time Expired underlines top≈413 bot≈420 → y=936-420+3=519
-  // month x≈261, day x≈297, year x≈341
-  expired_month: { page: 0, x: 261, y: 513, maxWidth: 34 },
-  expired_day:   { page: 0, x: 297, y: 513, maxWidth: 34 },
-  expired_year:  { page: 0, x: 333, y: 513, maxWidth: 48 },
-  expired_hour:  { page: 0, x: 425, y: 513, maxWidth: 30 },
-  expired_min:   { page: 0, x: 459, y: 513, maxWidth: 30 },
+  // Boxes at top=410.2 bot=416.0 → y=520
+  // Month: x=259,271.4; Day: x=290.8,303.1; Year: x=322.4,334.8,347,359.3
+  // Time: Hour x=420,432.3; Min x=451.7,464
+  expired_date_month: { page: 0, x: 260, y: 520, maxWidth: 24, fontSize: 9 },
+  expired_date_day:   { page: 0, x: 291, y: 520, maxWidth: 24, fontSize: 9 },
+  expired_date_year:  { page: 0, x: 323, y: 520, maxWidth: 49, fontSize: 9 },
+  expired_time_hour:  { page: 0, x: 421, y: 520, maxWidth: 24, fontSize: 9 },
+  expired_time_min:   { page: 0, x: 452, y: 520, maxWidth: 24, fontSize: 9 },
 
   // ── Transferred/Referred HCI ──
-  // Name of Referral HCI underline top≈434 bot≈441 → y=936-441+3=498
-  // Bldg/Street + City + Province + Zip on line top≈451 bot≈458 → y=936-458+3=481
-  transferred_hci_name:       { page: 0, x: 370, y: 498, maxWidth: 224 },
-  transferred_hci_bldg_street:{ page: 0, x: 279, y: 481, maxWidth:  98 },
-  transferred_hci_city:       { page: 0, x: 400, y: 481, maxWidth:  88 },
-  transferred_hci_province:   { page: 0, x: 490, y: 481, maxWidth:  67, fontSize: 8 },
-  transferred_hci_zip:        { page: 0, x: 558, y: 481, maxWidth:  36 },
-
-  // Reason for referral: underline top≈461 bot≈467 → y=936-467+3=472
-  reason_for_referral: { page: 0, x: 308, y: 464, maxWidth: 286 },
+  // Name single seg at bot=433.9 → y=504 (x=292-586)
+  transferred_hci_name:        { page: 0, x: 293, y: 504, maxWidth: 293, fontSize: 8 },
+  // Address row 4 segs at bot=448.9 → y=489
+  transferred_hci_bldg_street: { page: 0, x: 272, y: 489, maxWidth: 113, fontSize: 8 },
+  transferred_hci_city:        { page: 0, x: 397, y: 489, maxWidth:  62, fontSize: 8 },
+  transferred_hci_province:    { page: 0, x: 471, y: 489, maxWidth:  70, fontSize: 8 },
+  transferred_hci_zip:         { page: 0, x: 552, y: 489, maxWidth:  35, fontSize: 8 },
+  // Reason single seg at bot=469.2 → y=469
+  reason_for_referral:         { page: 0, x: 320, y: 469, maxWidth: 265, fontSize: 8 },
 
   // ── Admission Diagnoses ──
-  // 2 underlines in section, top≈495 and top≈511 → y≈443 and y≈428
-  admission_diagnosis_1: { page: 0, x:  34, y: 442, maxWidth: 570 },
-  admission_diagnosis_2: { page: 0, x:  34, y: 427, maxWidth: 570 },
+  // Section between "Admission Diagnosis/es:" label (y=488) and
+  // "Discharge Diagnosis/es" header bar (y=525). 2 fill rows ~13pt each.
+  // Place row 1 baseline at y_top≈506 → pdf_y=433; row 2 at y_top≈519 → pdf_y=420
+  admission_diagnosis_1: { page: 0, x:  35, y: 433, maxWidth: 555, fontSize: 9 },
+  admission_diagnosis_2: { page: 0, x:  35, y: 420, maxWidth: 555, fontSize: 9 },
 
-  // ── Discharge Diagnoses rows (6 rows starting at top≈540, each ~13.5pt) ──
-  // Row 1 top=540.4, bottom of row line: use top+4 for text start
-  // Cols: Diagnosis x0≈54 w≈75 | ICD-10 x0≈131 w≈67 | Procedure x0≈199 w≈130
-  //       RVS x0≈341 w≈55 | Date x0≈400 w≈75 | Laterality checkboxes x0≈480-590
-  // y formula: 936 - row_top_pdfplumb - 4 (text baseline above label line)
-  // Row i   top≈550 → y≈382;  Row ii  top≈563.8 → y≈369
-  // Row iii top≈577  → y≈355;  Row iv  top≈590.8 → y≈341
-  // (These are the fill rows, labels are in header row at top≈540)
-  discharge_diagnosis_1:        { page: 0, x:  55, y: 382, maxWidth:  74, fontSize: 8 },
-  discharge_icd10_1:            { page: 0, x: 132, y: 382, maxWidth:  65, fontSize: 8 },
-  discharge_procedure_1:        { page: 0, x: 200, y: 382, maxWidth: 139, fontSize: 8 },
-  discharge_rvs_1:              { page: 0, x: 341, y: 382, maxWidth:  57, fontSize: 8 },
-  discharge_procedure_date_1:   { page: 0, x: 399, y: 382, maxWidth:  78, fontSize: 7 },
+  // ── Discharge Diagnoses 6 rows ──
+  // Underline bottoms at 562.7, 576.2, 589.7, 603.2, 616.7, 629.9
+  // → pdf_y = 375, 362, 348, 335, 321, 308
+  // Cols (from underscore runs at y=555):
+  //   Diagnosis x=43-114 (w=71) | ICD-10 x=125-180 (w=55)
+  //   Procedure x=201-315 (w=114) | RVS x=326-385 (w=59)
+  //   Date x=396-459 (w=63)  | Laterality boxes x=473.3,508.9,548 (left/right/both)
+  discharge_diagnosis_1:      { page: 0, x:  44, y: 375, maxWidth: 70, fontSize: 7 },
+  discharge_icd10_1:          { page: 0, x: 126, y: 375, maxWidth: 54, fontSize: 7 },
+  discharge_procedure_1:      { page: 0, x: 202, y: 375, maxWidth: 113, fontSize: 7 },
+  discharge_rvs_1:            { page: 0, x: 327, y: 375, maxWidth: 58, fontSize: 7 },
+  discharge_procedure_date_1: { page: 0, x: 397, y: 375, maxWidth: 62, fontSize: 7 },
 
-  discharge_diagnosis_2:        { page: 0, x:  55, y: 368, maxWidth:  74, fontSize: 8 },
-  discharge_icd10_2:            { page: 0, x: 132, y: 368, maxWidth:  65, fontSize: 8 },
-  discharge_procedure_2:        { page: 0, x: 200, y: 368, maxWidth: 139, fontSize: 8 },
-  discharge_rvs_2:              { page: 0, x: 341, y: 368, maxWidth:  57, fontSize: 8 },
-  discharge_procedure_date_2:   { page: 0, x: 399, y: 368, maxWidth:  78, fontSize: 7 },
+  discharge_diagnosis_2:      { page: 0, x:  44, y: 362, maxWidth: 70, fontSize: 7 },
+  discharge_icd10_2:          { page: 0, x: 126, y: 362, maxWidth: 54, fontSize: 7 },
+  discharge_procedure_2:      { page: 0, x: 202, y: 362, maxWidth: 113, fontSize: 7 },
+  discharge_rvs_2:            { page: 0, x: 327, y: 362, maxWidth: 58, fontSize: 7 },
+  discharge_procedure_date_2: { page: 0, x: 397, y: 362, maxWidth: 62, fontSize: 7 },
 
-  discharge_diagnosis_3:        { page: 0, x:  55, y: 354, maxWidth:  74, fontSize: 8 },
-  discharge_icd10_3:            { page: 0, x: 132, y: 354, maxWidth:  65, fontSize: 8 },
-  discharge_procedure_3:        { page: 0, x: 200, y: 354, maxWidth: 139, fontSize: 8 },
-  discharge_rvs_3:              { page: 0, x: 341, y: 354, maxWidth:  57, fontSize: 8 },
-  discharge_procedure_date_3:   { page: 0, x: 399, y: 354, maxWidth:  78, fontSize: 7 },
+  discharge_diagnosis_3:      { page: 0, x:  44, y: 348, maxWidth: 70, fontSize: 7 },
+  discharge_icd10_3:          { page: 0, x: 126, y: 348, maxWidth: 54, fontSize: 7 },
+  discharge_procedure_3:      { page: 0, x: 202, y: 348, maxWidth: 113, fontSize: 7 },
+  discharge_rvs_3:            { page: 0, x: 327, y: 348, maxWidth: 58, fontSize: 7 },
+  discharge_procedure_date_3: { page: 0, x: 397, y: 348, maxWidth: 62, fontSize: 7 },
 
-  discharge_diagnosis_4:        { page: 0, x:  55, y: 340, maxWidth:  74, fontSize: 8 },
-  discharge_icd10_4:            { page: 0, x: 132, y: 340, maxWidth:  65, fontSize: 8 },
-  discharge_procedure_4:        { page: 0, x: 200, y: 340, maxWidth: 139, fontSize: 8 },
-  discharge_rvs_4:              { page: 0, x: 341, y: 340, maxWidth:  57, fontSize: 8 },
-  discharge_procedure_date_4:   { page: 0, x: 399, y: 340, maxWidth:  78, fontSize: 7 },
+  discharge_diagnosis_4:      { page: 0, x:  44, y: 335, maxWidth: 70, fontSize: 7 },
+  discharge_icd10_4:          { page: 0, x: 126, y: 335, maxWidth: 54, fontSize: 7 },
+  discharge_procedure_4:      { page: 0, x: 202, y: 335, maxWidth: 113, fontSize: 7 },
+  discharge_rvs_4:            { page: 0, x: 327, y: 335, maxWidth: 58, fontSize: 7 },
+  discharge_procedure_date_4: { page: 0, x: 397, y: 335, maxWidth: 62, fontSize: 7 },
 
-  discharge_diagnosis_5:        { page: 0, x:  55, y: 327, maxWidth:  74, fontSize: 8 },
-  discharge_icd10_5:            { page: 0, x: 132, y: 327, maxWidth:  65, fontSize: 8 },
-  discharge_procedure_5:        { page: 0, x: 200, y: 327, maxWidth: 139, fontSize: 8 },
-  discharge_rvs_5:              { page: 0, x: 341, y: 327, maxWidth:  57, fontSize: 8 },
-  discharge_procedure_date_5:   { page: 0, x: 399, y: 327, maxWidth:  78, fontSize: 7 },
+  discharge_diagnosis_5:      { page: 0, x:  44, y: 321, maxWidth: 70, fontSize: 7 },
+  discharge_icd10_5:          { page: 0, x: 126, y: 321, maxWidth: 54, fontSize: 7 },
+  discharge_procedure_5:      { page: 0, x: 202, y: 321, maxWidth: 113, fontSize: 7 },
+  discharge_rvs_5:            { page: 0, x: 327, y: 321, maxWidth: 58, fontSize: 7 },
+  discharge_procedure_date_5: { page: 0, x: 397, y: 321, maxWidth: 62, fontSize: 7 },
 
-  discharge_diagnosis_6:        { page: 0, x:  55, y: 313, maxWidth:  74, fontSize: 8 },
-  discharge_icd10_6:            { page: 0, x: 132, y: 313, maxWidth:  65, fontSize: 8 },
-  discharge_procedure_6:        { page: 0, x: 200, y: 313, maxWidth: 139, fontSize: 8 },
-  discharge_rvs_6:              { page: 0, x: 341, y: 313, maxWidth:  57, fontSize: 8 },
-  discharge_procedure_date_6:   { page: 0, x: 399, y: 313, maxWidth:  78, fontSize: 7 },
+  discharge_diagnosis_6:      { page: 0, x:  44, y: 308, maxWidth: 70, fontSize: 7 },
+  discharge_icd10_6:          { page: 0, x: 126, y: 308, maxWidth: 54, fontSize: 7 },
+  discharge_procedure_6:      { page: 0, x: 202, y: 308, maxWidth: 113, fontSize: 7 },
+  discharge_rvs_6:            { page: 0, x: 327, y: 308, maxWidth: 58, fontSize: 7 },
+  discharge_procedure_date_6: { page: 0, x: 397, y: 308, maxWidth: 62, fontSize: 7 },
 
   // ── Z-Benefit Package Code ──
-  // top≈728 bot≈736 → y≈936-736+3=203
-  zbenefit_package_code: { page: 0, x: 285, y: 196, maxWidth: 120, fontSize: 8 },
+  // Underscore at bot=735.9 → y=202 (x=277-438)
+  zbenefit_package_code: { page: 0, x: 278, y: 202, maxWidth: 160, fontSize: 8 },
 
-  // ── MCP Dates ──
-  // Section below "MCP Package" label at top≈742, fill area spans to bottom ~775
-  // y=936-770+3=169 (wide single line below 4 prenatal entries area)
-  mcp_dates: { page: 0, x: 100, y: 167, maxWidth: 490, fontSize: 8 },
+  // ── MCP Dates: 4 segs at bot=765.9 → y=172 ──
+  mcp_dates: { page: 0, x: 51, y: 172, maxWidth: 535, fontSize: 7 },
 
-  // ── TB DOTS ──
-  // Intensive Phase checkbox area top≈772 → text right of checkbox
-  tbdots_intensive_phase:   { page: 0, x: 200, y: 153, maxWidth: 110, fontSize: 8 },
-  tbdots_maintenance_phase: { page: 0, x: 310, y: 153, maxWidth: 180, fontSize: 8 },
+  // ── Animal Bite ARV (5 segs at bot=810.9 → y=127) ──
+  animal_bite_arv_day1: { page: 0, x:  81, y: 127, maxWidth:  58, fontSize: 7 },
+  animal_bite_arv_day2: { page: 0, x: 190, y: 127, maxWidth:  70, fontSize: 7 },
+  animal_bite_arv_day3: { page: 0, x: 311, y: 127, maxWidth:  54, fontSize: 7 },
+  animal_bite_rig:      { page: 0, x: 394, y: 127, maxWidth:  65, fontSize: 7 },
+  animal_bite_others:   { page: 0, x: 531, y: 127, maxWidth:  58, fontSize: 7 },
 
-  // ── Animal Bite ──
-  // Day ARV rows: top≈803 → y≈936-812+3=127
-  // Row: Day1 x≈41, Day2 x≈150, Day3 x≈271, RIG x≈375, Others x≈470
-  animal_bite_arv_day1: { page: 0, x:  63, y: 121, maxWidth:  83, fontSize: 7 },
-  animal_bite_arv_day2: { page: 0, x: 172, y: 121, maxWidth:  96, fontSize: 7 },
-  animal_bite_arv_day3: { page: 0, x: 293, y: 121, maxWidth:  80, fontSize: 7 },
-  animal_bite_rig:      { page: 0, x: 376, y: 121, maxWidth:  92, fontSize: 7 },
-  animal_bite_others:   { page: 0, x: 495, y: 121, maxWidth: 100, fontSize: 7 },
+  // ── HIV Lab Number (bot=884.4 → y=54) ──
+  hiv_lab_number: { page: 0, x: 292, y: 54, maxWidth: 140, fontSize: 8 },
 
-  // ── HIV Lab Number ──
-  // top≈877 → y≈936-885+3=54
-  hiv_lab_number: { page: 0, x: 286, y: 52, maxWidth: 300, fontSize: 8 },
-
-  // ── PhilHealth Benefits ──
-  // First Case Rate and Second Case Rate underlines at bottom of page
-  // top≈907 → y≈936-915+3=24 (right section)
-  philhealth_benefit_first_case_rate:  { page: 0, x: 122, y: 22, maxWidth: 238, fontSize: 8 },
-  philhealth_benefit_second_case_rate: { page: 0, x: 366, y: 22, maxWidth: 228, fontSize: 8 },
-  philhealth_benefit_icd_rvs_code:     { page: 0, x:  87, y: 16, maxWidth: 170, fontSize: 8 },
+  // ── PhilHealth Benefits row at bottom (bot=915.9 → y=22) ──
+  // First Case: x=172-344, Second Case: x=426-591
+  philhealth_benefit_first_case_rate:  { page: 0, x: 173, y: 22, maxWidth: 170, fontSize: 8 },
+  philhealth_benefit_second_case_rate: { page: 0, x: 427, y: 22, maxWidth: 163, fontSize: 8 },
+  philhealth_benefit_icd_rvs_code:     { page: 0, x:  87, y: 22, maxWidth:  85, fontSize: 7 },
 
   // ── Page 2: HCP Accreditation rows ──
-  // 3 HCP blocks. Each block: accred no, date signed (month/day/year), co-pay
-  // Block 1: accred no. row top≈67 bot≈73 → y=936-73+3=866
-  //   Date signed row top≈113 bot≈121 → y=936-121+3=818
-  // Block 2: accred no top≈134 bot≈142 → y=797; date top≈175 bot≈183 → y=756
-  // Block 3: accred no top≈196 bot≈204 → y=735; date top≈237 bot≈244 → y=695
-  hcp1_accreditation_no:    { page: 1, x: 107, y: 866, maxWidth: 380 },
-  hcp1_date_signed_month:   { page: 1, x: 128, y: 817, maxWidth:  34 },
-  hcp1_date_signed_day:     { page: 1, x: 164, y: 817, maxWidth:  34 },
-  hcp1_date_signed_year:    { page: 1, x: 208, y: 817, maxWidth:  50 },
+  // HCP1: 12 boxes at top=67.1 bot=75.0 → pdf_y=861, x=99.7..261.4
+  //       Date Signed boxes at top=113.8 bot=119.6 → pdf_y=820, x=125.5..238.1
+  // HCP2: 12 boxes at top=134.8 bot=142.7 → pdf_y=793
+  //       Date Signed boxes at bot=181.0 → pdf_y=758
+  // HCP3: 12 boxes at top=196.2 bot=204.1 → pdf_y=732
+  //       Date Signed boxes at bot=242.5 → pdf_y=697
+  // The "HCP-" prefix is pre-printed; only post-prefix portion enters boxes.
+  hcp1_accreditation_no:    { page: 1, x: 100, y: 861, maxWidth: 162, fontSize: 9 },
+  hcp1_date_signed_month:   { page: 1, x: 126, y: 820, maxWidth:  24, fontSize: 9 },
+  hcp1_date_signed_day:     { page: 1, x: 158, y: 820, maxWidth:  24, fontSize: 9 },
+  hcp1_date_signed_year:    { page: 1, x: 189, y: 820, maxWidth:  49, fontSize: 9 },
 
-  hcp2_accreditation_no:    { page: 1, x: 107, y: 797, maxWidth: 380 },
-  hcp2_date_signed_month:   { page: 1, x: 128, y: 751, maxWidth:  34 },
-  hcp2_date_signed_day:     { page: 1, x: 164, y: 751, maxWidth:  34 },
-  hcp2_date_signed_year:    { page: 1, x: 208, y: 751, maxWidth:  50 },
+  hcp2_accreditation_no:    { page: 1, x: 100, y: 793, maxWidth: 162, fontSize: 9 },
+  hcp2_date_signed_month:   { page: 1, x: 126, y: 758, maxWidth:  24, fontSize: 9 },
+  hcp2_date_signed_day:     { page: 1, x: 158, y: 758, maxWidth:  24, fontSize: 9 },
+  hcp2_date_signed_year:    { page: 1, x: 189, y: 758, maxWidth:  49, fontSize: 9 },
 
-  hcp3_accreditation_no:    { page: 1, x: 107, y: 732, maxWidth: 380 },
-  hcp3_date_signed_month:   { page: 1, x: 128, y: 689, maxWidth:  34 },
-  hcp3_date_signed_day:     { page: 1, x: 164, y: 689, maxWidth:  34 },
-  hcp3_date_signed_year:    { page: 1, x: 208, y: 689, maxWidth:  50 },
+  hcp3_accreditation_no:    { page: 1, x: 100, y: 732, maxWidth: 162, fontSize: 9 },
+  hcp3_date_signed_month:   { page: 1, x: 126, y: 697, maxWidth:  24, fontSize: 9 },
+  hcp3_date_signed_day:     { page: 1, x: 158, y: 697, maxWidth:  24, fontSize: 9 },
+  hcp3_date_signed_year:    { page: 1, x: 189, y: 697, maxWidth:  49, fontSize: 9 },
 
-  // ── Page 2: Certification of Benefits — amounts ──
-  // "Total HCI Fees" row top≈348 bot≈356 → y=936-356+3=583
-  // "Total Prof Fees" top≈363 → y=936-371+3=568
-  // "Grand Total"     top≈378 → y=936-386+3=553
-  // Total Actual Charges (after discount) right col top≈333 → y=936-341+3=598
-  // Discount amount right col same row (under "Amount after Application of Discount")
-  // PhilHealth Benefit Amount right col top≈446 → y=936-456+3=483
-  // Amount after PhilHealth right col top≈474 → y=936-484+3=455
-  total_hci_fees:          { page: 1, x:  62, y: 580, maxWidth: 135 },
-  total_professional_fees: { page: 1, x:  62, y: 565, maxWidth: 135 },
-  grand_total:             { page: 1, x:  62, y: 550, maxWidth: 135 },
-  total_actual_charges:    { page: 1, x: 415, y: 595, maxWidth: 180 },
-  discount_amount:         { page: 1, x: 222, y: 467, maxWidth: 105 },
-  philhealth_benefit_amount: { page: 1, x: 341, y: 480, maxWidth: 180 },
-  amount_after_philhealth:   { page: 1, x: 426, y: 452, maxWidth: 170 },
+  // ── Page 2: Certification of Benefits ──
+  // Top section: "Total Actual Charges*" is a SINGLE right-side value column.
+  // Labels (y_top) at 348/363/378 → pdf_y=585/570/555. Value col x≈460-580.
+  total_hci_fees:            { page: 1, x: 462, y: 585, maxWidth: 115, fontSize: 9 },
+  total_professional_fees:   { page: 1, x: 462, y: 570, maxWidth: 115, fontSize: 9 },
+  grand_total:               { page: 1, x: 462, y: 555, maxWidth: 115, fontSize: 9 },
+  // Bottom section table (a.) — 4 cols × 2 rows.
+  // Row 1 = HCI Fees. Row-1 cells y_top ≈ 486 → pdf_y=446 (free-form cells).
+  // Row 2 = PF Fees.  Row-2 cells y_top ≈ 524 → pdf_y=408.
+  // Right col has "Amount P ___" underline: HCI bot=482.5 → pdf_y=456;
+  // PF bot=530.5 → pdf_y=408.
+  total_actual_charges:      { page: 1, x: 145, y: 446, maxWidth:  80, fontSize: 8 },
+  discount_amount:           { page: 1, x: 232, y: 446, maxWidth:  90, fontSize: 8 },
+  philhealth_benefit_amount: { page: 1, x: 345, y: 446, maxWidth:  80, fontSize: 8 },
+  amount_after_philhealth:   { page: 1, x: 470, y: 460, maxWidth:  85, fontSize: 8 },
+  // "Amount paid by" is the row-2 (PF row) underline
+  hci_amount_paid_by:        { page: 1, x: 470, y: 460, maxWidth:  85, fontSize: 8 },
+  pf_amount_paid_by:         { page: 1, x: 470, y: 408, maxWidth:  85, fontSize: 8 },
 
-  // HCI Amount Paid top≈474 → same row right col
-  hci_amount_paid_by: { page: 1, x: 426, y: 490, maxWidth: 170 },
-  // PF Amount Paid row top≈522 → y=936-531+3=408
-  pf_amount_paid_by:  { page: 1, x: 426, y: 438, maxWidth: 170 },
-
-  // Drug purchase amount top≈590 → y=936-600+3=339
-  drug_purchase_total_amount:       { page: 1, x: 437, y: 338, maxWidth: 160 },
-  // Diagnostic purchase amount top≈615 → y=936-625+3=314
-  diagnostic_purchase_total_amount: { page: 1, x: 437, y: 313, maxWidth: 160 },
+  // Drug & Diag purchases: right-side underlines at bot=598.5/623.5
+  drug_purchase_total_amount:       { page: 1, x: 500, y: 340, maxWidth: 55, fontSize: 8 },
+  diagnostic_purchase_total_amount: { page: 1, x: 500, y: 315, maxWidth: 55, fontSize: 8 },
 };
 
 // ── PhilHealth Claim Form 2 checkbox coordinate map ──────────────────────────
@@ -775,7 +771,7 @@ const CF2_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number;
 
   // ── Expired AM/PM ──
   // AM: x0=493.6 top=407.5 → y=519; PM: x0=525.3
-  expired_ampm: {
+  expired_time_ampm: {
     'AM': { x: 497, y: 519 },
     'PM': { x: 528, y: 519 },
   },
@@ -991,6 +987,29 @@ const PMRF_FN_FIELD_COORDS: CoordsMap = {
   dep3_relationship: { page: 0, x: 347, y: PMRF_FN_PAGE_H - 597.9 - 2, maxWidth: 63, fontSize: 8 },
   dep3_dob:          { page: 0, x: 424, y: PMRF_FN_PAGE_H - 597.9 - 2, maxWidth: 54, fontSize: 8 },
   dep3_nationality:  { page: 0, x: 492, y: PMRF_FN_PAGE_H - 597.9 - 2, maxWidth: 58, fontSize: 8 },
+  // Dep rows 4-6 (added per L-SMART-PMRF-FN-01 — schema previously had only 3,
+  // but the printed PDF has 6 rows. Δy = 21pt — measured from underline tops).
+  dep4_last:         { page: 0, x:  48, y: PMRF_FN_PAGE_H - 618.9 - 2, maxWidth: 73, fontSize: 8 },
+  dep4_first:        { page: 0, x: 132, y: PMRF_FN_PAGE_H - 618.9 - 2, maxWidth: 78, fontSize: 8 },
+  dep4_middle:       { page: 0, x: 222, y: PMRF_FN_PAGE_H - 618.9 - 2, maxWidth: 78, fontSize: 8 },
+  dep4_sex:          { page: 0, x: 312, y: PMRF_FN_PAGE_H - 618.9 - 2, maxWidth: 24, fontSize: 8 },
+  dep4_relationship: { page: 0, x: 347, y: PMRF_FN_PAGE_H - 618.9 - 2, maxWidth: 63, fontSize: 8 },
+  dep4_dob:          { page: 0, x: 424, y: PMRF_FN_PAGE_H - 618.9 - 2, maxWidth: 54, fontSize: 8 },
+  dep4_nationality:  { page: 0, x: 492, y: PMRF_FN_PAGE_H - 618.9 - 2, maxWidth: 58, fontSize: 8 },
+  dep5_last:         { page: 0, x:  48, y: PMRF_FN_PAGE_H - 639.9 - 2, maxWidth: 73, fontSize: 8 },
+  dep5_first:        { page: 0, x: 132, y: PMRF_FN_PAGE_H - 639.9 - 2, maxWidth: 78, fontSize: 8 },
+  dep5_middle:       { page: 0, x: 222, y: PMRF_FN_PAGE_H - 639.9 - 2, maxWidth: 78, fontSize: 8 },
+  dep5_sex:          { page: 0, x: 312, y: PMRF_FN_PAGE_H - 639.9 - 2, maxWidth: 24, fontSize: 8 },
+  dep5_relationship: { page: 0, x: 347, y: PMRF_FN_PAGE_H - 639.9 - 2, maxWidth: 63, fontSize: 8 },
+  dep5_dob:          { page: 0, x: 424, y: PMRF_FN_PAGE_H - 639.9 - 2, maxWidth: 54, fontSize: 8 },
+  dep5_nationality:  { page: 0, x: 492, y: PMRF_FN_PAGE_H - 639.9 - 2, maxWidth: 58, fontSize: 8 },
+  dep6_last:         { page: 0, x:  48, y: PMRF_FN_PAGE_H - 660.9 - 2, maxWidth: 73, fontSize: 8 },
+  dep6_first:        { page: 0, x: 132, y: PMRF_FN_PAGE_H - 660.9 - 2, maxWidth: 78, fontSize: 8 },
+  dep6_middle:       { page: 0, x: 222, y: PMRF_FN_PAGE_H - 660.9 - 2, maxWidth: 78, fontSize: 8 },
+  dep6_sex:          { page: 0, x: 312, y: PMRF_FN_PAGE_H - 660.9 - 2, maxWidth: 24, fontSize: 8 },
+  dep6_relationship: { page: 0, x: 347, y: PMRF_FN_PAGE_H - 660.9 - 2, maxWidth: 63, fontSize: 8 },
+  dep6_dob:          { page: 0, x: 424, y: PMRF_FN_PAGE_H - 660.9 - 2, maxWidth: 54, fontSize: 8 },
+  dep6_nationality:  { page: 0, x: 492, y: PMRF_FN_PAGE_H - 660.9 - 2, maxWidth: 58, fontSize: 8 },
   // Signature row top=743.4
   signature_printed_name: { page: 0, x:  42, y: PMRF_FN_PAGE_H - 743.4 - 2, maxWidth: 215 },
   signature_date:         { page: 0, x: 270, y: PMRF_FN_PAGE_H - 743.4 - 2, maxWidth: 102 },
@@ -1090,6 +1109,15 @@ const CSF_SKIP_VALUES: Record<string, string[]> = {
   employer_date_signed_day: [''],
   employer_date_signed_year: [''],
   relationship_to_member: ['Self'],
+  // Empty array [] = UI-only / split-parent field (renders via sub-coords or drives UI only).
+  member_dob: [],            // split into _month/_day/_year sub-coords
+  patient_dob: [],           // split into _month/_day/_year sub-coords
+  date_admitted: [],         // split into _month/_day/_year sub-coords
+  date_discharged: [],       // split into _month/_day/_year sub-coords
+  employer_date_signed: [],  // split into _month/_day/_year sub-coords
+  consent_date_signed: [],   // split into _month/_day/_year sub-coords
+  patient_is_self: [],       // UI-only toggle
+  has_employer: [],          // UI-only toggle
 };
 
 // ── Pag-IBIG PFF-049 (MCIF) — calibrated coords (612×936, 1-page overlay) ───
@@ -1462,11 +1490,11 @@ const SLF065_FIELD_COORDS: CoordsMap = {
   application_no:  { page: 0, x: 499, y: SLF_065_Y_HEADER, fontSize: 9, maxWidth: 95 },
 
   // Names row (top=67-88) — V-cols 18,146,199,234,264,319,393,497
-  last_name:                { page: 0, x: 22,  y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 122 },
-  first_name:               { page: 0, x: 148, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 50 },
-  ext_name:                 { page: 0, x: 200, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 33 },
-  middle_name:              { page: 0, x: 236, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 26 },
-  no_maiden_middle_name:    { page: 0, x: 266, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 51 },
+  last_name:                { page: 0, x: 23,  y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 53 },
+  first_name:               { page: 0, x: 78,  y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 55 },
+  ext_name:                 { page: 0, x: 137, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 60 },
+  middle_name:              { page: 0, x: 204, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 50 },
+  no_maiden_middle_name:    { page: 0, x: 257, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 67 },
   dob:                      { page: 0, x: 397, y: SLF_065_Y_NAMES, fontSize: 9, maxWidth: 98 },
   place_of_birth:           { page: 0, x: 499, y: SLF_065_Y_NAMES, fontSize: 8, maxWidth: 95 },
 
@@ -1503,7 +1531,10 @@ const SLF065_FIELD_COORDS: CoordsMap = {
   pres_city:                { page: 0, x: 178, y: SLF_065_Y_PRES2, fontSize: 8, maxWidth: 56 },
   pres_province:            { page: 0, x: 238, y: SLF_065_Y_PRES2, fontSize: 8, maxWidth: 108 },
   pres_zip:                 { page: 0, x: 350, y: SLF_065_Y_PRES2, fontSize: 9, maxWidth: 38 },
-  desired_loan_amount:      { page: 0, x: 499, y: SLF_065_Y_PRES2, fontSize: 9, maxWidth: 95 },
+  // DESIRED LOAN AMOUNT cell has two checkbox options (Maximum / Others) plus an
+  // 'Others, specify: ______' fill-in line at x=550.7-589.3, top≈187.8.
+  // Render the numeric amount ON that underline. See L-SLF065-R3-03.
+  desired_loan_amount:      { page: 0, x: 552, y: 741, fontSize: 8, maxWidth: 38 },
 
   // Employer name (top=193-214)
   employer_name:            { page: 0, x: 22,  y: SLF_065_Y_EMP1, fontSize: 8, maxWidth: 368 },
@@ -1535,6 +1566,7 @@ const SLF065_SKIP_VALUES: Record<string, string[]> = {
   ext_name: ['', 'N/A'],
   middle_name: [''],
   no_maiden_middle_name: [''],
+  same_as_permanent: [], // UI-only mirror toggle (drives perm→pres copy; not rendered to PDF)
   perm_subdivision: [''],
   perm_home_tel: [''],
   perm_sss_gsis: [''],
@@ -3113,13 +3145,25 @@ export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
   },
   'philhealth-pmrf': {
     fieldCoords: PMRF_FIELD_COORDS,
-    skipValues: { name_ext: ['N/A'] },
+    // Note: empty array [] = UI-only / split-parent field (renders via sub-coords like dob_month/day/year).
+    skipValues: {
+      name_ext: ['N/A'],
+      dob: [],
+    },
     copyYOffsets: [0],
     checkboxCoords: PMRF_CHECKBOX_COORDS,
   },
   'philhealth-claim-form-1': {
     fieldCoords: CF1_FIELD_COORDS,
-    skipValues: { member_name_ext: ['N/A'], patient_name_ext: ['N/A'] },
+    // Note: empty array [] = UI-only / split-parent field.
+    skipValues: {
+      member_name_ext: ['N/A'],
+      patient_name_ext: ['N/A'],
+      member_dob: [],          // split into _month/_day/_year sub-coords
+      patient_dob: [],         // split into _month/_day/_year sub-coords
+      patient_is_member: [],   // UI-only toggle
+      has_employer: [],        // UI-only toggle
+    },
     copyYOffsets: [0],
     checkboxCoords: CF1_CHECKBOX_COORDS,
   },
@@ -3152,13 +3196,30 @@ export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
       pf_paid_others: ['No'],
       drug_purchase_none: ['No'],
       diagnostic_purchase_none: ['No'],
+      // UI-only / split-parent fields (render via _month/_day/_year/_hour/_min sub-coords):
+      date_admitted: [],
+      time_admitted: [],
+      date_discharged: [],
+      time_discharged: [],
+      expired_date: [],
+      expired_time: [],
+      tbdots_intensive_phase: [],
+      tbdots_maintenance_phase: [],
+      hcp1_date_signed: [],
+      hcp2_date_signed: [],
+      hcp3_date_signed: [],
     },
     copyYOffsets: [0],
     checkboxCoords: CF2_CHECKBOX_COORDS,
   },
   'philhealth-pmrf-foreign-natl': {
     fieldCoords: PMRF_FN_FIELD_COORDS,
-    skipValues: {},
+    // Note: empty array [] = UI-only / split-parent field.
+    skipValues: {
+      dob: [],                // split into _month/_day/_year
+      documentation_type: [], // UI-only (gates ACR/SRRV visibility)
+      is_mononymous: [],      // UI-only toggle
+    },
     copyYOffsets: [0],
     checkboxCoords: PMRF_FN_CHECKBOX_COORDS,
   },
@@ -3244,6 +3305,66 @@ function toWinAnsi(str: string): string {
  *                      filesystem APIs are touched. When omitted (server flow)
  *                      the file is read from public/forms via fs/promises.
  */
+
+// ── Site-wide: split combined `mm / dd / yyyy` masked dates into _month/_day/_year siblings ──
+// Only writes siblings when:
+//   • combined value parses cleanly to mm/dd/yyyy
+//   • the corresponding sibling key is not already populated (preserves user override)
+
+// ── Strip "CODE — Facility (City)" datalist suffixes ──────────────────────
+// User picks "01-001-009-000 — Quezon City General Hospital (Quezon City)"
+// in the UI but the PDF cell is sized for just the PIN code. We split on
+// " — " (em-dash with spaces) or " -- " (double-dash) and keep the prefix.
+function stripDatalistSuffix(values: Record<string, string>, ids: string[]): Record<string, string> {
+  const out: Record<string, string> = { ...values };
+  for (const id of ids) {
+    const v = out[id];
+    if (!v) continue;
+    const m = v.match(/^(.+?)\s+(?:—|--)\s+/);
+    if (m) out[id] = m[1].trim();
+  }
+  return out;
+}
+
+function expandCombinedDates(values: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = { ...values };
+  const re = /^\s*(\d{2})\s*\/\s*(\d{2})\s*\/\s*(\d{4})\s*$/;
+  for (const key of Object.keys(values)) {
+    if (key.endsWith('_month') || key.endsWith('_day') || key.endsWith('_year')) continue;
+    const m = (values[key] || '').match(re);
+    if (!m) continue;
+    const monthKey = key + '_month';
+    const dayKey   = key + '_day';
+    const yearKey  = key + '_year';
+    if (!out[monthKey]) out[monthKey] = m[1];
+    if (!out[dayKey])   out[dayKey]   = m[2];
+    if (!out[yearKey])  out[yearKey]  = m[3];
+  }
+  return out;
+}
+
+// L-SMART-CF2-01 — expandCombinedTimes() — mirror of expandCombinedDates() for
+// 12-hour clock fields. Splits a single masked time "HH : MM AM/PM" into
+// `<id>_hour`, `<id>_min`, `<id>_ampm` so existing per-prefix coord maps
+// keep working without per-form changes. Cascadable to any form whose
+// schema uses a combined `'time'` mask field.
+function expandCombinedTimes(values: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = { ...values };
+  const re = /^\s*(\d{1,2})\s*:\s*(\d{2})\s+(AM|PM)\s*$/i;
+  for (const key of Object.keys(values)) {
+    if (key.endsWith('_hour') || key.endsWith('_min') || key.endsWith('_ampm')) continue;
+    const m = (values[key] || '').match(re);
+    if (!m) continue;
+    const hourKey = key + '_hour';
+    const minKey  = key + '_min';
+    const ampmKey = key + '_ampm';
+    if (!out[hourKey]) out[hourKey] = m[1].padStart(2, '0');
+    if (!out[minKey])  out[minKey]  = m[2];
+    if (!out[ampmKey]) out[ampmKey] = m[3].toUpperCase();
+  }
+  return out;
+}
+
 export async function generatePDF(
   form: FormSchema,
   values: Record<string, string>,
@@ -3273,6 +3394,43 @@ export async function generatePDF(
     }
   }
 
+  // ── Smart Assistance: auto-split combined date fields into mm/dd/yyyy ────
+  // Site-wide rule: when the schema uses a single masked `dob`/`*_dob` field
+  // but the PDF coords expect separate `*_dob_month / _day / _year` boxes
+  // (e.g. PMRF-012020), expand the combined value here so per-digit box
+  // rendering still works without touching every form's coord map.
+  // See L-SMART-04 in QuickFormsPH-PDFGenerationLearnings.md.
+  values = expandCombinedDates(values);
+  values = expandCombinedTimes(values);
+  // Strip free-form datalist suffixes ("CODE — Facility Name (City)" → "CODE")
+  // so PDFs receive just the canonical code in tightly-spaced cells.
+  // See L-SMART-05.
+  values = stripDatalistSuffix(values, ['konsulta_provider']);
+
+  // ── CF-1 boolean → label normalization ─────────────────────────────────
+  // Schema uses a boolean checkbox `patient_is_member` ('true' | '') but the
+  // printed CF-1 has paired Yes/No tickboxes. Emit a synthetic
+  // `patient_is_member_choice` field that the PDF coord map keys off. See
+  // L-SMART-CF1-01 in QuickFormsPH-PDFGenerationLearnings.md.
+  if (form.slug === 'philhealth-claim-form-1' && !values.patient_is_member_choice) {
+    values.patient_is_member_choice = values.patient_is_member === 'true' ? 'Yes' : 'No';
+  }
+
+  // ── CF-2 boolean → YES/NO normalization (L-SMART-CF2-01) ─────────────────
+  // Schema uses a boolean checkbox `referred_by_hci` ('true' | '') while the
+  // CF-2 PDF has paired NO/YES tickboxes. CF2_CHECKBOX_COORDS already keys
+  // on those exact strings, so we map directly without a synthetic id.
+  // Also strip the "HCI-"/"HCP-" prefix from PAN values: the printed boxes on
+  // the form only hold the post-prefix portion (9 boxes for "NN-NNNNNN"); the
+  // "HCI-"/"HCP-" portion is already pre-printed as a label.
+  if (form.slug === 'philhealth-claim-form-2') {
+    values.referred_by_hci = values.referred_by_hci === 'true' ? 'YES' : 'NO';
+    for (const k of ['hci_pan', 'hcp1_accreditation_no', 'hcp2_accreditation_no', 'hcp3_accreditation_no']) {
+      const v = values[k];
+      if (typeof v === 'string') values[k] = v.replace(/^HC[IP]-/i, '');
+    }
+  }
+
   const pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const checkFont = await pdfDoc.embedFont(StandardFonts.ZapfDingbats);
@@ -3287,8 +3445,28 @@ export async function generatePDF(
 
   const { fieldCoords, skipValues = {}, copyYOffsets = [0], checkboxCoords = {} } = config;
 
+  // ── Build the iteration list: schema fields + any "synthetic" coord-only
+  //    keys (e.g. dob_month/dob_day/dob_year that come from expandCombinedDates).
+  //    This lets a schema use a single masked `dob` field while the source PDF
+  //    still has separate per-digit boxes, without re-adding hidden schema fields.
+  //    See L-SMART-04 in QuickFormsPH-PDFGenerationLearnings.md.
+  const schemaIds = new Set(form.fields.map((f) => f.id));
+  const syntheticIds = [
+    ...Object.keys(fieldCoords).filter((id) => !schemaIds.has(id)),
+    // Also include checkbox-only synthetic keys (e.g. CF-1's
+    // `patient_is_member_choice` populated from a boolean schema field).
+    ...Object.keys(checkboxCoords).filter(
+      (id) => !schemaIds.has(id) && !(id in fieldCoords),
+    ),
+  ];
+  type IterField = { id: string };
+  const iterFields: IterField[] = [
+    ...form.fields,
+    ...syntheticIds.map((id) => ({ id } as IterField)),
+  ];
+
   // ── Draw field values ─────────────────────────────────────────────────────
-  for (const field of form.fields) {
+  for (const field of iterFields) {
     const rawValue = (values[field.id] ?? '').trim();
     if (!rawValue) continue;
 
@@ -3343,13 +3521,34 @@ export async function generatePDF(
     }
 
     for (const yOff of copyYOffsets) {
-      page.drawText(text, {
+      // Auto-fit horizontally:
+      //   1. If text overflows `maxWidth` at the configured fontSize, scale
+      //      down (min 4pt, still legible on print).
+      //   2. If even 4pt is too wide, truncate from the right until it fits.
+      // We deliberately DO NOT pass `maxWidth` to `page.drawText` because
+      // pdf-lib then wraps onto a second line that spills DOWN into the next
+      // row's cell (root cause of SLF-065 R3 visual chaos).
+      // See L-SLF065-R3-01 in QuickFormsPH-PDFGenerationLearnings.md.
+      let drawSize = fontSize;
+      let drawTextStr = text;
+      if (coords.maxWidth) {
+        let measured = font.widthOfTextAtSize(drawTextStr, drawSize);
+        if (measured > coords.maxWidth) {
+          const scaled = (drawSize * coords.maxWidth) / measured;
+          drawSize = Math.max(4, scaled);
+          measured = font.widthOfTextAtSize(drawTextStr, drawSize);
+          while (measured > coords.maxWidth && drawTextStr.length > 1) {
+            drawTextStr = drawTextStr.slice(0, -1);
+            measured = font.widthOfTextAtSize(drawTextStr, drawSize);
+          }
+        }
+      }
+      page.drawText(drawTextStr, {
         x: coords.x,
         y: coords.y + yOff,
-        size: fontSize,
+        size: drawSize,
         font,
         color: rgb(0, 0, 0),
-        maxWidth: coords.maxWidth,
       });
     }
   }

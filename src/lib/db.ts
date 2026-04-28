@@ -482,6 +482,8 @@ export interface DashboardStats {
   totalFormViews: number;
   totalDemoClicks: number;
   totalPaymentSuccesses: number;
+  /** Distinct visitors within the period — uses ip_hash (daily-salted SHA-256) as the de-dupe key. */
+  uniqueVisitors: number;
   claimedCodes: number;
   unclaimedCodes: number;
   /** Daily buckets for line chart — last 30 calendar days */
@@ -506,7 +508,26 @@ export function getDashboardStats(period: 'day' | 'week' | 'month'): DashboardSt
 
   const totalFormViews        = rows.reduce((s, r) => s + r.form_views, 0);
   const totalDemoClicks       = rows.reduce((s, r) => s + r.demo_clicks, 0);
-  const totalPaymentSuccesses = rows.reduce((s, r) => s + r.payment_successes, 0);
+
+  // Paid Users — derive from authoritative tables, not the analytics beacon.
+  // The beacon insert was added later, so historical successful payments have
+  // NO `payment_success` row. Source of truth is `payment_refs` (GCash/Maya
+  // verifications) + `license_keys.used_at` (promo code redemptions). Both are
+  // filtered to the active period. See L-PAID-COUNTER-01 in learnings.
+  const { paid_refs }     = db.prepare(`SELECT COUNT(*) AS paid_refs    FROM payment_refs WHERE created_at >= ?`).get(since) as { paid_refs: number };
+  const { paid_keys }     = db.prepare(`SELECT COUNT(*) AS paid_keys    FROM license_keys WHERE used_at IS NOT NULL AND used_at >= ?`).get(since) as { paid_keys: number };
+  const beaconPayments    = rows.reduce((s, r) => s + r.payment_successes, 0);
+  // Prefer the authoritative count; fall back to beacon if both source tables are empty.
+  const totalPaymentSuccesses = (paid_refs + paid_keys) || beaconPayments;
+
+  // Unique visitors within the period — distinct ip_hash (daily-salted SHA-256).
+  // Falls back to session_id when ip_hash is empty (server-side events have no IP).
+  const { unique_visitors } = db.prepare(`
+    SELECT COUNT(DISTINCT CASE WHEN ip_hash <> '' THEN ip_hash ELSE session_id END) AS unique_visitors
+    FROM analytics_events
+    WHERE created_at >= ?
+      AND (ip_hash <> '' OR session_id <> '')
+  `).get(since) as { unique_visitors: number };
 
   // License key counts (always total, not period-filtered)
   const { claimed }   = db.prepare(`SELECT COUNT(*) AS claimed   FROM license_keys WHERE used_at IS NOT NULL`).get() as { claimed: number };
@@ -532,6 +553,7 @@ export function getDashboardStats(period: 'day' | 'week' | 'month'): DashboardSt
     totalFormViews,
     totalDemoClicks,
     totalPaymentSuccesses,
+    uniqueVisitors: unique_visitors ?? 0,
     claimedCodes: claimed,
     unclaimedCodes: unclaimed,
     dailyBuckets: bucketRows,

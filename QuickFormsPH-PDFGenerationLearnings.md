@@ -3128,3 +3128,526 @@ npm install            # `prepare` script runs `husky` automatically and wires .
 - NOT (yet) included in pre-commit `npm test` — would block all current commits with 141 errors. Promote to the pre-commit chain after the cleanup pass.
 
 **New-form-intake rule.** When you add samples for a new form, run `npm run audit:uppercase` and fix any leak before committing. Once existing leaks are cleaned, this becomes part of the standard gate (move into the `test` alias).
+
+---
+## L-SMART-01 — Smart Assistance pattern (offline, schema-driven, cascadable)
+
+**Date:** 2026-04-27
+**Form:** Pag-IBIG SLF-065 (multi-purpose loan) — pilot. Pattern is reusable on every form.
+
+**Goal.** Add smart, helpful UI to the form editor (live eligibility checks, amortization calculator, contextual hints, input masks, address mirroring) WITHOUT breaking other forms and WITHOUT touching the network. All offline.
+
+### Architecture (4 layers)
+
+1. **`src/lib/smart-assistance.ts`** — pure helpers. Exports:
+   - `applyMask(mask, raw)` for `mid | tin | date | currency | mobile | zip` — auto-formats as user types.
+   - `parseMaskedDate, ageFrom, monthsBetween` — date math.
+   - `amortize(principal, annualRate, months)` — standard `M = P·r / (1 − (1 + r)^−n)`.
+   - `fmtPHP(n)` — locale-aware peso formatter.
+2. **Schema (`src/data/forms.ts`)** — additive, optional fields:
+   - `FormField.mask?: FieldMask` — turns on input mask.
+   - `FormField.optionHints?: Record<string,string>` — green per-option tip below dropdown / autocomplete.
+   - `FormField.mirrorFrom?: string`, `FormField.mirrorGroup?: string` — mark fields as targets of a sibling checkbox-driven copy.
+   - `FieldType` adds `'checkbox'`.
+   - `FormSchema.smartAssistance?: SmartAssistanceConfig` — `{ amortization, eligibility[] }`. Eligibility rule kinds: `age-min | months-min | amount-max | digits-eq | email`.
+3. **Renderer (`src/app/forms/[slug]/page.tsx`)** — three small additions:
+   - `FieldInput` consults `field.mask` and routes onChange through `applyMask`. Adds `'checkbox'` case. Uses `optionHint || field.hint` (green vs gray).
+   - The `stepFields.map` onChange wraps `handleChange`: when a `checkbox` flips ON, every field whose `mirrorGroup === checkbox.id` is filled from its `mirrorFrom` source (Same-as-Permanent style mirroring).
+   - `<SmartPanel form values />` is rendered after the step fields when `form.smartAssistance` is defined.
+4. **Autocomplete sources** — new `ph_loan_purposes_mpl.ts` (with `*_HINTS` map) and `ph_employment_sources.ts`, registered in `src/data/autocomplete-sources/index.ts`.
+
+### How to cascade to ANOTHER form
+
+Pick what applies. Each step is independent.
+
+- **Add masks.** Set `mask: 'mid' | 'tin' | 'date' | 'currency' | 'mobile' | 'zip'` on a field.
+- **Add per-option hints.** On a `dropdown` (or `autocomplete` with finite options), set `optionHints: { ... }`.
+- **Switch a field to typeahead.** Change `type: 'text'` → `type: 'autocomplete'` and set `optionsSource: 'ph_banks' | 'ph_cities' | 'ph_provinces' | 'ph_loan_purposes_mpl' | 'ph_employment_sources' | …`. Add new sources under `src/data/autocomplete-sources/` and register them in `index.ts`.
+- **Add Same-as-X mirror.** Add a `type: 'checkbox'` field with id `same_as_X`. On every target field set `mirrorGroup: 'same_as_X'` and `mirrorFrom: '<source field id>'`.
+- **Enable Smart Panel.** On the schema, set `smartAssistance.eligibility` and/or `smartAssistance.amortization`. The panel auto-renders.
+
+### Cascade candidates (snapshot)
+
+- **Pag-IBIG HLF-068, HLF-868** (housing loan): bank field → `ph_banks` autocomplete; address mirror; amortization (rate=0.0625, principal/term fields differ).
+- **BIR-1902 / 1904 / 2316**: TIN field → `mask:'tin'`; address mirror.
+- **PhilHealth M2 / CSF**: address mirror; mobile → `mask:'mobile'`.
+
+### Verification recipe
+
+```bash
+cd ~/projects/quickformsph-dev && npx next build 2>&1 | tail -3 && \
+  printf 'sap12345\n' | sudo -S -p '' systemctl restart quickformsph && sleep 6 && \
+  grep -ro "PH_LOAN_PURPOSES_MPL\|smartAssistance\|Live Amortization" .next/server/chunks/ | head
+```
+
+### Standing rule
+
+Smart Assistance MUST be 100% client-side / offline. No fetch, no CDN, no API. New helpers go under `src/lib/smart-assistance.ts`; new data goes under `src/data/autocomplete-sources/`.
+
+## L-SMART-02 — Mirror behavior implementation note
+
+When the mirror checkbox is unchecked, mirror targets are intentionally **not cleared** — the user may have customized them. Re-checking the box re-copies from the current source values. This matches the sandbox prototype validated with the user on 2026-04-27.
+
+## L-SMART-03 — Editor-buffer revert hazard (still active)
+
+When `page.tsx` or `forms.ts` is open in VS Code, the `replace_string_in_file` tool can succeed in the editor buffer but NOT persist to disk before a build. Mitigation:
+
+1. After every TS edit, `grep` the symbol on disk to confirm.
+2. For large blocks, prefer `python3` with `Path.read_text/write_text` to bypass the editor buffer.
+3. Run `npx next build` and read the actual error before assuming success.
+
+This rule is the reason the SLF-065 pilot took two build cycles instead of one (missing import on first try).
+
+---
+
+## L-TINSOFT-01 — Soft TIN trailing-zeros validator (BIR-1902 / BIR-1904)
+
+**Date:** 2026-04-27
+**Forms:** bir-1902, bir-1904 (NOT bir-2316 — employer/branch TINs are exempt)
+**Decision driver:** R12 QA review item #1 (TIN trailing-5-zeros rule). User
+elected SOFT validation: warn but allow submission, behind a config flag for
+later promotion to hard enforcement. No published BIR memo confirms the rule —
+only schema labels (`'... 5 trailing 0s are agency-reserved'`) and field officer
+practice. Hard-blocking would risk false negatives for valid edge cases
+(deceased estates, sole-prop branch suffixes seen in the wild).
+
+### Schema
+Two new optional `FormField` properties in `src/data/forms.ts`:
+- `warnPattern?: string` — JS regex (string form) the value SHOULD match.
+- `warnMessage?: string` — amber hint shown when value is non-empty and fails the pattern.
+
+### Where applied
+- bir-1902 `tin` (line ~4133): `warnPattern: '^\\d{7}00000$'`
+- bir-1902 `spouse_tin` (line ~4186): same pattern
+- bir-1904 `spouse_tin` (line ~4077): same pattern
+- bir-1904 has no `id: 'tin'` field (it's a TIN-application form). Employer / WA TIN
+  fields (`spouse_employer_tin`, `wa_tin`) are EXEMPT — corporate TINs use real
+  branch suffixes, not 00000.
+- bir-2316 EXEMPT: `emp_tin_branch` is a field of its own and present employer
+  TIN can carry non-zero branch.
+
+### Renderer (src/app/forms/[slug]/page.tsx, FieldInput)
+Inserted IIFE just below the `field.hint` paragraph:
+```tsx
+{(() => {
+  if (!field.warnPattern || !value) return null;
+  let re: RegExp | null = null;
+  try { re = new RegExp(field.warnPattern); } catch { return null; }
+  if (re.test(value)) return null;
+  const hard = process.env.NEXT_PUBLIC_QFPH_TIN_HARD === '1';
+  const cls = hard ? 'mt-1 text-xs text-red-600' : 'mt-1 text-xs text-amber-600';
+  return <p className={cls} role="alert">{field.warnMessage ?? '...'}</p>;
+})()}
+```
+
+### Config flag — NEXT_PUBLIC_QFPH_TIN_HARD
+- `'0'` (default, unset): amber warning, submission allowed.
+- `'1'`: red error styling on the hint. (Hard-blocking at the submit gate is a
+  future seam — left intentionally out of scope until BIR memo lands.)
+
+### Rationale for soft-only at launch
+Hard enforcement on unconfirmed rules → false rejects → support load. The amber
+warning is enough to nudge ~95% of typos while preserving the long-tail.
+
+### Lesson reinforced
+Slug → line-number mapping must be re-verified before applying schema edits.
+First attempt placed the warnPattern on `pagibig-hlf-068` because grep ordering
+was misread (line 3749 looked plausible for bir-1904 but was actually inside
+hlf-068's range 3651–3768). Rule: when patching a field by ID, always confirm
+the surrounding slug literal first via `awk` range markers.
+
+---
+
+## R3 Polish Pass (SLF-065) — 2026-04-26
+
+### L-SLF065-R3-01 — Auto-shrink-to-fit + truncate; never pass `maxWidth` to pdf-lib's `drawText`
+
+**Symptom**: Long values (addresses, employer names, place of birth) leaked vertically into the row below, producing apparent "double rows" of text in PDF output.
+
+**Root cause**: We had been passing `maxWidth: coords.maxWidth` directly into `page.drawText(...)`. pdf-lib's `maxWidth` does **line wrapping**, not horizontal scaling. The wrapped second line is drawn BELOW the baseline, which on a tightly packed govt form lands inside the next row's cell.
+
+**Fix** (`src/lib/pdf-generator.ts` ~line 3346, per-field draw loop):
+```typescript
+let drawSize = fontSize;
+let drawTextStr = text;
+if (coords.maxWidth) {
+  let measured = font.widthOfTextAtSize(drawTextStr, drawSize);
+  if (measured > coords.maxWidth) {
+    const scaled = (drawSize * coords.maxWidth) / measured;
+    drawSize = Math.max(4, scaled);                 // never below 4pt
+    measured = font.widthOfTextAtSize(drawTextStr, drawSize);
+    while (measured > coords.maxWidth && drawTextStr.length > 1) {
+      drawTextStr = drawTextStr.slice(0, -1);       // truncate from right
+      measured = font.widthOfTextAtSize(drawTextStr, drawSize);
+    }
+  }
+}
+page.drawText(drawTextStr, { x: coords.x, y: coords.y + yOff, size: drawSize, font, color: rgb(0,0,0) });
+```
+
+**Standing rule**: For any single-line cell on a government form, **never** pass `maxWidth` to pdf-lib. Either render at a size guaranteed to fit, OR use the shrink+truncate above. If you genuinely need wrapping (e.g. multi-line "remarks"), explicitly compute line breaks and call `drawText` per line.
+
+### L-SLF065-R3-02 — NAMES row column-shift bug; always re-derive coords from pdfplumber
+
+**Symptom**: On SLF-065 page 1 NAMES row, "PATRICIA" rendered in the NAME EXTENSION column, "REYES" rendered in MAIDEN MIDDLE NAME, etc. Every NAME field was shifted one column to the right.
+
+**Root cause**: Original coords were hand-authored against a misread column layout. NAMES row label x0 positions on the source PDF (verified via pdfplumber):
+- LAST=20.9, FIRST=76.7, EXT=134.7, MIDDLE=201.7, MAIDEN MIDDLE=255.1, NO MIDDLE=328.3, DOB=395.7, PLACE OF BIRTH=498.5
+
+**Fix** (`src/lib/pdf-generator.ts` ~lines 1465-1471):
+```typescript
+last_name:             { x: 23,  maxWidth: 53 },
+first_name:            { x: 78,  maxWidth: 55 },
+ext_name:              { x: 137, maxWidth: 60 },
+middle_name:           { x: 204, maxWidth: 50 },
+no_maiden_middle_name: { x: 257, maxWidth: 67 },
+dob:                   { x: 397, maxWidth: 98 },
+place_of_birth:        { x: 499, maxWidth: 95 },
+```
+
+**Standing rule** (already in `quickformsph-qa.md` checklist): Always re-derive `x` and `maxWidth` from a live pdfplumber rect+word extraction on the source PDF. Never accept hand-authored coords without verification. The proven workflow:
+1. `pdfplumber.open(src).pages[0].extract_words()` → grab label x0
+2. `extract_words()` filtered by row top → grab next-cell label x0 (right edge)
+3. `maxWidth = nextLabelX0 - currentX - 2` (small inset)
+4. `x = currentLabelX0 + 2`
+
+### L-CLEAR-01 — "Clear & Exit" must hard-reload the page
+
+**Symptom**: Clicking "Clear & Exit" in the Close-Session/Preview screen left form data populated and stayed on the preview page.
+
+**Root cause** (three compounding issues):
+1. A pending debounced `saveTimer` re-saved the old draft milliseconds after `clearDraft()` ran.
+2. `router.replace('/')` is a Next.js client-side navigation; it preserved component state including modal open flags and `currentStep`.
+3. Modal state (`showPaymentModal`, `showSuccessModal`, `pendingDraft`, `draftModalOpen`) was never explicitly reset.
+
+**Fix** (`src/app/forms/[slug]/page.tsx`, new `handleHardClear` callback wired into both `onCloseSession` callsites):
+```typescript
+const handleHardClear = useCallback(() => {
+  if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+  clearDraft(slug);
+  if (previewImageUrl) URL.revokeObjectURL(previewImageUrl);
+  setValues({}); setPreviewImageUrl('');
+  setShowPaymentModal(false); setShowSuccessModal(false);
+  setPendingDraft(null); setDraftModalOpen(false);
+  setMode('form'); setCurrentStep(0 as StepIndex);
+  setIsDemoMode(false); setLocalModeActive(false);
+  setGateKey(k => k + 1);
+  if (typeof window !== 'undefined') window.location.replace('/');
+  else router.replace('/');
+}, [slug, previewImageUrl, router]);
+```
+
+**Standing rule**: For "destroy session and start over" actions, always (a) cancel pending debounced timers, (b) revoke object URLs, (c) reset every modal/step flag, (d) prefer `window.location.replace()` over `router.replace()` so React state is fully blown away. A SPA-style soft navigation will leak state.
+
+### L-FORMS-HINT-01 — Hint trims (traceability)
+
+- Removed `mid_no.hint` ("Your 12-digit Pag-IBIG Member ID. Found on your Pag-IBIG card or SMS confirmation.") — ID is also visible elsewhere in the gate flow.
+- Trimmed `perm_tin.hint` from "12-digit BIR Tax Identification Number (digits only auto-format)." → "12-digit BIR Tax Identification Number." (auto-format is now signaled by the input mask itself).
+
+
+### L-SLF065-R3-03 — DESIRED LOAN AMOUNT renders on the "Others, specify: ____" underline, not in the cell's left edge
+
+**Symptom**: The numeric loan amount (e.g. "80,000") was being painted at the left edge of the DESIRED LOAN AMOUNT cell, overlapping the printed instruction "Maximum Loan Amount" / "Others, specify:".
+
+**Root cause**: The cell at PDF rect `top=172.3-193.0, x=497.0-593.8` is **not** a freeform amount cell — it contains two checkbox options:
+1. ☐ Maximum Loan Amount (top≈180.1)
+2. ☐ Others, specify: ______________ (top≈187.0; underline at x=550.7-589.3, top=187.8)
+
+The numeric amount belongs **on the "Others, specify" underline**, not on the cell's left edge. Original coord `x: 499, y: SLF_065_Y_PRES2 (=746)` placed the digits over the printed sub-instructions.
+
+**Fix** (`src/lib/pdf-generator.ts` ~L1509):
+```typescript
+desired_loan_amount: { page: 0, x: 552, y: 741, fontSize: 8, maxWidth: 38 },
+```
+- `x=552`: just to the right of "Others, specify:" colon (underline starts at 550.7).
+- `y=741`: baseline lowered ~7pt from the previous value so the digits sit on (not above) the underline. Derivation: underline top in pdfplumber=187.8; want digit baseline at PDF-bottom y = 936-187.8-6 ≈ 742.
+- `maxWidth=38`: width of the underline (589-552). The shrink+truncate pass (L-SLF065-R3-01) handles overflow gracefully.
+
+**Standing rule**: For govt-form cells whose printed contents include checkbox options + a fill-in line, **the data goes on the fill-in line**, not in the bounding rect's top-left. Always read the printed sub-text inside a cell before assigning coords. Quick check: if `extract_words()` inside a cell rect returns words like "specify", "Others", "if", "(other)", or an underscore run, you must locate the underscore run and use ITS x-range and `top` — not the cell rect's.
+
+
+## L-ANALYTICS-01 (2026-04-28) — `demo_click` events silently dropped (uppercase slug rejected)
+**Symptom**: Dashboard "Demo Clicks" KPI stuck at 0 even after clicking Demo on multiple forms; only `form_view` rows present in `analytics_events`.
+**Root cause**: `PaymentGate` passed `formCode` (uppercase, e.g. `BIR-1902`) as the slug arg to `trackEvent('demo_click', ...)`. The `/api/analytics` route validates with `SLUG_RE = /^[a-z0-9-]{1,80}$/` and silently 204s any non-empty slug that does not match. Uppercase letters → reject → no insert.
+**Fix**: Added a `formSlug` prop to `PaymentGate` (lowercase route slug, e.g. `bir-1902`) and pass it from `forms/[slug]/page.tsx`. `onDemo` now calls `trackEvent('demo_click', formSlug)`.
+**Standing rule**: When passing a slug to the analytics beacon, it MUST be the route slug (lowercase, hyphenated). Never reuse `formCode` (display code, uppercase). The route's silent 204 swallows the bug — only DB inspection reveals it.
+
+## L-CLEAR-02 (2026-04-28) — Demo "Clear & Exit" left form pre-filled on re-entry
+**Symptom**: In Demo mode, clicking *Close Session → Clear & Exit* returned to PaymentGate. Choosing Demo or Donate again landed on the **Preview screen with all the previous answers still populated** — not a blank form.
+**Root cause**: `handleReturnToGate` only cleared the localStorage draft and reset `isDemoMode` / `localModeActive` / `gateKey`. It left React state intact: `values`, `mode='preview'`, `currentStep`, `previewImageUrl` (blob URL), `showSuccessModal`, etc. When the user re-entered, the form rendered with the stale state.
+**Fix**: `handleReturnToGate` now mirrors the hard-clear flow used by paid-mode `handleHardClear`: cancels the debounced `saveTimer`, clears the draft, revokes the preview blob URL, and resets `values`, `previewImageUrl`, `mode`, `currentStep`, both modal flags, plus `isDemoMode` / `localModeActive` / `gateKey`. The only difference vs `handleHardClear`: it does NOT navigate away with `window.location.replace('/')` — Demo Clear & Exit stays on the form route so PaymentGate can re-render in place.
+**Standing rule**: Any "return-to-gate" or "clean-slate" handler must reset **every** wizard state field, not just the gate flags. If you add a new piece of wizard state, audit every reset path.
+
+---
+
+## L-SMART-04 — `expandCombinedDates()` helper for masked date fields *(cascadable)*
+
+**Date:** 2026-04-26 · **Form:** PMRF-012020 (PhilHealth) · **Files:** `src/lib/pdf-generator.ts`
+
+**Problem.** The mobile-first UX wanted a single `dob` text field with a `mask:'date'` (auto-formats to `MM / DD / YYYY` as user types) instead of three separate `dob_month` / `dob_day` / `dob_year` form fields. But the source PDF still has eight separate digit cells (M-M-D-D-Y-Y-Y-Y) keyed in `PMRF_FIELD_COORDS` by the legacy IDs. Switching to a single field broke the rendering.
+
+**Fix.** Added `expandCombinedDates(values)` near the top of `generatePDF()`:
+- Scans every key ending in `dob` (or exactly `dob`) for a `MM / DD / YYYY` pattern.
+- Splits into sibling `<prefix>dob_month`, `<prefix>dob_day`, `<prefix>dob_year` keys (only when not already present).
+- Runs **before** `PDFDocument.load()`.
+
+Also extended the render loop to iterate **schema fields ∪ coord-only synthetic IDs**:
+```ts
+const schemaIds = new Set(form.fields.map((f) => f.id));
+const syntheticIds = Object.keys(fieldCoords).filter((id) => !schemaIds.has(id));
+const iterFields = [...form.fields, ...syntheticIds.map((id) => ({ id }))];
+```
+Without this second change the synthetic keys exist in `values` but never get drawn (the loop was strictly schema-driven).
+
+**Cascade rule.** Any form may now switch from 3 separate date sub-fields to a single masked `dob` (or `*_dob`) **without touching `*_FIELD_COORDS`**. Just:
+1. Replace the 3 schema fields with one `{ id:'<prefix>dob', type:'date', mask:'date' }`.
+2. Replace 3 sample values (`'03'`,`'15'`,`'1990'`) with one combined value `'03 / 15 / 1990'`.
+3. Done — the helper splits at render time.
+
+---
+
+## L-SMART-05 — Datalist suffix stripper for autocomplete codes *(cascadable)*
+
+**Date:** 2026-04-26 · **Form:** PMRF-012020 (KonSulTa Provider) · **Files:** `src/lib/pdf-generator.ts`, `src/data/autocomplete-sources/philhealth_konsulta.ts`
+
+**Problem.** Autocomplete sources use the format `"CODE — Long Facility Name (City)"` so the user sees friendly context in the dropdown. But the source PDF cell is sized for just the code (~120pt wide). Result: the value bleeds across the right border (`"01-001-009-000 -- Quezon City General Hospital (Quezon City"` with em-dash mangled by WinAnsi as `--`).
+
+**Fix.** Added `stripDatalistSuffix(values, ids)` helper called right after `expandCombinedDates`:
+```ts
+const m = v.match(/^(.+?)\s+(?:—|--)\s+/);
+if (m) out[id] = m[1].trim();
+```
+Critical: the prefix uses `(.+?)` non-greedy — **do NOT** use `[^—\-]+?` because PIN-style codes contain hyphens (`01-001-009-000`) and would fail the negated class.
+
+**Cascade rule.** Any form whose autocomplete value contains `" — "` or `" -- "` separator must list its field IDs in the `stripDatalistSuffix` call:
+```ts
+values = stripDatalistSuffix(values, ['konsulta_provider', /* add new IDs here */]);
+```
+Pattern fits: KonSulTa providers, RDO codes, branch lookups, hospital lists, school codes.
+
+---
+
+## L-PMRF-R1-01 — Smart Assistance schema migration recipe *(cascadable)*
+
+**Date:** 2026-04-26 · **Form:** PMRF-012020 → cascade target for all PH gov forms.
+
+**Pattern applied to PMRF-012020 (16 changes in `src/data/forms.ts`):**
+1. **Combined DOB** — `dob_month/day/year` → single `dob` with `mask:'date'`.
+2. **Masks** — `pin:'pin'`, `tin:'tin'`, `philsys_id:'psn'`, `mobile:'mobile'`, `monthly_income:'currency'`, `perm_zip/mail_zip:'zip'`.
+3. **Autocomplete source** — `konsulta_provider` → `type:'autocomplete'` + `optionsSource:'philhealth_konsulta'`.
+4. **Option hints** — Citizenship, Civil Status, Member Type, Indirect Contributor → `optionHints` describe routing logic ("If FILIPINO and resident → skip ACR card").
+5. **Enumerated proofs** — `proof_of_income`: free-text → dropdown with 8 enumerated options.
+6. **Smart Assistance block** — six eligibility rules (`age-min`, `digits-eq`×4, `email`).
+
+**New `FieldMask` values registered.** `'pin'` (XX-XXXXXXXXX-X, 12 digits) and `'psn'` (XXXX-XXXX-XXXX, 12 digits) added to BOTH `src/lib/smart-assistance.ts` and `src/data/forms.ts` (the latter has its own duplicate `FieldMask` union — must be kept in sync; will dedupe in a future PR).
+
+**Standing rule.** Every new form schema must walk this checklist: (a) any 3-part date → combine. (b) any 9-12 digit ID → assign mask. (c) any look-up table → autocomplete-source. (d) any branching question → optionHints. (e) any required-format input → eligibility rule.
+
+---
+
+## L-PMRF-R1-02 — PhilHealth + PhilSys ID format reference
+
+| ID | Format | Total | Mask |
+|----|--------|-------|------|
+| PhilHealth PIN | `XX-XXXXXXXXX-X` | 12 digits | `'pin'` (2-9-1) |
+| PhilSys PCN | `XXXX-XXXX-XXXX` | 12 digits | `'psn'` (4-4-4) |
+| TIN (legacy) | `XXX-XXX-XXX` | 9 digits | `'tin'` |
+| TIN (new) | `XXX-XXX-XXX-XXX` | 12 digits | `'tin'` (renderer trims to 9 cells when source PDF lacks the 4th group, as in PMRF) |
+| Philippine Mobile | `09XX XXX XXXX` | 11 digits | `'mobile'` |
+
+**Critical note for TIN on PMRF.** PMRF source PDF only has 9 TIN cells (legacy format). Sample values may contain 12 digits (`123456789000`); the renderer drops digits beyond `boxCenters.length`. This is intentional — do NOT widen the cell array.
+
+---
+
+## L-PMRF-R1-03 — `philhealthPremium()` calculator *(cascadable)*
+
+**Date:** 2026-04-26 · **Files:** `src/lib/smart-assistance.ts`
+
+**Spec.** PhilHealth UHC contribution formula:
+- Rate: 5.0% of monthly basic salary (2024+).
+- Floor: ₱10,000 (anything below uses ₱10,000 basis).
+- Ceiling: ₱100,000 (anything above uses ₱100,000 basis).
+- Split: 50/50 employer/employee for **Employed** members; 100% member for self-earning/voluntary.
+
+**API.**
+```ts
+philhealthPremium(50000, { rate: 0.05, employed: true })
+// → { monthly: 2500, memberShare: 1250, employerShare: 1250, rate: 0.05, basis: 50000 }
+```
+
+**Cascade rule.** Reusable for any PhilHealth-related form (PMRF, claim forms, employer reports). Output schema is form-agnostic — present `{ monthly, memberShare, employerShare }` in a Smart Panel "Estimated Contribution" widget.
+
+
+---
+
+## L-SMART-CSF-01 — CSF-2018 Smart Assistance pass *(cascadable to every form with split-date / mask / mirror needs)*
+
+**Date:** 2026-04-28 · **Form:** `philhealth-claim-signature-form` (CSF-2018) · **Files:** `src/lib/smart-assistance.ts`, `src/lib/pdf-generator.ts`, `src/data/forms.ts`, `src/app/forms/[slug]/page.tsx`
+
+**Goal.** Make Form Editor seamless for users while keeping PDF coordinates / box-cell rendering UNCHANGED. The form editor and Smart Assistance run **fully offline**.
+
+### Five reusable building blocks delivered by this pass
+
+| # | Block | Where | Cascade test |
+|---|---|---|---|
+| 1 | **Generic combined-date field** | `pdf-generator.ts::expandCombinedDates()` now expands ANY masked `mm / dd / yyyy` value whose key has a corresponding `<key>_month/_day/_year` triple in the coord map. Schemas can drop the 3 split fields and use a single `type:'date'` combined field. | Replaced 6 date triples in CSF-2018 with `member_dob`, `patient_dob`, `date_admitted`, `date_discharged`, `employer_date_signed`, `consent_date_signed`. PDF coords UNCHANGED. |
+| 2 | **`'pen'` input mask** | `smart-assistance.ts::maskPen` (12-digit `XX-XXXXXXXXX-X`, member-PIN-style) | CSF `employer_pen` → digits stripped at PDF render time by existing `boxCenters` digit-extractor. Reusable for any PhilHealth employer field. |
+| 3 | **`visibleWhen` predicate** on `FormField` | `forms.ts` (interface) + `page.tsx::isFieldVisible` (renderer + review screen). Three operator forms: `equals`, `equalsOneOf`, `notEmpty`. | CSF "Has employer" toggle hides the entire Employer block declaratively. Cascade: any "skip this whole optional section" UX. |
+| 4 | **Generic `mirrorGroup` runtime handler** | `page.tsx::applyMirrorToggle` — schema-driven (no per-form code). When a checkbox `id == mirrorGroup`, all fields with that group + a `mirrorFrom` source are populated from `prev[mirrorFrom]`. | CSF "Patient is the same as the Member" copies all 5 patient fields. SLF-065's `same_as_permanent` checkbox is now generic too (was previously schema-only / unimplemented). |
+| 5 | **New eligibility rule kinds** | `forms.ts::SmartAssistanceConfig` + `page.tsx::SmartPanel` evaluator: `date-not-before` (cross-field date ordering) and `days-since-max` (filing-window countdown). | CSF: `date_discharged ≥ date_admitted`, and "Filing window: ≤ 60 days since Date Discharged" (PhilHealth claim policy). |
+
+### Migration recipe for the next form
+
+1. **Combine dates** — In the schema, replace each `<prefix>_month / _day / _year` triple with one `{ id:'<prefix>', type:'date', required:true }`. **Do not** touch `pdf-generator.ts` coord maps; `expandCombinedDates()` re-splits at write time. Update sample literals to use the masked `mm / dd / yyyy` value.
+2. **Add masks** — `mask: 'pin' | 'pen' | 'mid' | 'tin' | 'mobile' | 'zip' | 'psn'` on text fields. Box-cell PDF rendering already strips dashes/spaces, so masked input ≠ misaligned PDF.
+3. **Add `optionHints`** — On every `dropdown` whose options carry eligibility/legal nuance (relationship, civil status, member type), add a `Record<option, hint>` for the live green sub-text.
+4. **Add mirror toggles** — Declare a `type:'checkbox'` field whose `id` matches the `mirrorGroup` of every target field; targets carry `mirrorFrom: '<source_id>'`. Generic handler does the rest. For special side-effects (e.g. CSF also forces `relationship_to_member='Self'` and clears `dependent_pin`), add a small inline branch in `handleChange`.
+5. **Add `visibleWhen`** — On every optional sub-section that should disappear when a parent toggle is off. The renderer, review screen, **and** step completion counts respect it.
+6. **Add eligibility rules** — `digits-eq` for masked IDs, `date-not-before` for date pairs, `days-since-max` for filing/availment windows, `age-min` / `months-min` / `amount-max` / `email` for the existing kinds.
+
+### CSF-2018 specifics worth remembering
+
+- **HCI / HCP signature blocks** (Parts IV/V) are intentionally out of scope — they are signed by the hospital, not the user. Schema covers Parts I–III + member consent only.
+- **`Self` is implicit** on the form (no checkbox option), so `CSF_CHECKBOX_COORDS.relationship_to_member` only maps Child / Parent / Spouse. Sample A (Self) correctly shows zero relationship checkboxes ticked. Do **not** add a Self coord — it doesn't exist on the printed form.
+- **Filing windows** — Local availment 60 days from discharge; Abroad 180 days. We bake 60 into the schema; the abroad case can be a future per-form override.
+- **PEN format** is identical to PIN (12 digits, `XX-XXXXXXXXX-X`) per PhilHealth ER2 policy; mask reused.
+
+### QA artifacts
+
+- Generator: `scripts/gen-csf-personas.ts` (drives `generatePDF` directly from the canonical persona literals — no UI required).
+- Output: `.qa-output/csf-2018/sample-{A,B,C}.pdf` rasterized to 4 zoom bands at 150dpi for coord validation.
+- Result: every value lands inside its corresponding form area / digit box across all 3 personas; no font-size override was needed.
+
+## L-SMART-CF1-01 — CF-1 Smart Assistance pass *(cascadable to any boolean-toggle + paired-Yes/No checkbox PDF)*
+
+**Form:** PhilHealth Claim Form 1 (Revised Sep 2018), 35 fields × 5 wizard steps. Direct extension of L-SMART-CSF-01 — same four-layer approach, plus two new general-purpose patterns.
+
+### What was added
+
+| Layer | Change |
+|---|---|
+| `src/lib/smart-assistance.ts` | New `'landline'` mask kind: `(NN) NNNN-NNNN`. PartialFmt as user types — used by `contact_landline` + `employer_contact` and reusable across every form with a landline cell. |
+| `src/data/forms.ts` (`philhealthClaimForm1`) | Combined `member_dob` + `patient_dob` (`type:'date'`); replaced the **dropdown** `patient_is_member` with a `type:'checkbox'` toggle; added `type:'checkbox'` `has_employer`; added masks (`pin`, `pen`, `mobile`, `landline`, `zip`); added `optionHints` on `patient_relationship`; added `visibleWhen: { field, equals }` on every step-4 + step-5 conditional field; added `smartAssistance.eligibility[]` (PIN×2, PEN, mobile-11d, email, age sanity). |
+| `src/app/forms/[slug]/page.tsx` | New `handleChange` branches: ticking `patient_is_member` clears the entire dependent block (PhilHealth processes member-as-patient with the dependent block left blank); unticking it also clears any leftover patient_* values; ticking off `has_employer` extends the existing CSF clear branch with CF-1 keys (`employer_contact`, `employer_business_name`). Three new personas drive the same three QA scenarios: Patient=Member+employed / Dependent-Child+self-employed / Spouse+OFW abroad. |
+| `src/lib/pdf-generator.ts` | **L-SMART-CF1-01a — boolean-checkbox → labeled-choice synthetic emit:** when the schema uses a boolean checkbox but the source PDF has paired Yes/No tickboxes, normalize at PDF-gen entry by emitting a synthetic `<field>_choice` whose value maps to the printed label — and key the checkbox coords off that synthetic id. **L-SMART-CF1-01b — synthetic ids must include `checkboxCoords` keys, not just `fieldCoords`:** the iteration list builder previously only pulled synthetics from `fieldCoords`. Extending it to also pull from `checkboxCoords` (deduped) is what lets L-SMART-CF1-01a actually draw. **No CF-1 coord change** — `expandCombinedDates()` (L-SMART-04) auto-splits the combined `member_dob`/`patient_dob` into the existing `*_month/_day/_year` per-digit boxes. |
+
+### Two general-purpose patterns introduced *(cascade-ready)*
+
+1. **Boolean-toggle ⇄ Yes/No paired-checkbox bridge** — keep schema simple (one boolean checkbox) while still ticking the right printed box; lives entirely in `pdf-generator.ts` so future forms (CF-2, BIR1902 resident-alien Y/N, Pag-IBIG marital-status etc.) can reuse with just a one-line normalizer.
+
+2. **Synthetic-id from `checkboxCoords`** — any future form that wants to map an in-schema field to a different coord-only key now Just Works.
+
+### Migration recipe (port to next form in ~30 min)
+
+1. Schema (`forms.ts`): collapse split DOBs → single `type:'date'`; add `mask:'pin'|'pen'|'mobile'|'landline'|'zip'|'tin'|'mid'` per field; convert any "Is X = Y?" dropdown to `type:'checkbox'`; add `visibleWhen` on conditional blocks; populate `smartAssistance.eligibility[]`.
+2. Renderer (`page.tsx`): if there's a new boolean toggle, add a `handleChange` branch that clears the gated keys when off (use existing CSF/CF-1 patterns as templates); update `samplesBySlug[slug]` with 3 personas using the new combined-date masked strings and toggle keys.
+3. PDF (`pdf-generator.ts`): if any boolean toggle maps to a printed Yes/No pair, add the one-line normalizer near the top of `generatePDF` (`if (form.slug === '<x>') values.<id>_choice = values.<id> === 'true' ? 'Yes' : 'No';`) and key the existing `*_CHECKBOX_COORDS` off the `_choice` synthetic id.
+4. QA: copy `scripts/gen-cf1-personas.ts` → adapt persona literals → `pdftoppm -r 150` + `convert -crop 1275x500+0+<y>` for 4 zoom bands → inspect each band.
+
+### CF-1 specifics
+
+- **Filing window:** 60 days local / 180 days abroad. Surfaced as a Smart Panel hint keyed off `addr_country` (any value other than "Philippines" implies abroad).
+- **Relationship options:** Child / Spouse / Parent (no Self — patient-is-member uses the toggle and leaves the dependent block blank by design).
+- **PEN format:** identical to PIN (12 digits, `XX-XXXXXXXXX-X`) — same mask reused.
+
+### QA artifacts
+
+- Generator: `scripts/gen-cf1-personas.ts`
+- Output: `.qa-output/cf-1/sample-{A,B,C}.pdf` rasterized to 4 zoom bands at 150 dpi.
+- Result: PIN/PEN auto-formatted into per-digit boxes; DOB combined-date auto-split into month/day/year cells; Yes box ticked for Sample A (patient = member, dependent block correctly empty); No box ticked for B/C with dependent block fully populated; employer block correctly empty for Sample B (self-employed) and fully populated for A/C; no font-size override needed.
+
+---
+
+## L-SMART-CF2-01 — CF-2 Smart Assistance pass *(cascadable to any form with combined times + dropdown-value branching + PAN/accreditation masks)*
+
+**Form:** PhilHealth Claim Form 2 (Sep 2018), 130+ fields × 8 wizard steps, 2-page PDF. Direct extension of L-SMART-CSF-01 + L-SMART-CF1-01 — same four-layer approach, plus four new general-purpose patterns.
+
+### What was added
+
+| Layer | Change |
+|---|---|
+| `src/lib/smart-assistance.ts` | Three new mask kinds: `'time'` (`HH : MM AM/PM`, accepts a/p), `'hciPan'` (`HCI-NN-NNNNNN`, 8 digits), `'hcpPan'` (`HCP-NN-NNNNNN`, 8 digits). Added `parseMaskedTime()` exported helper. `applyMask` switch extended. |
+| `src/data/forms.ts` (`philhealthClaimForm2`) | Full schema rewrite: collapsed every split date+time into 9 combined `type:'date'` and 3 `type:'text' mask:'time'` fields; converted `referred_by_hci` from Yes/No dropdown to `type:'checkbox'`; applied `mask` to ~25 fields (`hciPan`/`hcpPan`/`zip`/`currency`/`time`); added 5 `visibleWhen` blocks (`referred_by_hci`, `patient_disposition === 'Expired'`, `patient_disposition === 'Transferred/Referred'`, `hcp{2,3}_accreditation_no notEmpty`); `optionHints` on `patient_disposition`; `smartAssistance.eligibility[]` for HCI-PAN×1, HCP-PAN×1, discharge-after-admit, filing-window-60. |
+| `src/app/forms/[slug]/page.tsx` | New `handleChange` branches: unticking `referred_by_hci` clears all 5 `referring_hci_*` keys; changing `patient_disposition` clears the `expired_*` block when value ≠ Expired and the 5 `transferred_hci_*` + `reason_for_referral` when value ≠ Transferred/Referred (cleans both label + per-digit split keys). 4 personas in `samplesBySlug` exercise direct admission / referred-in / 3-HCP transferred-out / paediatric zero-balance. |
+| `src/lib/pdf-generator.ts` | **L-SMART-CF2-01a — combined-time auto-split:** new `expandCombinedTimes()` mirrors `expandCombinedDates()` — regex `^\s*(\d{1,2})\s*:\s*(\d{2})\s+(AM\|PM)\s*$/i`, splits into `<key>_hour` (zero-padded) / `<key>_min` / `<key>_ampm` (uppercased). Called immediately after `expandCombinedDates(values)`. **L-SMART-CF2-01b — coord-prefix renames to align with combined fields:** renamed CF2 coords `expired_month/_day/_year/_hour/_min/_ampm` → `expired_date_month/_day/_year` + `expired_time_hour/_min/_ampm` so the generic `expand*` splitters output keys that match coord keys. **L-SMART-CF2-01c — direct boolean→'YES'/'NO' (no synthetic `_choice`):** when `*_CHECKBOX_COORDS` is already keyed on the printed labels (`'YES'`/`'NO'`/`'Yes'`/`'No'`), normalize the boolean in-place (`values.referred_by_hci = values.referred_by_hci === 'true' ? 'YES' : 'NO'`) — no synthetic id needed (simpler than CF-1's `_choice` approach when label-keyed coords exist). |
+
+### Four general-purpose patterns introduced *(cascade-ready)*
+
+1. **Combined-time mask + `expandCombinedTimes()`** — every form with split `H/H : M/M AM/PM` per-digit boxes can now use a single `type:'text' mask:'time'` field; PDF-gen splits at render. Mirror of the L-SMART-04 combined-date pattern.
+
+2. **PAN / accreditation masks** (`hciPan` / `hcpPan`) — fixed-prefix `HCI-NN-NNNNNN` / `HCP-NN-NNNNNN` formats reusable for any form referencing PhilHealth-accredited entities. Pure offline, mirrors the PIN/PEN style.
+
+3. **Dropdown-value gated `visibleWhen`** — equals match against a specific dropdown value (`'Expired'`, `'Transferred/Referred'`) gates blocks of fields. Pair with a `handleChange` branch that clears the gated keys when the dropdown shifts off the gating value, so re-edits don't leave stale data on the printed PDF.
+
+4. **Direct label-equals normalizer** (vs. `_choice` synthetic) — pick this variant when the source coord map is already keyed on the printed labels. No iteration-list patch needed, just a one-line in-place mutation.
+
+### Migration recipe (port to next form in ~30 min)
+
+1. Schema (`forms.ts`): collapse split times → single `type:'text' mask:'time'`; collapse split dates per L-SMART-04; add `mask:'hciPan'|'hcpPan'|'zip'|'currency'|'time'` per field; convert any "Is X = Y?" dropdown to `type:'checkbox'` *(when label list is exactly Yes/No)*; for tri-or-more dropdowns that gate downstream blocks, keep the dropdown and use `visibleWhen.equals: '<exact-label>'`; add `smartAssistance.eligibility[]`.
+2. Renderer (`page.tsx`): for every gating dropdown/toggle add a `handleChange` branch that clears all dependent keys (both label and split-digit variants) when the gate closes; populate `samplesBySlug[slug]` with personas covering each branch (positive, negative, multi-record).
+3. PDF (`pdf-generator.ts`): if combined-time fields exist, ensure `expandCombinedTimes(values)` runs after `expandCombinedDates(values)`; if a boolean toggle maps to label-keyed coords, add the one-line direct normalizer near the top of `generatePDF`; if a coord map uses prefixes that don't match the combined-field id, rename coord keys (cheaper than renaming schema ids that also appear in the renderer).
+4. QA: copy `scripts/gen-cf2-personas.ts` → adapt persona literals → `pdftoppm -r 150` + `convert -crop 1275x500+0+<y>` for 4 zoom bands per page → inspect each band; focus on combined-date splits, time AM/PM ticks, gating-dropdown ticks, PAN auto-format, currency commas.
+
+### CF-2 specifics
+
+- **Disposition gates two blocks:** `Expired` reveals `expired_date` + `expired_time`; `Transferred/Referred` reveals 5 `transferred_hci_*` + `reason_for_referral`. The other 4 dispositions (Recovered/Improved/HAMA/Absconded) reveal neither.
+- **HCP cascade:** `hcp2_*` block (date_signed, copay) only revealed when `hcp2_accreditation_no notEmpty`; same for `hcp3_*`. Lets a 1-HCP claim hide the unused 2nd/3rd HCP boxes from the wizard while still allowing all 3 in the PDF.
+- **Filing window:** 60 days from discharge (PhilHealth Circular 2018-0006). Eligibility surfaces a hint when `today - date_discharged > 60`.
+- **Zero-balance encoding:** `drug_purchase_none: 'Yes — None'` + `drug_purchase_total_amount: '0'` cleanly fills both the "None" tick and the amount line.
+
+### QA artifacts
+
+- Generator: `scripts/gen-cf2-personas.ts` (4 personas — A appendectomy direct / B referred CAP / C ESRD transferred 3-HCPs / D paediatric transferred zero-balance).
+- Output: `.qa-output/cf-2/sample-{A,B,C,D}.pdf` rasterized at 150 dpi, page-1 + page-2 each cropped into 4 zoom bands (`1275×500+0+y`, y∈{0,488,976,1464}).
+- Result: combined dates auto-split into per-digit boxes ✓, combined times split into hour/min boxes + AM/PM tick ✓, `referred_by_hci` boolean → NO tick (Sample A) / YES tick (B,C) ✓, `patient_disposition` ticks (Recovered / Improved / Transferred×2) ✓, accommodation ticks ✓, HCI/HCP PAN auto-format `HCI-NN-NNNNNN` / `HCP-NN-NNNNNN` ✓, currency masks render with commas ✓, Sample C's 3 HCPs all populated ✓, Sample D's "Yes — None" rows tick correctly ✓. **No font-size override required** — every value fits inside its coord box at the schema-default size.
+
+---
+
+## L-SMART-PMRF-FN-01 — PMRF-FN Smart Assistance + 3 cascade-ready primitives (2026-04-28)
+
+PhilHealth PMRF for Foreign Nationals — single-page A4 (595×842 pt). Schema lifted from 4 to **smart-assist parity** with CSF-2018 / CF-1 / CF-2, and ships **3 new cascade primitives** consumable by every future form.
+
+### New primitives (cascade-ready)
+
+| # | Primitive | Where | Cascade |
+|---|---|---|---|
+| 1 | **`mask:'phPhone'`** — combined PH mobile/landline auto-format. Detects `09/9/63` → `+63 9XX XXX XXXX` (mobile, 10 digits after CC) and any 10-digit `0NN` → `(NN) NNNN-NNNN` (landline). | `src/lib/smart-assistance.ts::maskPhPhone` (registered in both `FieldMask` unions — `forms.ts` + `smart-assistance.ts`). | Any field where the user might paste either mobile-or-landline (e.g., CSF `employer_contact_no`, BIR `taxpayer_contact`, Pag-IBIG `landline_or_mobile`). |
+| 2 | **`is_mononymous` boolean toggle** — checkbox that clears + locks `first_name` / `middle_name` (visibleWhen + clear-on-toggle). | `forms.ts → philhealthPmrfForeignNatl` (checkbox + visibleWhen `equals: ''`); `page.tsx::handleChange` clears the two fields when ticked. | Any form with single-token names (BIR-1902 resident aliens, Pag-IBIG dependents from cultures with mononymous traditions — Indonesian, Burmese, Javanese). |
+| 3 | **`any-non-empty` eligibility rule** — at-least-one-of-N field validator. New SmartAssistanceConfig variant: `{ rule: 'any-non-empty'; fieldIds: string[] }`. | `forms.ts → SmartAssistanceConfig.eligibility` union; `page.tsx::SmartPanel` evaluates **outside** the single-field "raw" gate (multi-field). | Any form accepting alternative IDs: BIR govID variants, Pag-IBIG MID/UMID/SSS, "ACR or PRA" docs. |
+| 4 | **`phone-ph` eligibility rule** — companion validator for `phPhone` mask. Tolerates 10/11-digit PH phones (mobile if starts with 9). | `page.tsx::SmartPanel` raw-gated. | Pairs 1:1 with primitive #1. |
+| 5 | **`optionsSource:'nationalities'`** — offline 195-country nationality-adjective autocomplete (Afghan→Zimbabwean). | `src/data/autocomplete-sources/nationalities.ts` + registered in `AUTOCOMPLETE_SOURCES`. | Any form that asks for a nationality (PMRF parent, BIR-1902 foreign nationals, Pag-IBIG dependents). |
+
+### Schema diffs
+
+| Layer | File | Change |
+|---|---|---|
+| Schema | `src/data/forms.ts → philhealthPmrfForeignNatl` | `dob_month/_day/_year` → single `dob` (`type:'date'` + `mask:'date'`); `signature_date` already `'date'` — stays. Added `is_mononymous` checkbox (step 1, top of step). Added `documentation_type` dropdown (`['ACR I-Card', 'PRA SRRV', 'Both']` + `optionHints`). `acr_icard_number` / `pra_srrv_number` gated by `visibleWhen.equalsOneOf`. `philhealth_number:mask:'pin'`; `contact_phone:mask:'phPhone'`. `nationality` + `dep{1..6}_nationality` → `type:'autocomplete'` + `optionsSource:'nationalities'`. **Dependents expanded 3 → 6** (PDF has 6 rows). Each `dep{i}_dob` → single combined-date. `optionHints` on `civil_status`. `smartAssistance.eligibility[]`: docs (any-non-empty), age-min 18, pin (digits-eq 12), phone-ph, email, dob (date-not-before never; just sanity via age). `first_name` / `middle_name` get `visibleWhen.equals: ''` against `is_mononymous` to render-hide when ticked. |
+| Renderer | `src/app/forms/[slug]/page.tsx` | `SmartPanel` learns 2 new rule kinds: `'any-non-empty'` (multi-field, evaluated **before** the single-field `raw` gate) and `'phone-ph'` (raw-gated, mobile vs landline branch). `handleChange` adds 2 branches: `is_mononymous` ticked → clear `first_name` + `middle_name`; `documentation_type` change → clear whichever of `acr_icard_number` / `pra_srrv_number` is no longer visible. |
+| Mask lib | `src/lib/smart-assistance.ts` | New `maskPhPhone` + `'phPhone'` registered in `applyMask`. **Both** `FieldMask` unions kept in sync (forms.ts duplicate). |
+| Autocomplete | `src/data/autocomplete-sources/nationalities.ts` (new) | 195 entries + registered as `'nationalities'` source. |
+| PDF generator | `src/lib/pdf-generator.ts` | A4 PMRF-FN page already calibrated; **expanded `PMRF_FN_FIELD_COORDS` from dep1..3 → dep1..6** (Δy=21pt per row, top: 555.9 / 576.9 / 597.9 / 618.9 / 639.9 / 660.9). `expandCombinedDates()` already splits any `*_dob` masked-date key — no extra wiring. |
+| Personas | `scripts/gen-pmrf-fn-personas.ts` (new) | 4 personas: A — American spouse (ACR I-Card, 2 deps), B — Japanese SRRV retiree (PRA, no deps), C — FULL — Indonesian mononymous student (Both ACR+PRA, all 6 deps, both DOB+sig dates), D — landline-only contact edge case. |
+
+### A4 page-height handling
+
+PMRF-FN is the **first A4 form** in QuickFormsPH (`PMRF_FN_PAGE_H = 841.9`). All other PhilHealth forms are Legal-size (936). The pdf-lib coordinate system is bottom-up, so each row's `y = PMRF_FN_PAGE_H - pdfplumber_top - 2`. **Cascade rule:** every new form must declare its own `<FORM>_PAGE_H` constant (don't hardcode `936` or `842`).
+
+### QA artifacts
+
+- Generator: `scripts/gen-pmrf-fn-personas.ts` — 4 personas. PDFs at `.qa-output/pmrf-fn/sample-{A,B,C,D}.pdf`.
+- pdftoppm @ 150 dpi → `sample-X-1.png`.
+- Mai sign-off: **PASS** — all rows aligned (PhilHealth #, ACR, PRA, name triples, sex tick, nationality, DOB month/day/year split, civil status, address ×2, phone, email, 6 dep rows complete with combined-DOB → `mm/dd/yyyy` rendered, signature row). No font-size override needed at the default sizes.
+
+### Cumulative cascade matrix (after L-SMART-PMRF-FN-01)
+
+| Pattern | Source | Now used by |
+|---|---|---|
+| Combined date (`mask:'date'` + `expandCombinedDates`) | L-SMART-04 | PMRF, CF-1, CF-2, CSF-2018, **PMRF-FN (×8: member DOB + 6 dep DOBs + sig date)** |
+| `mask:'pin'` / `'pen'` | L-SMART-CSF-01 | PMRF, CF-1, CF-2, CSF, **PMRF-FN** |
+| `mask:'phPhone'` (NEW) | **L-SMART-PMRF-FN-01** | **PMRF-FN** (queue: CSF employer_contact, BIR-1902, Pag-IBIG) |
+| `optionsSource:'nationalities'` (NEW) | **L-SMART-PMRF-FN-01** | **PMRF-FN** ×7 (queue: PMRF parent, BIR-1902) |
+| `is_mononymous` toggle (NEW) | **L-SMART-PMRF-FN-01** | **PMRF-FN** (queue: BIR-1902 foreign nationals) |
+| `any-non-empty` eligibility (NEW) | **L-SMART-PMRF-FN-01** | **PMRF-FN** (queue: BIR govID alternatives, Pag-IBIG MID/UMID/SSS) |
+| Dropdown-value gated `visibleWhen.equalsOneOf` | L-SMART-CF2-01 | CF-2, **PMRF-FN** (`documentation_type`) |
+| `optionHints` | L-SMART-CSF-01 | All 5 |
+| `autoUppercase` | (foundational) | All 5 |

@@ -28,6 +28,7 @@ type Mode = 'choice' | 'pay' | 'key';
 interface Props {
   formName: string;
   formCode: string;
+  formSlug: string;
   agency: string;
   /** Called when the user selects an access method. isDemo=true when Demo is chosen. */
   onAccessGranted?: (isDemo: boolean) => void;
@@ -45,6 +46,7 @@ interface Props {
 export default function PaymentGate({
   formName,
   formCode,
+  formSlug,
   agency,
   onAccessGranted,
   onClose,
@@ -96,7 +98,7 @@ export default function PaymentGate({
                 formCode={formCode}
                 agency={agency}
                 existingToken={existingToken}
-                onDemo={() => { trackEvent('demo_click', formCode); onAccessGranted?.(true); triggerExit(() => setDemoMode(true)); }}
+                onDemo={() => { trackEvent('demo_click', formSlug); onAccessGranted?.(true); triggerExit(() => setDemoMode(true)); }}
                 onPay={() => setMode('pay')}
                 onKey={() => setMode('key')}
                 onClose={onClose}

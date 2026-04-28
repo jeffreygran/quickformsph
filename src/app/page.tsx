@@ -88,6 +88,10 @@ export default function HomePage() {
   const [showFooter, setShowFooter]               = useState(false);
   const [badgeTypedText, setBadgeTypedText]       = useState('');
   const [introStarted, setIntroStarted]           = useState(false);
+  // "QuickFormsPH" placeholder shown during the first 3 visits while the
+  // animated hero ("Fill [Category] Forms in Minutes") is still hidden.
+  // Auto-disappears once the real hero starts revealing.
+  const [showQfphPlaceholder, setShowQfphPlaceholder] = useState(false);
   const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -157,6 +161,9 @@ export default function HomePage() {
       setShowFooter(true);
       setShowBadge(true);
       setBadgeTypedText(BADGE_TYPING_TEXT);
+    } else if (visitCount <= 3) {
+      // Visits 1–3: show the "QuickFormsPH" placeholder until the real hero reveals.
+      setShowQfphPlaceholder(true);
     }
 
     try {
@@ -481,20 +488,31 @@ export default function HomePage() {
             </div>
           </div>
 
-          <h1
-            className={`intro-shock text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight ${showHeroTitle ? '' : 'invisible'}`}
-          >
-            Fill{' '}
-            <span
-              key={heroCategoryIdx}
-              className={`inline-block ${heroVisible ? heroAnim : 'opacity-0'}`}
-              style={{ animationDuration: '0.45s', animationFillMode: 'both' }}
+          <div className="relative">
+            {/* QuickFormsPH placeholder — visible during the first 3 visits while the real hero is still hidden */}
+            {showQfphPlaceholder && !showHeroTitle && (
+              <h1
+                aria-hidden="true"
+                className="absolute inset-0 flex items-center justify-center text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight pointer-events-none select-none"
+              >
+                QuickFormsPH
+              </h1>
+            )}
+            <h1
+              className={`intro-shock text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight ${showHeroTitle ? '' : 'invisible'}`}
             >
-              {HERO_CATEGORIES[heroCategoryIdx]}
-            </span>{' '}Forms
-            <br />
-            <span className="text-blue-200">in Minutes</span>
-          </h1>
+              Fill{' '}
+              <span
+                key={heroCategoryIdx}
+                className={`inline-block ${heroVisible ? heroAnim : 'opacity-0'}`}
+                style={{ animationDuration: '0.45s', animationFillMode: 'both' }}
+              >
+                {HERO_CATEGORIES[heroCategoryIdx]}
+              </span>{' '}Forms
+              <br />
+              <span className="text-blue-200">in Minutes</span>
+            </h1>
+          </div>
 
           {/* Subtitle slot — always reserves space; chunks fade in at 5–9s */}
           <p className="mt-3 text-sm text-blue-200 max-w-md mx-auto leading-relaxed min-h-[1.25rem]">

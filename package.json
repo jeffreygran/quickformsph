@@ -1,6 +1,6 @@
 {
   "name": "quickformsph-dev",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,7 +14,7 @@
     "audit:uppercase": "npx tsx scripts/audit-uppercase-leaks.ts",
     "docs:dictionaries": "npx tsx scripts/generate-field-dictionaries.ts",
     "docs:validate": "npx tsx scripts/generate-field-dictionaries.ts --strict",
-    "test": "npm run test:coverage && npm run test:samples && npm run test:smoke",
+    "test": "npm run test:coverage && npm run test:samples && npm run audit:uppercase && npm run test:smoke",
     "prepare": "husky"
   },
   "dependencies": {

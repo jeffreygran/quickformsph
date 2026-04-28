@@ -6,6 +6,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getFormBySlug, FormField, FormSchema } from '@/data/forms';
 import { AUTOCOMPLETE_SOURCES, AutocompleteSource } from '@/data/autocomplete-sources';
+import {
+  applyMask,
+  parseMaskedDate,
+  ageFrom,
+  monthsBetween,
+  amortize,
+  fmtPHP,
+} from '@/lib/smart-assistance';
 import LocalModeOverlay, { LocalModeBanner } from '@/components/LocalModeOverlay';
 import PaymentGate from '@/components/PaymentGate';
 import { fetchFormTemplateBytes } from '@/lib/local-mode';
@@ -45,6 +53,37 @@ function clearDraft(slug: string) {
   try { localStorage.removeItem(draftKey(slug)); } catch {}
 }
 
+// ─── Smart-Assistance helpers (generic, schema-driven) ───────────────────────
+// `visibleWhen` predicate evaluator — see FormField.visibleWhen in forms.ts.
+function isFieldVisible(field: FormField, values: FormValues): boolean {
+  const v = field.visibleWhen;
+  if (!v) return true;
+  const target = (values[v.field] ?? '').trim();
+  if ('equals' in v) return target === v.equals;
+  if ('equalsOneOf' in v) return v.equalsOneOf.includes(target);
+  if ('notEmpty' in v) return target.length > 0;
+  return true;
+}
+
+// Apply schema-driven mirror toggles. When a checkbox field whose id equals
+// any other field's `mirrorGroup` flips, copy the source value into each
+// matching target. Returns a partial patch, callers merge into state.
+function applyMirrorToggle(
+  form: FormSchema | undefined,
+  toggleId: string,
+  toggleValue: string,
+  prev: FormValues,
+): FormValues {
+  if (!form) return {};
+  const checked = toggleValue === 'true' || toggleValue === '1';
+  if (!checked) return {};
+  const patch: FormValues = {};
+  for (const f of form.fields) {
+    if (f.mirrorGroup !== toggleId || !f.mirrorFrom) continue;
+    patch[f.id] = prev[f.mirrorFrom] ?? '';
+  }
+  return patch;
+}
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function FormWizardPage() {
   const params = useParams();
@@ -79,8 +118,25 @@ export default function FormWizardPage() {
   // Always start fresh — never skip the overlay on re-entry.
 
   // Returns to the PaymentGate "How would you like to access?" screen (used in Demo mode)
+  // MUST behave like a hard reset so re-entering Demo / Donate lands on a blank form,
+  // not a still-populated preview. See L-CLEAR-02 in QuickFormsPH-PDFGenerationLearnings.md.
   const handleReturnToGate = () => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
     if (form?.slug) clearDraft(form.slug);
+    if (previewImageUrl && previewImageUrl.startsWith('blob:')) {
+      try { URL.revokeObjectURL(previewImageUrl); } catch { /* ignore */ }
+    }
+    setValues({});
+    setPreviewImageUrl('');
+    setShowPaymentModal(false);
+    setShowSuccessModal(false);
+    setPendingDraft(null);
+    setDraftModalOpen(false);
+    setMode('form');
+    setCurrentStep(0 as StepIndex);
     setIsDemoMode(false);
     setLocalModeActive(false);
     setGateKey((k) => k + 1);
@@ -132,11 +188,100 @@ export default function FormWizardPage() {
           mail_zip:         prev.perm_zip         ?? '',
         };
       }
+      // Schema-driven generic mirror toggle (FormField.mirrorGroup / mirrorFrom).
+      // L-SMART-CSF-01 cascadable for any "Same as / Patient is Self" pattern.
+      const mirrorPatch = applyMirrorToggle(form, id, value, prev);
+      if (Object.keys(mirrorPatch).length) next = { ...next, ...mirrorPatch };
+      // CSF-2018 special: "Patient is Self" also pins relationship + clears
+      // dependent_pin (since member's own PIN isn't a "dependent" PIN).
+      if (id === 'patient_is_self' && value === 'true') {
+        next = { ...next, relationship_to_member: 'Self', dependent_pin: '' };
+      }
+      // CSF-2018 special: turning off "Has employer" clears the entire block
+      // so review/PDF shows nothing for those keys.
+      if (id === 'has_employer' && value !== 'true') {
+        next = {
+          ...next,
+          employer_pen: '', employer_contact_no: '', business_name: '',
+          employer_date_signed: '',
+          employer_date_signed_month: '', employer_date_signed_day: '', employer_date_signed_year: '',
+          // CF-1 employer keys (different ids than CSF):
+          employer_contact: '', employer_business_name: '',
+        };
+      }
+      // CF-1 special: ticking "Patient is the same as the PhilHealth Member"
+      // skips the entire Dependent Info step. The dependent block on the
+      // printed form is intentionally left BLANK (PhilHealth processes
+      // member-as-patient that way) so we wipe every patient_* key.
+      if (id === 'patient_is_member' && value === 'true') {
+        next = {
+          ...next,
+          patient_pin: '', patient_relationship: '',
+          patient_last_name: '', patient_first_name: '',
+          patient_name_ext: '', patient_middle_name: '',
+          patient_dob: '',
+          patient_dob_month: '', patient_dob_day: '', patient_dob_year: '',
+          patient_sex: '',
+        };
+      }
+      // CF-1 special: untocking the toggle re-reveals Step 4 with empty fields
+      // (no stale member data). The user is then expected to type the actual
+      // dependent info.
+      if (id === 'patient_is_member' && value !== 'true') {
+        next = {
+          ...next,
+          patient_last_name: '', patient_first_name: '',
+          patient_name_ext: '', patient_middle_name: '',
+          patient_dob: '',
+          patient_dob_month: '', patient_dob_day: '', patient_dob_year: '',
+          patient_sex: '',
+        };
+      }
+      // CF-2 special (L-SMART-CF2-01): unticking "referred by another HCI"
+      // wipes the entire referring-HCI block so review/PDF show nothing.
+      if (id === 'referred_by_hci' && value !== 'true') {
+        next = {
+          ...next,
+          referring_hci_name: '', referring_hci_bldg_street: '',
+          referring_hci_city: '', referring_hci_province: '', referring_hci_zip: '',
+        };
+      }
+      // CF-2 special: changing patient_disposition wipes whichever
+      // sub-block is now hidden so stale data never reaches the PDF.
+      if (id === 'patient_disposition') {
+        if (value !== 'Expired') {
+          next = { ...next,
+            expired_date: '', expired_time: '',
+            expired_date_month: '', expired_date_day: '', expired_date_year: '',
+            expired_time_hour: '', expired_time_min: '', expired_time_ampm: '',
+          };
+        }
+        if (value !== 'Transferred/Referred') {
+          next = { ...next,
+            transferred_hci_name: '', transferred_hci_bldg_street: '',
+            transferred_hci_city: '', transferred_hci_province: '', transferred_hci_zip: '',
+            reason_for_referral: '',
+          };
+        }
+      }
+      // PMRF-FN special (L-SMART-PMRF-FN-01): mononymous toggle clears
+      // first/middle name when ticked so the PDF prints only Last Name.
+      if (id === 'is_mononymous' && value === 'true') {
+        next = { ...next, first_name: '', middle_name: '' };
+      }
+      // PMRF-FN special: documentation_type dropdown gates ACR vs PRA fields.
+      // Clear whichever block is now hidden to avoid stale values printing.
+      if (id === 'documentation_type') {
+        const wantsAcr = value === 'ACR I-Card' || value === 'Both';
+        const wantsPra = value === 'PRA SRRV'   || value === 'Both';
+        if (!wantsAcr) next = { ...next, acr_icard_number: '' };
+        if (!wantsPra) next = { ...next, pra_srrv_number: '' };
+      }
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => saveDraft(slug, next), 600);
       return next;
     });
-  }, [slug]);
+  }, [slug, form]);
 
   // ── Step completion check ────────────────────────────────────────────────
   function stepFilledCount(stepIdx: number) {
@@ -164,50 +309,50 @@ export default function FormWizardPage() {
       {
         mp2_account_no: '01-2345-6789-0', last_name: 'DELA CRUZ', first_name: 'JUAN',
         middle_name: 'SANTOS', name_ext: 'Jr.', mid_no: '1234-5678-9012',
-        street: 'Unit 4B, 123 Rizal Street', barangay: 'Brgy. San Jose',
-        city: 'Quezon City', province: 'Metro Manila (NCR)', zip: '1100',
+        street: 'UNIT 4B, 123 RIZAL STREET', barangay: 'BRGY. SAN JOSE',
+        city: 'QUEZON CITY', province: 'Metro Manila (NCR)', zip: '1100',
         cellphone: '09171234567', email: 'juan.delacruz@gmail.com',
         home_tel: '028123-4567', biz_tel: '028765-4321',
         bank_name: 'BDO Unibank', bank_account_no: '001234567890',
-        bank_branch: 'Quezon Ave. Branch', bank_address: '123 Quezon Ave., Quezon City',
+        bank_branch: 'QUEZON AVE. BRANCH', bank_address: '123 QUEZON AVE., QUEZON CITY',
         date: todayMaskedDate(),
       },
       {
         mp2_account_no: '02-9876-5432-1', last_name: 'REYES', first_name: 'MARIA',
         middle_name: 'GARCIA', name_ext: 'N/A', mid_no: '9876-5432-1098',
-        street: 'Blk 5 Lot 12, Maharlika Village', barangay: 'Brgy. Bagumbayan',
-        city: 'Taguig', province: 'Metro Manila (NCR)', zip: '1630',
+        street: 'BLK 5 LOT 12, MAHARLIKA VILLAGE', barangay: 'BRGY. BAGUMBAYAN',
+        city: 'TAGUIG', province: 'Metro Manila (NCR)', zip: '1630',
         cellphone: '09281234567', email: 'maria.reyes@yahoo.com',
         home_tel: '', biz_tel: '',
         bank_name: 'Bank of the Philippine Islands (BPI)', bank_account_no: '9876543210',
-        bank_branch: 'Bonifacio Global City Branch', bank_address: '32nd St., BGC, Taguig',
+        bank_branch: 'BONIFACIO GLOBAL CITY BRANCH', bank_address: '32ND ST., BGC, TAGUIG',
         date: todayMaskedDate(),
       },
     ];
     const pmrfSamples = [
       {
         // ── Step 1: Personal Info ──
-        pin: '12-345-678-9012',
+        pin: '12-345678901-2',
         purpose: 'Registration',
         konsulta_provider: '01-234-567-8901',
         last_name: 'DELA CRUZ', first_name: 'JUAN ANDRES', middle_name: 'REYES', name_ext: 'Jr.',
-        dob_month: '03', dob_day: '15', dob_year: '1990',
-        place_of_birth: 'Quezon City, Metro Manila',
+        dob: '03 / 15 / 1990',
+        place_of_birth: 'QUEZON CITY, METRO MANILA',
         sex: 'Male', civil_status: 'Single', citizenship: 'Filipino',
-        philsys_id: '1234-5678901-2', tin: '123-456-789-000',
+        philsys_id: '1234-5678-9012', tin: '123-456-789-000',
         // ── Step 2: Family Names ──
         mother_last_name: 'REYES', mother_first_name: 'MARIA', mother_middle_name: 'SANTOS',
         spouse_last_name: '', spouse_first_name: '', spouse_middle_name: '',
         // ── Step 3: Address & Contact ──
-        perm_unit: 'Unit 4B', perm_building: 'Sunrise Tower', perm_lot: 'Lot 12 Blk 3',
-        perm_street: 'Katipunan Avenue', perm_subdivision: 'Loyola Grand Villas',
-        perm_barangay: 'Brgy. Batasan Hills', perm_city: 'Quezon City',
+        perm_unit: 'Unit 4B', perm_building: 'SUNRISE TOWER', perm_lot: 'LOT 12 BLK 3',
+        perm_street: 'KATIPUNAN AVENUE', perm_subdivision: 'LOYOLA GRAND VILLAS',
+        perm_barangay: 'BRGY. BATASAN HILLS', perm_city: 'QUEZON CITY',
         perm_province: 'Metro Manila (NCR)', perm_zip: '1126',
         mail_same_as_above: '',
-        mail_unit: 'Room 2', mail_building: 'MNL Suites', mail_lot: 'Lot 3',
-        mail_street: 'Taft Avenue', mail_subdivision: 'Ermita Heights',
-        mail_barangay: 'Brgy. Ermita', mail_city: 'Manila',
-        mail_province: 'Metro Manila (NCR)', mail_zip: '1000',
+        mail_unit: 'Room 2', mail_building: 'MNL SUITES', mail_lot: 'LOT 3',
+        mail_street: 'TAFT AVENUE', mail_subdivision: 'ERMITA HEIGHTS',
+        mail_barangay: 'BRGY. ERMITA', mail_city: 'MANILA',
+        mail_province: 'METRO MANILA (NCR)', mail_zip: '1000',
         mobile: '09171234567', home_phone: '028123-4567', email: 'juan.delacruz@gmail.com',
         // ── Step 4: Dependents ──
         dep1_last_name: 'REYES', dep1_first_name: 'CARLOS', dep1_name_ext: '',
@@ -229,18 +374,18 @@ export default function FormWizardPage() {
         // ── Step 5: Member Type ──
         member_type: 'Employed Private', indirect_contributor: '',
         profession: 'Civil Engineer', monthly_income: '55000',
-        proof_of_income: 'Certificate of Employment',
+        proof_of_income: 'Certificate of Employment (COE)',
       },
       {
         // ── Step 1: Personal Info ──
-        pin: '09-876-543-2109',
+        pin: '09-876543210-9',
         purpose: 'Updating/Amendment',
         konsulta_provider: '09-876-543-0001',
         last_name: 'SANTOS', first_name: 'ANNA MARIE', middle_name: 'GARCIA', name_ext: '',
-        dob_month: '07', dob_day: '22', dob_year: '1985',
-        place_of_birth: 'Cebu City, Cebu',
+        dob: '07 / 22 / 1985',
+        place_of_birth: 'CEBU CITY, CEBU',
         sex: 'Female', civil_status: 'Married', citizenship: 'Filipino',
-        philsys_id: '9876-5432109-8', tin: '987-654-321-000',
+        philsys_id: '9876-5432-1098', tin: '987-654-321-000',
         // ── Step 2: Family Names ──
         mother_last_name: 'GARCIA', mother_first_name: 'LUCIA', mother_middle_name: 'VIDAL',
         spouse_last_name: 'SANTOS', spouse_first_name: 'PEDRO', spouse_middle_name: 'LIM',
@@ -248,15 +393,15 @@ export default function FormWizardPage() {
         // Sample B uses mail_same_as_above='true'. Because autoPopulate sets values
         // directly (bypassing the handleChange auto-copy), we mirror perm_* into
         // mail_* explicitly so every Step 3 field shows a value in the UI.
-        perm_unit: 'Unit 3A', perm_building: 'Greenfield Residences', perm_lot: 'Blk 5 Lot 7',
-        perm_street: 'Mabini Street', perm_subdivision: 'Greenfield Village',
-        perm_barangay: 'Brgy. Poblacion', perm_city: 'Makati City',
+        perm_unit: 'Unit 3A', perm_building: 'GREENFIELD RESIDENCES', perm_lot: 'BLK 5 LOT 7',
+        perm_street: 'MABINI STREET', perm_subdivision: 'GREENFIELD VILLAGE',
+        perm_barangay: 'BRGY. POBLACION', perm_city: 'MAKATI CITY',
         perm_province: 'Metro Manila (NCR)', perm_zip: '1210',
         mail_same_as_above: 'true',
-        mail_unit: 'Unit 3A', mail_building: 'Greenfield Residences', mail_lot: 'Blk 5 Lot 7',
-        mail_street: 'Mabini Street', mail_subdivision: 'Greenfield Village',
-        mail_barangay: 'Brgy. Poblacion', mail_city: 'Makati City',
-        mail_province: 'Metro Manila (NCR)', mail_zip: '1210',
+        mail_unit: 'Unit 3A', mail_building: 'GREENFIELD RESIDENCES', mail_lot: 'BLK 5 LOT 7',
+        mail_street: 'MABINI STREET', mail_subdivision: 'GREENFIELD VILLAGE',
+        mail_barangay: 'BRGY. POBLACION', mail_city: 'MAKATI CITY',
+        mail_province: 'METRO MANILA (NCR)', mail_zip: '1210',
         mobile: '09281234567', home_phone: '028765-4321', email: 'anna.santos@gmail.com',
         // ── Step 4: Dependents ──
         dep1_last_name: 'SANTOS', dep1_first_name: 'PEDRO', dep1_name_ext: '',
@@ -284,259 +429,370 @@ export default function FormWizardPage() {
 
     const cf1Samples = [
       {
-        // ── Sample 1: Member is the patient (employed, with employer cert) ──
-        // Step 1: Member Info
-        member_pin: '123456789012',
+        // ── Sample A: Member is the patient (employed, with employer cert) ──
+        // patient_is_member='true' → dependent block stays blank on the printed
+        // CF-1 (PhilHealth processes member-as-patient that way).
+        member_pin: '12-345678901-2',
         member_last_name: 'DELA CRUZ', member_first_name: 'JUAN ANDRES',
         member_name_ext: 'Jr.', member_middle_name: 'SANTOS',
-        member_dob_month: '03', member_dob_day: '15', member_dob_year: '1990',
+        member_dob: '03 / 15 / 1990',
         member_sex: 'Male',
-        // Step 2: Mailing Address
-        addr_unit: 'Unit 4B', addr_building: 'Sunrise Tower', addr_lot: 'Lot 12 Blk 3',
-        addr_street: 'Katipunan Avenue', addr_subdivision: 'Loyola Grand Villas',
-        addr_barangay: 'Brgy. Batasan Hills', addr_city: 'Quezon City',
+        addr_unit: 'Unit 4B', addr_building: 'SUNRISE TOWER', addr_lot: 'LOT 12 BLK 3',
+        addr_street: 'KATIPUNAN AVENUE', addr_subdivision: 'LOYOLA GRAND VILLAS',
+        addr_barangay: 'BRGY. BATASAN HILLS', addr_city: 'QUEZON CITY',
         addr_province: 'Metro Manila (NCR)', addr_country: 'Philippines', addr_zip: '1126',
-        // Step 3: Contact & Patient Type
-        contact_landline: '(02) 8123-4567', contact_mobile: '09171234567',
+        contact_landline: '(02) 8123-4567', contact_mobile: '0917 123 4567',
         contact_email: 'juan.delacruz@gmail.com',
-        patient_is_member: 'Yes — I am the Patient',
-        // Step 4: Dependent Info — populated with the member's on-file registered
-        // dependent (his son). Even though the current claim's patient IS the member,
-        // the dependent block on the printed form shows the household's first
-        // registered dependent so QA can validate every field's alignment.
-        patient_pin: '345678901234',
-        patient_last_name: 'DELA CRUZ', patient_first_name: 'CARLO MIGUEL',
-        patient_name_ext: 'N/A', patient_middle_name: 'SANTOS',
-        patient_dob_month: '06', patient_dob_day: '12', patient_dob_year: '2018',
-        patient_relationship: 'Child', patient_sex: 'Male',
-        // Step 5: Employer Certification
+        patient_is_member: 'true',
+        // Dependent block intentionally empty.
+        has_employer: 'true',
         employer_pen: '17-123456789-0', employer_contact: '(02) 8888-9999',
         employer_business_name: 'ABC COMPANY INC',
       },
       {
-        // ── Sample 2: Dependent (child) is the patient, self-employed member ──
-        // Step 1: Member Info
-        member_pin: '098765432109',
+        // ── Sample B: Dependent (Child) is the patient, self-employed member ──
+        // patient_is_member='' (toggle off) and has_employer='' (toggle off):
+        // employer block stays empty.
+        member_pin: '09-876543210-9',
         member_last_name: 'SANTOS', member_first_name: 'ANNA MARIE',
         member_name_ext: 'N/A', member_middle_name: 'GARCIA',
-        member_dob_month: '07', member_dob_day: '22', member_dob_year: '1985',
+        member_dob: '07 / 22 / 1985',
         member_sex: 'Female',
-        // Step 2: Mailing Address
-        addr_unit: 'Unit 3A', addr_building: 'Greenfield Residences', addr_lot: 'Blk 5 Lot 7',
-        addr_street: 'Mabini Street', addr_subdivision: 'Greenfield Village',
-        addr_barangay: 'Brgy. Poblacion', addr_city: 'Makati City',
+        addr_unit: 'Unit 3A', addr_building: 'GREENFIELD RESIDENCES', addr_lot: 'BLK 5 LOT 7',
+        addr_street: 'MABINI STREET', addr_subdivision: 'GREENFIELD VILLAGE',
+        addr_barangay: 'BRGY. POBLACION', addr_city: 'MAKATI CITY',
         addr_province: 'Metro Manila (NCR)', addr_country: 'Philippines', addr_zip: '1210',
-        // Step 3: Contact & Patient Type
-        contact_landline: '(02) 8765-4321', contact_mobile: '09281234567',
+        contact_landline: '(02) 8765-4321', contact_mobile: '0928 123 4567',
         contact_email: 'anna.santos@gmail.com',
-        patient_is_member: 'No — Patient is a Dependent',
-        // Step 4: Dependent (child)
-        patient_pin: '112233445566',
+        patient_is_member: '',
+        patient_pin: '11-223344556-6',
         patient_last_name: 'SANTOS', patient_first_name: 'CLAIRE ANNE',
         patient_name_ext: 'N/A', patient_middle_name: 'GARCIA',
-        patient_dob_month: '11', patient_dob_day: '02', patient_dob_year: '2010',
+        patient_dob: '11 / 02 / 2010',
         patient_relationship: 'Child', patient_sex: 'Female',
-        // Step 5: Employer Certification (self-employed \u2014 use her own DTI-registered
-        // single proprietorship details so every field has a value for QA)
-        employer_pen: '17-987654321-0', employer_contact: '(02) 8123-9876',
-        employer_business_name: 'ANNA M. SANTOS DESIGN STUDIO',
+        has_employer: '',
+      },
+      {
+        // ── Sample C: Spouse is the patient, OFW (abroad) — 180-day window ──
+        member_pin: '34-567890123-4',
+        member_last_name: 'REYES', member_first_name: 'CARLO MIGUEL',
+        member_name_ext: 'III', member_middle_name: 'BAUTISTA',
+        member_dob: '05 / 08 / 1978',
+        member_sex: 'Male',
+        addr_unit: 'Unit 2204', addr_building: 'TOWERS RESIDENCE', addr_lot: 'BLK 1 LOT 1',
+        addr_street: 'AYALA AVENUE', addr_subdivision: 'GLOBAL VILLAGE',
+        addr_barangay: 'BRGY. BEL-AIR', addr_city: 'MAKATI CITY',
+        addr_province: 'Metro Manila (NCR)', addr_country: 'Singapore', addr_zip: '1209',
+        contact_landline: '(02) 8911-2233', contact_mobile: '0939 555 7777',
+        contact_email: 'carlo.reyes@ofw.example.com',
+        patient_is_member: '',
+        patient_pin: '55-667788990-0',
+        patient_last_name: 'REYES', patient_first_name: 'MARIA CLARA',
+        patient_name_ext: 'N/A', patient_middle_name: 'CRUZ',
+        patient_dob: '12 / 30 / 1980',
+        patient_relationship: 'Spouse', patient_sex: 'Female',
+        has_employer: 'true',
+        employer_pen: '88-998877665-5', employer_contact: '(02) 8456-7890',
+        employer_business_name: 'GLOBAL OFW STAFFING CORP',
       },
     ];
 
     const samplesBySlug: Record<string, Record<string, string>[]> = {
       'hqp-pff-356': hqpSamples,
       'philhealth-pmrf': pmrfSamples as Record<string, string>[],
-      'philhealth-claim-form-1': cf1Samples,
+      'philhealth-claim-form-1': cf1Samples as Record<string, string>[],
 
       // ── PhilHealth Claim Form 2 ───────────────────────────────────────────
       'philhealth-claim-form-2': [
         {
-          // Sample 1: Standard appendicitis admission
-          hci_pan: '10-1234-5678', hci_name: 'Makati Medical Center',
-          hci_bldg_street: '2 Amorsolo St', hci_city: 'Makati City',
+          // Sample A — Standard appendicitis admission, 1 HCP, no referral.
+          hci_pan: 'HCI-10-123456', hci_name: 'MAKATI MEDICAL CENTER',
+          hci_bldg_street: '2 AMORSOLO ST', hci_city: 'MAKATI CITY',
           hci_province: 'Metro Manila (NCR)',
-          patient_last_name: 'DELA CRUZ', patient_first_name: 'JUAN', patient_name_ext: 'N/A', patient_middle_name: 'SANTOS',
-          referred_by_hci: 'NO',
-          referring_hci_name: '', referring_hci_bldg_street: '', referring_hci_city: '', referring_hci_province: '', referring_hci_zip: '',
-          date_admitted_month: '04', date_admitted_day: '10', date_admitted_year: '2026',
-          time_admitted_hour: '08', time_admitted_min: '30', time_admitted_ampm: 'AM',
-          date_discharged_month: '04', date_discharged_day: '15', date_discharged_year: '2026',
-          time_discharged_hour: '02', time_discharged_min: '00', time_discharged_ampm: 'PM',
+          patient_last_name: 'DELA CRUZ', patient_first_name: 'JUAN',
+          patient_name_ext: 'N/A', patient_middle_name: 'SANTOS',
+          referred_by_hci: '',
+          date_admitted:    '04 / 10 / 2026', time_admitted:    '08 : 30 AM',
+          date_discharged:  '04 / 15 / 2026', time_discharged:  '02 : 00 PM',
           patient_disposition: 'Recovered',
-          expired_month: '', expired_day: '', expired_year: '', expired_hour: '', expired_min: '', expired_ampm: '',
-          transferred_hci_name: '', transferred_hci_bldg_street: '', transferred_hci_city: '', transferred_hci_province: '', transferred_hci_zip: '',
-          reason_for_referral: '',
           accommodation_type: 'Non-Private (Charity/Service)',
-          admission_diagnosis_1: 'Acute Appendicitis', admission_diagnosis_2: 'GENERALIZED ABDOMINAL PAIN',
-          discharge_diagnosis_1: 'Appendicitis', discharge_icd10_1: 'K37', discharge_procedure_1: 'Appendectomy', discharge_rvs_1: '10060', discharge_procedure_date_1: '04/11/2026', discharge_laterality_1: 'N/A',
-          discharge_diagnosis_2: '', discharge_icd10_2: '', discharge_procedure_2: '', discharge_rvs_2: '', discharge_procedure_date_2: '', discharge_laterality_2: 'N/A',
-          discharge_diagnosis_3: '', discharge_icd10_3: '', discharge_procedure_3: '', discharge_rvs_3: '', discharge_procedure_date_3: '', discharge_laterality_3: 'N/A',
-          discharge_diagnosis_4: '', discharge_icd10_4: '', discharge_procedure_4: '', discharge_rvs_4: '', discharge_procedure_date_4: '', discharge_laterality_4: 'N/A',
-          discharge_diagnosis_5: '', discharge_icd10_5: '', discharge_procedure_5: '', discharge_rvs_5: '', discharge_procedure_date_5: '', discharge_laterality_5: 'N/A',
-          discharge_diagnosis_6: '', discharge_icd10_6: '', discharge_procedure_6: '', discharge_rvs_6: '', discharge_procedure_date_6: '', discharge_laterality_6: 'N/A',
-          // Special Considerations — none applied for simple appendicitis; set all 8 dropdowns to 'No' so no field is left empty.
-          special_hemodialysis: 'No', special_peritoneal_dialysis: 'No', special_radiotherapy_linac: 'No', special_radiotherapy_cobalt: 'No', special_blood_transfusion: 'No', special_brachytherapy: 'No', special_chemotherapy: 'No', special_simple_debridement: 'No',
-          zbenefit_package_code: '', mcp_dates: '', tbdots_intensive_phase: '', tbdots_maintenance_phase: '',
-          animal_bite_arv_day1: '', animal_bite_arv_day2: '', animal_bite_arv_day3: '', animal_bite_rig: '', animal_bite_others: '',
-          newborn_essential_care: '', newborn_hearing_screening: '', newborn_screening_test: '', hiv_lab_number: '',
-          philhealth_benefit_first_case_rate: 'Appendectomy', philhealth_benefit_second_case_rate: '', philhealth_benefit_icd_rvs_code: 'K37 / 10060',
-          hcp1_accreditation_no: 'DR-2025-01234 — DR. RICARDO GOMEZ', hcp1_date_signed_month: '04', hcp1_date_signed_day: '15', hcp1_date_signed_year: '2026', hcp1_copay: 'No co-pay on top of PhilHealth Benefit',
-          hcp2_accreditation_no: '', hcp2_date_signed_month: '', hcp2_date_signed_day: '', hcp2_date_signed_year: '', hcp2_copay: '',
-          hcp3_accreditation_no: '', hcp3_date_signed_month: '', hcp3_date_signed_day: '', hcp3_date_signed_year: '', hcp3_copay: '',
-          total_hci_fees: '35000', total_professional_fees: '8000', grand_total: '43000',
-          total_actual_charges: '43000', discount_amount: '0', philhealth_benefit_amount: '18000', amount_after_philhealth: '25000',
-          hci_amount_paid_by: '25000', hci_paid_member_patient: 'Yes', hci_paid_hmo: 'No', hci_paid_others: 'No',
-          pf_amount_paid_by: '8000', pf_paid_member_patient: 'Yes', pf_paid_hmo: 'No', pf_paid_others: 'No',
-          drug_purchase_none: '', drug_purchase_total_amount: '2500',
-          diagnostic_purchase_none: '', diagnostic_purchase_total_amount: '3500',
+          admission_diagnosis_1: 'ACUTE APPENDICITIS',
+          admission_diagnosis_2: 'GENERALIZED ABDOMINAL PAIN',
+          discharge_diagnosis_1: 'APPENDICITIS', discharge_icd10_1: 'K37',
+          discharge_procedure_1: 'APPENDECTOMY', discharge_rvs_1: '10060',
+          discharge_procedure_date_1: '04 / 11 / 2026', discharge_laterality_1: 'N/A',
+          discharge_laterality_2: 'N/A', discharge_laterality_3: 'N/A',
+          discharge_laterality_4: 'N/A', discharge_laterality_5: 'N/A', discharge_laterality_6: 'N/A',
+          special_hemodialysis: 'No', special_peritoneal_dialysis: 'No',
+          special_radiotherapy_linac: 'No', special_radiotherapy_cobalt: 'No',
+          special_blood_transfusion: 'No', special_brachytherapy: 'No',
+          special_chemotherapy: 'No', special_simple_debridement: 'No',
+          philhealth_benefit_first_case_rate: '24,000',
+          philhealth_benefit_icd_rvs_code: 'K37 / 10060',
+          hcp1_accreditation_no: 'HCP-20-012345',
+          hcp1_date_signed: '04 / 15 / 2026',
+          hcp1_copay: 'No co-pay on top of PhilHealth Benefit',
+          total_hci_fees: '35,000', total_professional_fees: '8,000', grand_total: '43,000',
+          total_actual_charges: '43,000', discount_amount: '0',
+          philhealth_benefit_amount: '18,000', amount_after_philhealth: '25,000',
+          hci_amount_paid_by: '25,000',
+          hci_paid_member_patient: 'Yes', hci_paid_hmo: 'No', hci_paid_others: 'No',
+          pf_amount_paid_by: '8,000',
+          pf_paid_member_patient: 'Yes', pf_paid_hmo: 'No', pf_paid_others: 'No',
+          drug_purchase_total_amount: '2,500',
+          diagnostic_purchase_total_amount: '3,500',
         },
         {
-          // Sample 2: Pneumonia admission with referral
-          hci_pan: '20-9876-5432', hci_name: 'Philippine General Hospital',
-          hci_bldg_street: 'Taft Avenue', hci_city: 'Manila', hci_province: 'Metro Manila (NCR)',
-          patient_last_name: 'SANTOS', patient_first_name: 'ANNA MARIE', patient_name_ext: 'N/A', patient_middle_name: 'GARCIA',
-          referred_by_hci: 'YES',
-          referring_hci_name: 'City Health Center Malate', referring_hci_bldg_street: 'Adriatico St', referring_hci_city: 'Manila', referring_hci_province: 'Metro Manila', referring_hci_zip: '1004',
-          date_admitted_month: '03', date_admitted_day: '22', date_admitted_year: '2026',
-          time_admitted_hour: '11', time_admitted_min: '45', time_admitted_ampm: 'AM',
-          date_discharged_month: '03', date_discharged_day: '28', date_discharged_year: '2026',
-          time_discharged_hour: '10', time_discharged_min: '00', time_discharged_ampm: 'AM',
+          // Sample B — Pneumonia admission with referral from a city health center.
+          hci_pan: 'HCI-20-987654', hci_name: 'PHILIPPINE GENERAL HOSPITAL',
+          hci_bldg_street: 'TAFT AVENUE', hci_city: 'MANILA', hci_province: 'Metro Manila (NCR)',
+          patient_last_name: 'SANTOS', patient_first_name: 'ANNA MARIE',
+          patient_name_ext: 'N/A', patient_middle_name: 'GARCIA',
+          referred_by_hci: 'true',
+          referring_hci_name: 'CITY HEALTH CENTER MALATE',
+          referring_hci_bldg_street: 'ADRIATICO ST',
+          referring_hci_city: 'MANILA',
+          referring_hci_province: 'METRO MANILA',
+          referring_hci_zip: '1004',
+          date_admitted:   '03 / 22 / 2026', time_admitted:   '11 : 45 AM',
+          date_discharged: '03 / 28 / 2026', time_discharged: '10 : 00 AM',
           patient_disposition: 'Improved',
-          expired_month: '', expired_day: '', expired_year: '', expired_hour: '', expired_min: '', expired_ampm: '',
-          transferred_hci_name: '', transferred_hci_bldg_street: '', transferred_hci_city: '', transferred_hci_province: '', transferred_hci_zip: '',
-          reason_for_referral: 'Requires higher level of care',
           accommodation_type: 'Non-Private (Charity/Service)',
-          admission_diagnosis_1: 'Community Acquired Pneumonia', admission_diagnosis_2: 'Hypertension',
-          discharge_diagnosis_1: 'CAP-Moderate Risk', discharge_icd10_1: 'J18.9', discharge_procedure_1: 'Supportive Management', discharge_rvs_1: '', discharge_procedure_date_1: '', discharge_laterality_1: 'N/A',
-          discharge_diagnosis_2: 'Hypertension Stage 2', discharge_icd10_2: 'I10', discharge_procedure_2: '', discharge_rvs_2: '', discharge_procedure_date_2: '', discharge_laterality_2: 'N/A',
-          discharge_diagnosis_3: '', discharge_icd10_3: '', discharge_procedure_3: '', discharge_rvs_3: '', discharge_procedure_date_3: '', discharge_laterality_3: 'N/A',
-          discharge_diagnosis_4: '', discharge_icd10_4: '', discharge_procedure_4: '', discharge_rvs_4: '', discharge_procedure_date_4: '', discharge_laterality_4: 'N/A',
-          discharge_diagnosis_5: '', discharge_icd10_5: '', discharge_procedure_5: '', discharge_rvs_5: '', discharge_procedure_date_5: '', discharge_laterality_5: 'N/A',
-          discharge_diagnosis_6: '', discharge_icd10_6: '', discharge_procedure_6: '', discharge_rvs_6: '', discharge_procedure_date_6: '', discharge_laterality_6: 'N/A',
-          // Special Considerations — not applicable to CAP; set all 8 dropdowns to 'No' (Z-Benefit covered separately).
-          special_hemodialysis: 'No', special_peritoneal_dialysis: 'No', special_radiotherapy_linac: 'No', special_radiotherapy_cobalt: 'No', special_blood_transfusion: 'No', special_brachytherapy: 'No', special_chemotherapy: 'No', special_simple_debridement: 'No',
-          zbenefit_package_code: 'CAP-MR', mcp_dates: '', tbdots_intensive_phase: '', tbdots_maintenance_phase: '',
-          animal_bite_arv_day1: '', animal_bite_arv_day2: '', animal_bite_arv_day3: '', animal_bite_rig: '', animal_bite_others: '',
-          newborn_essential_care: '', newborn_hearing_screening: '', newborn_screening_test: '', hiv_lab_number: '',
-          philhealth_benefit_first_case_rate: 'CAP-MR', philhealth_benefit_second_case_rate: 'Hypertension Stage 2', philhealth_benefit_icd_rvs_code: 'J18.9 / I10',
-          hcp1_accreditation_no: 'DR-2024-98765 — DR. ELENA REYES', hcp1_date_signed_month: '03', hcp1_date_signed_day: '28', hcp1_date_signed_year: '2026', hcp1_copay: 'No co-pay on top of PhilHealth Benefit',
-          hcp2_accreditation_no: '', hcp2_date_signed_month: '', hcp2_date_signed_day: '', hcp2_date_signed_year: '', hcp2_copay: '',
-          hcp3_accreditation_no: '', hcp3_date_signed_month: '', hcp3_date_signed_day: '', hcp3_date_signed_year: '', hcp3_copay: '',
-          total_hci_fees: '28000', total_professional_fees: '6000', grand_total: '34000',
-          total_actual_charges: '34000', discount_amount: '0', philhealth_benefit_amount: '16000', amount_after_philhealth: '18000',
-          hci_amount_paid_by: '18000', hci_paid_member_patient: 'Yes', hci_paid_hmo: 'No', hci_paid_others: 'No',
-          pf_amount_paid_by: '6000', pf_paid_member_patient: 'Yes', pf_paid_hmo: 'No', pf_paid_others: 'No',
-          drug_purchase_none: '', drug_purchase_total_amount: '4500',
-          diagnostic_purchase_none: '', diagnostic_purchase_total_amount: '2200',
+          admission_diagnosis_1: 'COMMUNITY ACQUIRED PNEUMONIA',
+          admission_diagnosis_2: 'HYPERTENSION',
+          discharge_diagnosis_1: 'CAP-MODERATE RISK', discharge_icd10_1: 'J18.9',
+          discharge_procedure_1: 'SUPPORTIVE MANAGEMENT', discharge_laterality_1: 'N/A',
+          discharge_diagnosis_2: 'HYPERTENSION STAGE 2', discharge_icd10_2: 'I10',
+          discharge_laterality_2: 'N/A',
+          discharge_laterality_3: 'N/A', discharge_laterality_4: 'N/A',
+          discharge_laterality_5: 'N/A', discharge_laterality_6: 'N/A',
+          special_hemodialysis: 'No', special_peritoneal_dialysis: 'No',
+          special_radiotherapy_linac: 'No', special_radiotherapy_cobalt: 'No',
+          special_blood_transfusion: 'No', special_brachytherapy: 'No',
+          special_chemotherapy: 'No', special_simple_debridement: 'No',
+          zbenefit_package_code: 'CAP-MR',
+          philhealth_benefit_first_case_rate: '15,000',
+          philhealth_benefit_second_case_rate: '7,500',
+          philhealth_benefit_icd_rvs_code: 'J18.9 / I10',
+          hcp1_accreditation_no: 'HCP-21-098765',
+          hcp1_date_signed: '03 / 28 / 2026',
+          hcp1_copay: 'No co-pay on top of PhilHealth Benefit',
+          total_hci_fees: '28,000', total_professional_fees: '6,000', grand_total: '34,000',
+          total_actual_charges: '34,000', discount_amount: '0',
+          philhealth_benefit_amount: '16,000', amount_after_philhealth: '18,000',
+          hci_amount_paid_by: '18,000',
+          hci_paid_member_patient: 'Yes', hci_paid_hmo: 'No', hci_paid_others: 'No',
+          pf_amount_paid_by: '6,000',
+          pf_paid_member_patient: 'Yes', pf_paid_hmo: 'No', pf_paid_others: 'No',
+          drug_purchase_total_amount: '4,500',
+          diagnostic_purchase_total_amount: '2,200',
         },
         {
-          // Sample 3: FULL — all fields including special packages, multiple diagnoses, 3 HCPs
-          hci_pan: '33-1111-2222', hci_name: 'St. Luke\'s Medical Center',
-          hci_bldg_street: 'E. Rodriguez Sr. Blvd', hci_city: 'Quezon City', hci_province: 'Metro Manila (NCR)',
-          patient_last_name: 'REYES', patient_first_name: 'CARLOS MIGUEL', patient_name_ext: 'Jr.', patient_middle_name: 'VILLANUEVA',
-          referred_by_hci: 'YES',
-          referring_hci_name: 'Quezon City General Hospital', referring_hci_bldg_street: 'Seminary Rd', referring_hci_city: 'Quezon City', referring_hci_province: 'Metro Manila', referring_hci_zip: '1100',
-          date_admitted_month: '02', date_admitted_day: '14', date_admitted_year: '2026',
-          time_admitted_hour: '09', time_admitted_min: '15', time_admitted_ampm: 'AM',
-          date_discharged_month: '02', date_discharged_day: '28', date_discharged_year: '2026',
-          time_discharged_hour: '03', time_discharged_min: '30', time_discharged_ampm: 'PM',
-          patient_disposition: 'Improved',
-          expired_month: '', expired_day: '', expired_year: '', expired_hour: '', expired_min: '', expired_ampm: '',
-          transferred_hci_name: 'National Kidney Institute', transferred_hci_bldg_street: 'East Ave', transferred_hci_city: 'Quezon City', transferred_hci_province: 'Metro Manila', transferred_hci_zip: '1101',
+          // Sample C — ESRD/HD admission, full disposition=Transferred to NKI,
+          // 3 HCPs, special considerations (HD + transfusion), Senior Citizen
+          // discount, multi-payer split.
+          hci_pan: 'HCI-33-111122', hci_name: "ST. LUKE'S MEDICAL CENTER",
+          hci_bldg_street: 'E. RODRIGUEZ SR. BLVD',
+          hci_city: 'QUEZON CITY', hci_province: 'Metro Manila (NCR)',
+          patient_last_name: 'REYES', patient_first_name: 'CARLOS MIGUEL',
+          patient_name_ext: 'Jr.', patient_middle_name: 'VILLANUEVA',
+          referred_by_hci: 'true',
+          referring_hci_name: 'QUEZON CITY GENERAL HOSPITAL',
+          referring_hci_bldg_street: 'SEMINARY RD',
+          referring_hci_city: 'QUEZON CITY',
+          referring_hci_province: 'METRO MANILA',
+          referring_hci_zip: '1100',
+          date_admitted:   '02 / 14 / 2026', time_admitted:   '09 : 15 AM',
+          date_discharged: '02 / 28 / 2026', time_discharged: '03 : 30 PM',
+          patient_disposition: 'Transferred/Referred',
+          transferred_hci_name: 'NATIONAL KIDNEY INSTITUTE',
+          transferred_hci_bldg_street: 'EAST AVE',
+          transferred_hci_city: 'QUEZON CITY',
+          transferred_hci_province: 'METRO MANILA',
+          transferred_hci_zip: '1101',
           reason_for_referral: 'Requires dialysis management',
           accommodation_type: 'Private',
-          admission_diagnosis_1: 'End Stage Renal Disease', admission_diagnosis_2: 'Diabetes Mellitus Type 2',
-          discharge_diagnosis_1: 'ESRD on Hemodialysis', discharge_icd10_1: 'N18.6', discharge_procedure_1: 'Hemodialysis', discharge_rvs_1: '90935', discharge_procedure_date_1: '02/16/2026', discharge_laterality_1: 'N/A',
-          discharge_diagnosis_2: 'DM Type 2 uncontrolled', discharge_icd10_2: 'E11.9', discharge_procedure_2: 'Insulin Therapy', discharge_rvs_2: '', discharge_procedure_date_2: '', discharge_laterality_2: 'N/A',
-          discharge_diagnosis_3: 'Hypertension', discharge_icd10_3: 'I10', discharge_procedure_3: 'Antihypertensive meds', discharge_rvs_3: '', discharge_procedure_date_3: '', discharge_laterality_3: 'N/A',
-          discharge_diagnosis_4: 'Anemia of CKD', discharge_icd10_4: 'D63.1', discharge_procedure_4: 'Blood Transfusion', discharge_rvs_4: '86950', discharge_procedure_date_4: '02/18/2026', discharge_laterality_4: 'N/A',
-          discharge_diagnosis_5: '', discharge_icd10_5: '', discharge_procedure_5: '', discharge_rvs_5: '', discharge_procedure_date_5: '', discharge_laterality_5: 'N/A',
-          discharge_diagnosis_6: '', discharge_icd10_6: '', discharge_procedure_6: '', discharge_rvs_6: '', discharge_procedure_date_6: '', discharge_laterality_6: 'N/A',
-          // Special Considerations — ESRD/HD applies + Blood Transfusion (anemia of CKD); all 8 dropdowns explicitly set.
-          // FIX 2026-04-26: previous values '3' and '2' were invalid for the No/Yes dropdown.
-          special_hemodialysis: 'Yes', special_peritoneal_dialysis: 'No', special_radiotherapy_linac: 'No', special_radiotherapy_cobalt: 'No', special_blood_transfusion: 'Yes', special_brachytherapy: 'No', special_chemotherapy: 'No', special_simple_debridement: 'No',
-          zbenefit_package_code: 'ESRD-HD', mcp_dates: '', tbdots_intensive_phase: '', tbdots_maintenance_phase: '',
-          animal_bite_arv_day1: '', animal_bite_arv_day2: '', animal_bite_arv_day3: '', animal_bite_rig: '', animal_bite_others: '',
-          newborn_essential_care: '', newborn_hearing_screening: '', newborn_screening_test: '', hiv_lab_number: '',
-          philhealth_benefit_first_case_rate: 'ESRD (HD)', philhealth_benefit_second_case_rate: 'Anemia of CKD', philhealth_benefit_icd_rvs_code: 'N18.6 / 90935',
-          hcp1_accreditation_no: 'DR-2025-11111 — DR. JOSE MENDOZA (Nephrologist)', hcp1_date_signed_month: '02', hcp1_date_signed_day: '28', hcp1_date_signed_year: '2026', hcp1_copay: 'With co-pay on top of PhilHealth Benefit',
-          hcp2_accreditation_no: 'DR-2025-22222 — DR. LINDA TAN (Endocrinologist)', hcp2_date_signed_month: '02', hcp2_date_signed_day: '28', hcp2_date_signed_year: '2026', hcp2_copay: 'With co-pay on top of PhilHealth Benefit',
-          hcp3_accreditation_no: 'DR-2025-33333 — DR. ROBERTO CRUZ (Hematologist)', hcp3_date_signed_month: '02', hcp3_date_signed_day: '28', hcp3_date_signed_year: '2026', hcp3_copay: 'With co-pay on top of PhilHealth Benefit',
-          total_hci_fees: '95000', total_professional_fees: '18000', grand_total: '113000',
-          total_actual_charges: '113000', discount_amount: '5000', philhealth_benefit_amount: '45000', amount_after_philhealth: '63000',
-          hci_amount_paid_by: '63000', hci_paid_member_patient: 'Yes', hci_paid_hmo: 'Yes', hci_paid_others: 'Yes',
-          pf_amount_paid_by: '18000', pf_paid_member_patient: 'Yes', pf_paid_hmo: 'Yes', pf_paid_others: 'No',
-          drug_purchase_none: '', drug_purchase_total_amount: '12500',
-          diagnostic_purchase_none: '', diagnostic_purchase_total_amount: '8700',
+          admission_diagnosis_1: 'END STAGE RENAL DISEASE',
+          admission_diagnosis_2: 'DIABETES MELLITUS TYPE 2',
+          discharge_diagnosis_1: 'ESRD ON HEMODIALYSIS', discharge_icd10_1: 'N18.6',
+          discharge_procedure_1: 'HEMODIALYSIS', discharge_rvs_1: '90935',
+          discharge_procedure_date_1: '02 / 16 / 2026', discharge_laterality_1: 'N/A',
+          discharge_diagnosis_2: 'DM TYPE 2 UNCONTROLLED', discharge_icd10_2: 'E11.9',
+          discharge_procedure_2: 'INSULIN THERAPY', discharge_laterality_2: 'N/A',
+          discharge_diagnosis_3: 'HYPERTENSION', discharge_icd10_3: 'I10',
+          discharge_procedure_3: 'ANTIHYPERTENSIVE MEDS', discharge_laterality_3: 'N/A',
+          discharge_diagnosis_4: 'ANEMIA OF CKD', discharge_icd10_4: 'D63.1',
+          discharge_procedure_4: 'BLOOD TRANSFUSION', discharge_rvs_4: '86950',
+          discharge_procedure_date_4: '02 / 18 / 2026', discharge_laterality_4: 'N/A',
+          discharge_laterality_5: 'N/A', discharge_laterality_6: 'N/A',
+          special_hemodialysis: 'Yes', special_peritoneal_dialysis: 'No',
+          special_radiotherapy_linac: 'No', special_radiotherapy_cobalt: 'No',
+          special_blood_transfusion: 'Yes', special_brachytherapy: 'No',
+          special_chemotherapy: 'No', special_simple_debridement: 'No',
+          zbenefit_package_code: 'Z03',
+          philhealth_benefit_first_case_rate: '32,000',
+          philhealth_benefit_second_case_rate: '13,000',
+          philhealth_benefit_icd_rvs_code: 'N18.6 / 90935',
+          hcp1_accreditation_no: 'HCP-25-111111',
+          hcp1_date_signed: '02 / 28 / 2026',
+          hcp1_copay: 'With co-pay on top of PhilHealth Benefit',
+          hcp2_accreditation_no: 'HCP-25-222222',
+          hcp2_date_signed: '02 / 28 / 2026',
+          hcp2_copay: 'With co-pay on top of PhilHealth Benefit',
+          hcp3_accreditation_no: 'HCP-25-333333',
+          hcp3_date_signed: '02 / 28 / 2026',
+          hcp3_copay: 'With co-pay on top of PhilHealth Benefit',
+          total_hci_fees: '95,000', total_professional_fees: '18,000', grand_total: '113,000',
+          total_actual_charges: '113,000', discount_amount: '5,000',
+          philhealth_benefit_amount: '45,000', amount_after_philhealth: '63,000',
+          hci_amount_paid_by: '63,000',
+          hci_paid_member_patient: 'Yes', hci_paid_hmo: 'Yes', hci_paid_others: 'Yes',
+          pf_amount_paid_by: '18,000',
+          pf_paid_member_patient: 'Yes', pf_paid_hmo: 'Yes', pf_paid_others: 'No',
+          drug_purchase_total_amount: '12,500',
+          diagnostic_purchase_total_amount: '8,700',
+        },
+        {
+          // Sample D — Paediatric inpatient, mother is the member, child is
+          // the patient. Disposition = Transferred to PCMC for ICU evaluation.
+          hci_pan: 'HCI-40-222233', hci_name: 'CALAMBA MEDICAL CENTER',
+          hci_bldg_street: '12 NATIONAL HIGHWAY',
+          hci_city: 'CALAMBA CITY', hci_province: 'LAGUNA',
+          patient_last_name: 'NAVARRO', patient_first_name: 'LIAM',
+          patient_name_ext: 'N/A', patient_middle_name: 'AQUINO',
+          referred_by_hci: '',
+          date_admitted:   '05 / 08 / 2026', time_admitted:   '06 : 15 PM',
+          date_discharged: '05 / 11 / 2026', time_discharged: '11 : 00 AM',
+          patient_disposition: 'Transferred/Referred',
+          transferred_hci_name: 'PHILIPPINE CHILDRENS MEDICAL CENTER',
+          transferred_hci_bldg_street: 'QUEZON AVE',
+          transferred_hci_city: 'QUEZON CITY',
+          transferred_hci_province: 'METRO MANILA (NCR)',
+          transferred_hci_zip: '1101',
+          reason_for_referral: 'Paediatric ICU bed required for further evaluation',
+          accommodation_type: 'Non-Private (Charity/Service)',
+          admission_diagnosis_1: 'ACUTE GASTROENTERITIS WITH MODERATE DEHYDRATION',
+          admission_diagnosis_2: 'FEBRILE SEIZURE',
+          discharge_diagnosis_1: 'AGE - RESOLVED', discharge_icd10_1: 'A09',
+          discharge_procedure_1: 'IV HYDRATION',
+          discharge_procedure_date_1: '05 / 09 / 2026', discharge_laterality_1: 'N/A',
+          discharge_diagnosis_2: 'FEBRILE SEIZURE', discharge_icd10_2: 'R56.0',
+          discharge_procedure_2: 'EEG MONITORING', discharge_rvs_2: '95816',
+          discharge_procedure_date_2: '05 / 10 / 2026', discharge_laterality_2: 'N/A',
+          discharge_laterality_3: 'N/A', discharge_laterality_4: 'N/A',
+          discharge_laterality_5: 'N/A', discharge_laterality_6: 'N/A',
+          special_hemodialysis: 'No', special_peritoneal_dialysis: 'No',
+          special_radiotherapy_linac: 'No', special_radiotherapy_cobalt: 'No',
+          special_blood_transfusion: 'No', special_brachytherapy: 'No',
+          special_chemotherapy: 'No', special_simple_debridement: 'No',
+          philhealth_benefit_first_case_rate: '11,000',
+          philhealth_benefit_second_case_rate: '5,500',
+          philhealth_benefit_icd_rvs_code: 'A09 / R56.0',
+          hcp1_accreditation_no: 'HCP-25-444555',
+          hcp1_date_signed: '05 / 11 / 2026',
+          hcp1_copay: 'No co-pay on top of PhilHealth Benefit',
+          total_hci_fees: '18,000', total_professional_fees: '4,500', grand_total: '22,500',
+          total_actual_charges: '22,500', discount_amount: '0',
+          philhealth_benefit_amount: '22,500', amount_after_philhealth: '0',
+          hci_amount_paid_by: '0',
+          hci_paid_member_patient: 'No', hci_paid_hmo: 'No', hci_paid_others: 'No',
+          pf_amount_paid_by: '0',
+          pf_paid_member_patient: 'No', pf_paid_hmo: 'No', pf_paid_others: 'No',
+          drug_purchase_none: 'Yes — None', drug_purchase_total_amount: '0',
+          diagnostic_purchase_none: 'Yes — None', diagnostic_purchase_total_amount: '0',
         },
       ],
 
       // ── PhilHealth PMRF (Foreign National) ───────────────────────────────
+      // L-SMART-PMRF-FN-01: combined `dob`, `documentation_type` gate,
+      // `is_mononymous` toggle, `phPhone` mask. Personas exercise all three
+      // patterns (ACR-only, PRA-only, mononymous Indonesian student).
       'philhealth-pmrf-foreign-natl': [
         {
-          // ── Sample 1: American expat on work visa (ACR I-card),
-          // Married with spouse + 1 child as dependents. SRRV blank
-          // because not a retiree (ACR and SRRV are mutually exclusive
-          // visa bases — same logic as BIR-1904 foreign vs Filipino). ──
-          philhealth_number: '22-0000001234', acr_icard_number: 'A12345678', pra_srrv_number: '',
+          // ── Sample A: American expat on work visa (ACR I-card),
+          // Married with spouse + 1 child as dependents. ──
+          philhealth_number: '22-0000001234',
+          documentation_type: 'ACR I-Card',
+          acr_icard_number: 'A12345678', pra_srrv_number: '',
+          is_mononymous: '',
           last_name: 'SMITH', first_name: 'JOHN WILLIAM', middle_name: 'ANDERSON',
-          sex: 'Male', nationality: 'AMERICAN', dob_month: '09', dob_day: '14', dob_year: '1982',
+          sex: 'Male', nationality: 'American',
+          dob: '09 / 14 / 1982',
           civil_status: 'Married',
           philippine_address_line1: '88 LEGASPI ST, LEGASPI VILLAGE',
           philippine_address_line2: 'MAKATI CITY, METRO MANILA 1229',
           contact_phone: '+63 917 100 2020', email: 'j.smith@company.com.ph',
-          // Step 3: 2 dependents filled (spouse + child) per ZERO-blanks rule.
           dep1_last: 'SMITH', dep1_first: 'EMILY ROSE', dep1_middle: 'JOHNSON',
-          dep1_sex: 'F', dep1_relationship: 'Spouse', dep1_dob: '11/22/1985', dep1_nationality: 'AMERICAN',
+          dep1_sex: 'F', dep1_relationship: 'SPOUSE', dep1_dob: '11 / 22 / 1985', dep1_nationality: 'American',
           dep2_last: 'SMITH', dep2_first: 'NATHAN JAMES', dep2_middle: 'ANDERSON',
-          dep2_sex: 'M', dep2_relationship: 'Child', dep2_dob: '05/18/2015', dep2_nationality: 'AMERICAN',
-          // dep3_*: blank — only 1 child in this persona.
+          dep2_sex: 'M', dep2_relationship: 'CHILD', dep2_dob: '05 / 18 / 2015', dep2_nationality: 'American',
           dep3_last: '', dep3_first: '', dep3_middle: '',
           dep3_sex: '', dep3_relationship: '', dep3_dob: '', dep3_nationality: '',
+          dep4_last: '', dep4_first: '', dep4_middle: '',
+          dep4_sex: '', dep4_relationship: '', dep4_dob: '', dep4_nationality: '',
+          dep5_last: '', dep5_first: '', dep5_middle: '',
+          dep5_sex: '', dep5_relationship: '', dep5_dob: '', dep5_nationality: '',
+          dep6_last: '', dep6_first: '', dep6_middle: '',
+          dep6_sex: '', dep6_relationship: '', dep6_dob: '', dep6_nationality: '',
           signature_printed_name: 'JOHN WILLIAM ANDERSON SMITH', signature_date: todayMaskedDate(),
         },
         {
-          // ── Sample 2: Japanese SRRV retiree, existing PhilHealth member
-          // renewing/updating. Married — spouse as sole dependent. middle_name
-          // blank because Japanese naming convention has no middle name. ──
-          philhealth_number: '22-1122334455',
-          acr_icard_number: 'B98765432', pra_srrv_number: 'SRRV-2022-00123',
+          // ── Sample B: Japanese PRA SRRV retiree, no PhilHealth PIN yet
+          // (new applicant). Single, no dependents. Landline contact (auto-
+          // formats to "(02) 8888-1234" via phPhone mask). ──
+          philhealth_number: '',
+          documentation_type: 'PRA SRRV',
+          acr_icard_number: '', pra_srrv_number: 'SRRV-2022-00123',
+          is_mononymous: '',
           last_name: 'TANAKA', first_name: 'HIROSHI', middle_name: '',
-          sex: 'Male', nationality: 'JAPANESE', dob_month: '03', dob_day: '22', dob_year: '1975',
-          civil_status: 'Married',
+          sex: 'Male', nationality: 'Japanese',
+          dob: '03 / 22 / 1955',
+          civil_status: 'Widowed',
           philippine_address_line1: 'UNIT 12F, ONE BONIFACIO HIGH STREET',
           philippine_address_line2: 'BGC, TAGUIG, METRO MANILA 1634',
-          contact_phone: '+63 928 111 2233', email: 'h.tanaka@jp-corp.ph',
-          // Step 3: 1 dependent (Japanese spouse, no PH-resident children).
-          dep1_last: 'TANAKA', dep1_first: 'AYUMI', dep1_middle: '',
-          dep1_sex: 'F', dep1_relationship: 'Spouse', dep1_dob: '07/14/1978', dep1_nationality: 'JAPANESE',
+          contact_phone: '(02) 8888-1234', email: 'h.tanaka@retire.ph',
+          dep1_last: '', dep1_first: '', dep1_middle: '',
+          dep1_sex: '', dep1_relationship: '', dep1_dob: '', dep1_nationality: '',
           dep2_last: '', dep2_first: '', dep2_middle: '',
           dep2_sex: '', dep2_relationship: '', dep2_dob: '', dep2_nationality: '',
           dep3_last: '', dep3_first: '', dep3_middle: '',
           dep3_sex: '', dep3_relationship: '', dep3_dob: '', dep3_nationality: '',
+          dep4_last: '', dep4_first: '', dep4_middle: '',
+          dep4_sex: '', dep4_relationship: '', dep4_dob: '', dep4_nationality: '',
+          dep5_last: '', dep5_first: '', dep5_middle: '',
+          dep5_sex: '', dep5_relationship: '', dep5_dob: '', dep5_nationality: '',
+          dep6_last: '', dep6_first: '', dep6_middle: '',
+          dep6_sex: '', dep6_relationship: '', dep6_dob: '', dep6_nationality: '',
           signature_printed_name: 'HIROSHI TANAKA', signature_date: todayMaskedDate(),
         },
         {
-          // ── Sample 3: FULL — Spanish national, BOTH ACR I-card and SRRV
-          // (rare but valid: foreign retiree who also works), Single with all
-          // 3 dependent rows filled (parents + sibling) to exercise the full
-          // Step 3 dependent grid. ──
-          philhealth_number: '22-9999888777', acr_icard_number: 'C11223344', pra_srrv_number: 'SRRV-2023-00456',
+          // ── Sample C: FULL — Spanish national w/ BOTH documents (rare:
+          // working retiree). Single with all 6 dependent rows filled
+          // (parents + 2 siblings + 2 nephews) to exercise the full grid
+          // and prove dep4-6 PDF coords align. ──
+          philhealth_number: '22-9999888777',
+          documentation_type: 'Both',
+          acr_icard_number: 'C11223344', pra_srrv_number: 'SRRV-2023-00456',
+          is_mononymous: '',
           last_name: 'GARCIA', first_name: 'MARIA ELENA', middle_name: 'RODRIGUEZ',
-          sex: 'Female', nationality: 'SPANISH', dob_month: '06', dob_day: '15', dob_year: '1988',
+          sex: 'Female', nationality: 'Spanish',
+          dob: '06 / 15 / 1988',
           civil_status: 'Single',
           philippine_address_line1: '32 ESCOLTA STREET, BINONDO',
           philippine_address_line2: 'MANILA, METRO MANILA 1006',
           contact_phone: '+63 917 123 4567', email: 'maria.garcia@eu-company.ph',
-          // Step 3: 3 dependents filled (parents + sibling) — Single with no
-          // spouse/child, so qualified dependents are immediate family per
-          // PhilHealth Foreign National rules.
           dep1_last: 'GARCIA', dep1_first: 'CARLOS ANTONIO', dep1_middle: 'MARTINEZ',
-          dep1_sex: 'M', dep1_relationship: 'Parent', dep1_dob: '02/10/1955', dep1_nationality: 'SPANISH',
+          dep1_sex: 'M', dep1_relationship: 'PARENT', dep1_dob: '02 / 10 / 1955', dep1_nationality: 'Spanish',
           dep2_last: 'RODRIGUEZ', dep2_first: 'ISABEL CARMEN', dep2_middle: 'LOPEZ',
-          dep2_sex: 'F', dep2_relationship: 'Parent', dep2_dob: '08/25/1958', dep2_nationality: 'SPANISH',
+          dep2_sex: 'F', dep2_relationship: 'PARENT', dep2_dob: '08 / 25 / 1958', dep2_nationality: 'Spanish',
           dep3_last: 'GARCIA', dep3_first: 'JAVIER LUIS', dep3_middle: 'RODRIGUEZ',
-          dep3_sex: 'M', dep3_relationship: 'Sibling', dep3_dob: '12/03/1990', dep3_nationality: 'SPANISH',
+          dep3_sex: 'M', dep3_relationship: 'SIBLING', dep3_dob: '12 / 03 / 1990', dep3_nationality: 'Spanish',
+          dep4_last: 'GARCIA', dep4_first: 'PILAR SOFIA', dep4_middle: 'RODRIGUEZ',
+          dep4_sex: 'F', dep4_relationship: 'SIBLING', dep4_dob: '04 / 18 / 1993', dep4_nationality: 'Spanish',
+          dep5_last: 'MARTIN', dep5_first: 'DIEGO ALEJANDRO', dep5_middle: 'GARCIA',
+          dep5_sex: 'M', dep5_relationship: 'NEPHEW', dep5_dob: '06 / 22 / 2018', dep5_nationality: 'Spanish',
+          dep6_last: 'MARTIN', dep6_first: 'LUCIA INES', dep6_middle: 'GARCIA',
+          dep6_sex: 'F', dep6_relationship: 'NIECE', dep6_dob: '11 / 09 / 2020', dep6_nationality: 'Spanish',
           signature_printed_name: 'MARIA ELENA RODRIGUEZ GARCIA', signature_date: todayMaskedDate(),
         },
       ],
@@ -545,56 +801,65 @@ export default function FormWizardPage() {
       'philhealth-claim-signature-form': [
         {
           series_no: '2026-001-00123',
-          member_pin: '123456789012', member_last_name: 'DELA CRUZ', member_first_name: 'JUAN ANDRES',
-          member_ext_name: 'Jr.', member_middle_name: 'SANTOS',
-          member_dob_month: '03', member_dob_day: '15', member_dob_year: '1990',
-          // Patient is the member — "dependent_pin" prints the member's own PIN
-          // here so the cell is never blank. (Field is gated as "if applicable"
-          // but sits in the always-rendered Patient block.)
-          dependent_pin: '123456789012', patient_last_name: 'DELA CRUZ', patient_first_name: 'JUAN ANDRES',
-          patient_ext_name: 'Jr.', patient_middle_name: 'SANTOS',
+          member_pin: '12-345678901-2', member_last_name: 'DELA CRUZ', member_first_name: 'JUAN ANDRES',
+          member_ext_name: 'JR.', member_middle_name: 'SANTOS',
+          member_dob: '03 / 15 / 1990',
+          // Patient is the member — "Patient is Self" toggled on. Mirror
+          // logic in handleChange copies member name + DOB at runtime; the
+          // sample also echoes the values for the Review screen.
+          patient_is_self: 'true',
+          dependent_pin: '12-345678901-2',
+          patient_last_name: 'DELA CRUZ', patient_first_name: 'JUAN ANDRES',
+          patient_ext_name: 'JR.', patient_middle_name: 'SANTOS',
           relationship_to_member: 'Self',
-          date_admitted_month: '04', date_admitted_day: '10', date_admitted_year: '2026',
-          date_discharged_month: '04', date_discharged_day: '15', date_discharged_year: '2026',
-          patient_dob_month: '03', patient_dob_day: '15', patient_dob_year: '1990',
-          employer_pen: '17-123456789-0', employer_contact_no: '0288889999',
+          date_admitted: '04 / 10 / 2026',
+          date_discharged: '04 / 15 / 2026',
+          patient_dob: '03 / 15 / 1990',
+          has_employer: 'true',
+          employer_pen: '17-123456789-0', employer_contact_no: '0288 889 999',
           business_name: 'ABC COMPANY INC',
-          employer_date_signed_month: '04', employer_date_signed_day: '16', employer_date_signed_year: '2026',
-          consent_date_signed_month: '04', consent_date_signed_day: '16', consent_date_signed_year: '2026',
+          employer_date_signed: '04 / 16 / 2026',
+          consent_date_signed: '04 / 16 / 2026',
         },
         {
           series_no: '2026-001-00456',
-          member_pin: '098765432109', member_last_name: 'SANTOS', member_first_name: 'ANNA MARIE',
+          member_pin: '09-876543210-9', member_last_name: 'SANTOS', member_first_name: 'ANNA MARIE',
           member_ext_name: '', member_middle_name: 'GARCIA',
-          member_dob_month: '07', member_dob_day: '22', member_dob_year: '1985',
-          dependent_pin: '112233445566', patient_last_name: 'SANTOS', patient_first_name: 'CLAIRE ANNE',
+          member_dob: '07 / 22 / 1985',
+          patient_is_self: '',
+          dependent_pin: '11-223344556-6',
+          patient_last_name: 'SANTOS', patient_first_name: 'CLAIRE ANNE',
           patient_ext_name: '', patient_middle_name: 'GARCIA',
           relationship_to_member: 'Child',
-          date_admitted_month: '03', date_admitted_day: '22', date_admitted_year: '2026',
-          date_discharged_month: '03', date_discharged_day: '28', date_discharged_year: '2026',
-          patient_dob_month: '11', patient_dob_day: '02', patient_dob_year: '2010',
-          // Self-employed scenario — use member's own DTI-registered single
-          // proprietorship in the Employer block so every field is populated.
-          employer_pen: '17-987654321-0', employer_contact_no: '0281239876', business_name: 'ANNA M. SANTOS DESIGN STUDIO',
-          employer_date_signed_month: '03', employer_date_signed_day: '28', employer_date_signed_year: '2026',
-          consent_date_signed_month: '03', consent_date_signed_day: '28', consent_date_signed_year: '2026',
+          date_admitted: '03 / 22 / 2026',
+          date_discharged: '03 / 28 / 2026',
+          patient_dob: '11 / 02 / 2010',
+          // Self-employed scenario — DTI sole proprietorship as employer.
+          has_employer: 'true',
+          employer_pen: '17-987654321-0', employer_contact_no: '0281 239 876',
+          business_name: 'ANNA M. SANTOS DESIGN STUDIO',
+          employer_date_signed: '03 / 28 / 2026',
+          consent_date_signed: '03 / 28 / 2026',
         },
         {
           // Full — all fields filled
           series_no: '2026-001-00789',
-          member_pin: '556677889900', member_last_name: 'REYES', member_first_name: 'PEDRO JOSE',
-          member_ext_name: 'Sr.', member_middle_name: 'VILLANUEVA',
-          member_dob_month: '05', member_dob_day: '10', member_dob_year: '1978',
-          dependent_pin: '445566778899', patient_last_name: 'REYES', patient_first_name: 'PEDRO MIGUEL',
-          patient_ext_name: 'Jr.', patient_middle_name: 'VILLANUEVA',
+          member_pin: '55-667788990-0', member_last_name: 'REYES', member_first_name: 'PEDRO JOSE',
+          member_ext_name: 'SR.', member_middle_name: 'VILLANUEVA',
+          member_dob: '05 / 10 / 1978',
+          patient_is_self: '',
+          dependent_pin: '44-556677889-9',
+          patient_last_name: 'REYES', patient_first_name: 'PEDRO MIGUEL',
+          patient_ext_name: 'JR.', patient_middle_name: 'VILLANUEVA',
           relationship_to_member: 'Child',
-          date_admitted_month: '02', date_admitted_day: '01', date_admitted_year: '2026',
-          date_discharged_month: '02', date_discharged_day: '10', date_discharged_year: '2026',
-          patient_dob_month: '08', patient_dob_day: '25', patient_dob_year: '2005',
-          employer_pen: '33-987654321-0', employer_contact_no: '0277778888',
+          date_admitted: '02 / 01 / 2026',
+          date_discharged: '02 / 10 / 2026',
+          patient_dob: '08 / 25 / 2005',
+          has_employer: 'true',
+          employer_pen: '33-987654321-0', employer_contact_no: '0277 778 888',
           business_name: 'XYZ CORPORATION',
-          employer_date_signed_month: '02', employer_date_signed_day: '11', employer_date_signed_year: '2026',
-          consent_date_signed_month: '02', consent_date_signed_day: '11', consent_date_signed_year: '2026',
+          employer_date_signed: '02 / 11 / 2026',
+          consent_date_signed: '02 / 11 / 2026',
         },
       ],
 
@@ -790,18 +1055,19 @@ export default function FormWizardPage() {
           // · Health & wellness loan (gym membership + annual exec checkup) ──
           mid_no: '5555-6666-7777', application_no: '',
           last_name: 'GARCIA', first_name: 'PATRICIA ANN', ext_name: 'N/A', middle_name: 'REYES', no_maiden_middle_name: '',
-          dob: '03/18/1992', place_of_birth: 'QUEZON CITY, METRO MANILA', mothers_maiden_name: 'REYES, LINDA SANTOS',
+          dob: '03 / 18 / 1992', place_of_birth: 'QUEZON CITY, METRO MANILA', mothers_maiden_name: 'REYES, LINDA SANTOS',
           nationality: 'FILIPINO', sex: 'Female', marital_status: 'Single/Unmarried', citizenship: 'FILIPINO',
           email: 'p.garcia@work.com',
-          perm_unit: 'Unit 2A', perm_cell_phone: '09162223333', perm_home_tel: '028123-4567',
+          perm_unit: 'Unit 2A', perm_cell_phone: '0916 222 3333', perm_home_tel: '028123-4567',
           perm_street: 'AURORA BLVD', perm_subdivision: 'CUBAO COMMERCIAL CENTER', perm_barangay: 'BRGY. CUBAO', perm_city: 'QUEZON CITY', perm_province: 'METRO MANILA (NCR)', perm_zip: '1109',
-          perm_tin: '789012345000', perm_sss_gsis: '11-2345678-9',
+          perm_tin: '789-012-345-000', perm_sss_gsis: '11-2345678-9',
+          same_as_permanent: '',
           pres_unit: '15F BDO Corporate Center', pres_business_tel: '028840-7000', pres_nature_of_work: 'Branch Manager — Retail Banking',
           pres_street: 'ORTIGAS CENTER', pres_subdivision: 'ORTIGAS BUSINESS DISTRICT', pres_barangay: 'BRGY. SAN ANTONIO', pres_city: 'PASIG', pres_province: 'METRO MANILA (NCR)', pres_zip: '1605',
-          loan_term: 'Two (2) Years', desired_loan_amount: '80000',
+          loan_term: 'Two (2) Years', desired_loan_amount: '80,000',
           employer_name: 'BDO UNIBANK INC.', loan_purpose: 'Health & wellness',
           employer_address_line: 'BDO CORPORATE CENTER, ORTIGAS', employer_subdivision: 'ORTIGAS CENTER', employer_barangay: 'BRGY. SAN ANTONIO', employer_city: 'PASIG', employer_province: 'METRO MANILA (NCR)', employer_zip: '1605',
-          employee_id_no: 'BD-2023-9876', date_of_employment: '01/15/2019',
+          employee_id_no: 'BD-2023-9876', date_of_employment: '01 / 15 / 2019',
           source_of_fund: 'Salary', payroll_bank_name: 'BDO Unibank — Ortigas Branch',
           signature_date: todayMaskedDate(),
           source_of_referral: 'Employer/Fund Coordinator',
@@ -811,18 +1077,19 @@ export default function FormWizardPage() {
           // (Pilot) · Married · Vacation/travel loan (family Japan trip) ──
           mid_no: '8888-9999-0001', application_no: 'APP-2026-011234',
           last_name: 'TORRES', first_name: 'MARIO JOSE', ext_name: 'N/A', middle_name: 'DELA VEGA', no_maiden_middle_name: '',
-          dob: '09/25/1985', place_of_birth: 'CEBU CITY, CEBU', mothers_maiden_name: 'DELA VEGA, CARLA SANTOS',
+          dob: '09 / 25 / 1985', place_of_birth: 'CEBU CITY, CEBU', mothers_maiden_name: 'DELA VEGA, CARLA SANTOS',
           nationality: 'FILIPINO', sex: 'Male', marital_status: 'Married', citizenship: 'FILIPINO',
           email: 'mario.torres@cebu.ph',
-          perm_unit: 'House 3 Lot 15', perm_cell_phone: '09221112222', perm_home_tel: '0322345678',
+          perm_unit: 'House 3 Lot 15', perm_cell_phone: '0922 111 2222', perm_home_tel: '0322345678',
           perm_street: '12 SAMPAGUITA ST', perm_subdivision: 'CEBU VILLAGE', perm_barangay: 'BRGY. CAMPUTHAW', perm_city: 'CEBU CITY', perm_province: 'CEBU', perm_zip: '6000',
-          perm_tin: '654321098000', perm_sss_gsis: '34-9876543-2',
+          perm_tin: '654-321-098-000', perm_sss_gsis: '34-9876543-2',
+          same_as_permanent: '',
           pres_unit: 'Unit 12B Crew Quarters', pres_business_tel: '0322234567', pres_nature_of_work: 'First Officer (Commercial Pilot) — A320 Fleet',
           pres_street: 'JONES AVE', pres_subdivision: 'KAMPUTHAW DISTRICT', pres_barangay: 'BRGY. KAMPUTHAW', pres_city: 'CEBU CITY', pres_province: 'CEBU', pres_zip: '6000',
-          loan_term: 'Three (3) Years', desired_loan_amount: '120000',
+          loan_term: 'Three (3) Years', desired_loan_amount: '120,000',
           employer_name: 'CEBU PACIFIC AIR', loan_purpose: 'Vacation / travel',
           employer_address_line: 'MIA ROAD, PASAY CITY', employer_subdivision: 'NAIA COMPLEX', employer_barangay: 'BRGY. 183', employer_city: 'PASAY', employer_province: 'METRO MANILA (NCR)', employer_zip: '1300',
-          employee_id_no: 'CEB-2018-4567', date_of_employment: '06/01/2018',
+          employee_id_no: 'CEB-2018-4567', date_of_employment: '06 / 01 / 2018',
           source_of_fund: 'Salary', payroll_bank_name: 'BPI — Cebu City Branch',
           signature_date: todayMaskedDate(),
           source_of_referral: 'Pag-IBIG Fund Website',
@@ -832,19 +1099,20 @@ export default function FormWizardPage() {
           // Bank VP · Married · Tuition/Educational loan for 2 kids in college ──
           mid_no: '1111-2222-3334', application_no: 'APP-2026-099999',
           last_name: 'NAVARRO', first_name: 'DIANA ROSE', ext_name: 'N/A', middle_name: 'ESPIRITU', no_maiden_middle_name: '',
-          dob: '04/12/1979', place_of_birth: 'DAVAO CITY, DAVAO DEL SUR', mothers_maiden_name: 'ESPIRITU, NORA SANTOS',
+          dob: '04 / 12 / 1979', place_of_birth: 'DAVAO CITY, DAVAO DEL SUR', mothers_maiden_name: 'ESPIRITU, NORA SANTOS',
           nationality: 'FILIPINO', sex: 'Female', marital_status: 'Married', citizenship: 'FILIPINO',
           email: 'diana.navarro@southbank.ph',
-          perm_unit: 'Unit 4C', perm_cell_phone: '09257778888', perm_home_tel: '0822227777',
+          perm_unit: 'Unit 4C', perm_cell_phone: '0925 777 8888', perm_home_tel: '0822227777',
           perm_street: '100 SAMPAGUITA AVE', perm_subdivision: 'POBLACION HEIGHTS', perm_barangay: 'BRGY. POBLACION', perm_city: 'DAVAO CITY', perm_province: 'DAVAO DEL SUR', perm_zip: '8000',
-          perm_tin: '321654099000', perm_sss_gsis: '34-9876543-9',
+          perm_tin: '321-654-099-000', perm_sss_gsis: '34-9876543-9',
+          same_as_permanent: '',
           pres_unit: '8F SPB Tower', pres_business_tel: '0822234560', pres_nature_of_work: 'Vice President — Branch Operations',
           pres_street: 'MAGSAYSAY AVE', pres_subdivision: 'POBLACION COMMERCIAL DISTRICT', pres_barangay: 'BRGY. POBLACION', pres_city: 'DAVAO CITY', pres_province: 'DAVAO DEL SUR', pres_zip: '8000',
           // loan_term capped at 3 years for SLF-065 (was '48 months' — invalid, max is Three (3) Years)
-          loan_term: 'Three (3) Years', desired_loan_amount: '200000',
+          loan_term: 'Three (3) Years', desired_loan_amount: '200,000',
           employer_name: 'SOUTHERN PHILIPPINE BANK', loan_purpose: 'Tuition / Educational Expenses',
           employer_address_line: 'SPB TOWER, MAGSAYSAY AVE', employer_subdivision: 'POBLACION COMMERCIAL DISTRICT', employer_barangay: 'BRGY. POBLACION', employer_city: 'DAVAO CITY', employer_province: 'DAVAO DEL SUR', employer_zip: '8000',
-          employee_id_no: 'SPB-2005-00123', date_of_employment: '03/01/2005',
+          employee_id_no: 'SPB-2005-00123', date_of_employment: '03 / 01 / 2005',
           source_of_fund: 'Salary', payroll_bank_name: 'Southern Philippine Bank — Main Branch',
           signature_date: todayMaskedDate(),
           source_of_referral: 'Referral',
@@ -1123,16 +1391,16 @@ export default function FormWizardPage() {
           registered_name: '',
           estate_trust_name: '',
           date_of_birth: '03/15/1998',
-          place_of_birth: 'Quezon City, Metro Manila',
+          place_of_birth: 'QUEZON CITY, METRO MANILA',
           local_unit: 'Unit 4B',
-          local_building: 'Sampaguita Residences',
-          local_lot: 'Lot 12 Block 5',
-          local_street: 'Holy Spirit Drive',
-          local_subdivision: 'Don Antonio Heights',
-          local_barangay: 'Brgy. Holy Spirit',
-          local_town: 'District 2',
-          local_city: 'Quezon City',
-          local_province: 'Metro Manila (NCR)',
+          local_building: 'SAMPAGUITA RESIDENCES',
+          local_lot: 'LOT 12 BLOCK 5',
+          local_street: 'HOLY SPIRIT DRIVE',
+          local_subdivision: 'DON ANTONIO HEIGHTS',
+          local_barangay: 'BRGY. HOLY SPIRIT',
+          local_town: 'DISTRICT 2',
+          local_city: 'QUEZON CITY',
+          local_province: 'METRO MANILA (NCR)',
           local_zip: '1127',
           // foreign_address / date_of_arrival: not applicable (Filipino, not foreign national)
           foreign_address: '',
@@ -1183,16 +1451,16 @@ export default function FormWizardPage() {
           registered_name: '',
           estate_trust_name: '',
           date_of_birth: '08/22/1976',
-          place_of_birth: 'Cebu City, Cebu',
+          place_of_birth: 'CEBU CITY, CEBU',
           local_unit: '',
           local_building: '',
-          local_lot: 'Lot 5 Block 2',
-          local_street: 'Mahogany Street',
-          local_subdivision: 'Camella Subdivision',
-          local_barangay: 'Brgy. San Isidro',
+          local_lot: 'LOT 5 BLOCK 2',
+          local_street: 'MAHOGANY STREET',
+          local_subdivision: 'CAMELLA SUBDIVISION',
+          local_barangay: 'BRGY. SAN ISIDRO',
           local_town: '',
-          local_city: 'Mandaue City',
-          local_province: 'Cebu',
+          local_city: 'MANDAUE CITY',
+          local_province: 'CEBU',
           local_zip: '6014',
           foreign_address: '',
           municipality_code: '07215',
@@ -1203,7 +1471,7 @@ export default function FormWizardPage() {
           email: 'pedro.cruz@gmail.com',
           mothers_name: 'LOLITA RAMIREZ GARCIA',
           fathers_name: 'MANUEL TORRES CRUZ SR.',
-          id_type: 'Passport',
+          id_type: 'PASSPORT',
           id_number: 'P0123456A',
           id_effectivity: '04/12/2022',
           id_expiry: '04/12/2032',
@@ -1218,7 +1486,7 @@ export default function FormWizardPage() {
           wa_tin: '567890123000',
           wa_rdo_code: '050',
           wa_name: 'ALPHA REALTY CORPORATION',
-          wa_address: '88 Ayala Avenue, Makati City, Metro Manila',
+          wa_address: '88 AYALA AVENUE, MAKATI CITY, METRO MANILA',
           wa_zip: '1226',
           wa_contact: '02-8876-5432',
           wa_email: 'tax@alpharealty.com.ph',
@@ -1244,18 +1512,18 @@ export default function FormWizardPage() {
           registered_name: '', // Individual taxpayer — not applicable
           estate_trust_name: '', // Not an Estate/Trust — not applicable
           date_of_birth: '11/05/1980',
-          place_of_birth: 'Tokyo, Japan',
+          place_of_birth: 'TOKYO, JAPAN',
           local_unit: 'Unit 12B',
-          local_building: 'Trump Tower Makati',
-          local_lot: 'Lot 8 Block 3',
-          local_street: 'Forbes Street',
-          local_subdivision: 'Bel-Air Village',
-          local_barangay: 'Brgy. Bel-Air',
-          local_town: 'District 1',
-          local_city: 'Makati City',
-          local_province: 'Metro Manila (NCR)',
+          local_building: 'TRUMP TOWER MAKATI',
+          local_lot: 'LOT 8 BLOCK 3',
+          local_street: 'FORBES STREET',
+          local_subdivision: 'BEL-AIR VILLAGE',
+          local_barangay: 'BRGY. BEL-AIR',
+          local_town: 'DISTRICT 1',
+          local_city: 'MAKATI CITY',
+          local_province: 'METRO MANILA (NCR)',
           local_zip: '1209',
-          foreign_address: '2-1-1 Marunouchi, Chiyoda-ku, Tokyo 100-0005, Japan',
+          foreign_address: '2-1-1 MARUNOUCHI, CHIYODA-KU, TOKYO 100-0005, JAPAN',
           municipality_code: '13720', // PSGC Makati
           date_of_arrival: '01/15/2025',
           gender: 'Male',
@@ -1264,7 +1532,7 @@ export default function FormWizardPage() {
           email: 'h.tanaka@globalfirm.jp',
           mothers_name: 'YUKI ITO WATANABE',
           fathers_name: 'KENJI SUZUKI TANAKA',
-          id_type: 'Passport',
+          id_type: 'PASSPORT',
           id_number: 'TZ1234567',
           id_effectivity: '02/20/2023',
           id_expiry: '02/19/2033',
@@ -1274,16 +1542,76 @@ export default function FormWizardPage() {
           spouse_employer_name: 'SONY CORPORATION',
           spouse_employer_tin: '000345678999',
           purpose_of_tin: 'J. Other (specify below)',
-          purpose_other_specify: 'SEC registration of Philippine branch office',
+          purpose_other_specify: 'SEC REGISTRATION OF PHILIPPINE BRANCH OFFICE',
           // Tax agent retained to facilitate registration.
           wa_tin: '678901234000',
           wa_rdo_code: '044',
           wa_name: 'PUNONGBAYAN & ARAULLO',
-          wa_address: '20F Tower 1, The Enterprise Center, 6766 Ayala Avenue, Makati City',
+          wa_address: '20F TOWER 1, THE ENTERPRISE CENTER, 6766 AYALA AVENUE, MAKATI CITY',
           wa_zip: '1226',
           wa_contact: '02-8988-2288',
           wa_email: 'tax.advisory@punongbayan-araullo.com',
           wa_title: 'Senior Tax Manager',
+        },
+        {
+          // Sample 4 (D): Estate of a Deceased Individual. Executor /
+          // Administrator applies for the Estate TIN under judicial settlement.
+          // Persona-distinct fields: taxpayer_type = Estate; estate_trust_name
+          // populated; spouse block blank (Estate is the taxpayer); WA block
+          // populated by the law firm acting as administrator.
+          date_of_registration: '04/27/2026',
+          philsys_pcn: '4567890123456789',
+          rdo_code: '050',
+          taxpayer_type: 'Estate / Trust',
+          foreign_tin: '',
+          country_of_residence: '',
+          last_name: 'BAUTISTA',
+          first_name: 'ROBERTO ANTONIO',
+          middle_name: 'DEL ROSARIO',
+          name_suffix: 'Sr.',
+          nickname: '',
+          registered_name: '',
+          estate_trust_name: 'ESTATE OF ROBERTO ANTONIO DEL ROSARIO BAUTISTA SR.',
+          date_of_birth: '01/12/1948',
+          place_of_birth: 'SAN PABLO CITY, LAGUNA',
+          local_unit: '',
+          local_building: '',
+          local_lot: 'LOT 8 BLOCK 14',
+          local_street: 'NARRA STREET',
+          local_subdivision: 'BF HOMES',
+          local_barangay: 'BRGY. HOLY SPIRIT',
+          local_town: 'DISTRICT 2',
+          local_city: 'QUEZON CITY',
+          local_province: 'METRO MANILA (NCR)',
+          local_zip: '1127',
+          foreign_address: '',
+          municipality_code: '13742',
+          date_of_arrival: '',
+          gender: 'Male',
+          civil_status: 'Widow/er',
+          contact_number: '0917-555-2244',
+          email: 'estate.bautista@delcastilo-law.ph',
+          mothers_name: 'CARMEN PEREZ DEL ROSARIO',
+          fathers_name: 'EDUARDO REYES BAUTISTA',
+          id_type: 'DEATH CERTIFICATE (PSA)',
+          id_number: 'DC-2025-PSA-9988776',
+          id_effectivity: '11/05/2025',
+          id_expiry: '11/05/2035',
+          spouse_employment_status: '',
+          spouse_name: '',
+          spouse_tin: '',
+          spouse_employer_name: '',
+          spouse_employer_tin: '',
+          purpose_of_tin: 'H. Transfer by succession (estate)',
+          purpose_other_specify: '',
+          wa_tin: '789012345000',
+          wa_rdo_code: '050',
+          wa_name: 'DEL CASTILO AND ASSOCIATES LAW OFFICES',
+          wa_address: '15F MEGA TOWER, EDSA COR SHAW BOULEVARD, MANDALUYONG CITY',
+          wa_zip: '1550',
+          wa_contact: '02-8633-1144',
+          wa_email: 'estate.admin@delcastilo-law.ph',
+          wa_title: 'COURT-APPOINTED EXECUTOR',
         },
       ],
 
@@ -1405,9 +1733,9 @@ export default function FormWizardPage() {
           emp_tin_1: '123', emp_tin_2: '456', emp_tin_3: '789', emp_tin_branch: '00000',
           emp_name: 'DELA CRUZ, JUAN ANDRES PONCE',
           emp_rdo: '050',
-          emp_reg_address: '123 Holy Spirit Drive, Brgy. Holy Spirit, Quezon City, Metro Manila',
+          emp_reg_address: '123 HOLY SPIRIT DRIVE, BRGY. HOLY SPIRIT, QUEZON CITY, METRO MANILA',
           emp_reg_zip: '1127',
-          emp_local_address: '123 Holy Spirit Drive, Brgy. Holy Spirit, Quezon City, Metro Manila',
+          emp_local_address: '123 HOLY SPIRIT DRIVE, BRGY. HOLY SPIRIT, QUEZON CITY, METRO MANILA',
           emp_local_zip: '1127',
           emp_foreign_address: '', // N/A — Filipino resident
           emp_dob: '06/15/1990',
@@ -1417,12 +1745,12 @@ export default function FormWizardPage() {
           // Step 2: Present Employer (Apr-Dec 2025)
           pres_emp_tin_1: '009', pres_emp_tin_2: '876', pres_emp_tin_3: '543', pres_emp_tin_branch: '00000',
           pres_emp_name: 'ACME CORPORATION PHILIPPINES INC.',
-          pres_emp_address: '88 Ayala Avenue, Makati City, Metro Manila',
+          pres_emp_address: '88 AYALA AVENUE, MAKATI CITY, METRO MANILA',
           pres_emp_zip: '1226',
           // Step 3: Previous Employer (Jan-Mar 2025) — FILLED per ZERO-blanks rule
           prev_emp_tin_1: '005', prev_emp_tin_2: '432', prev_emp_tin_3: '100', prev_emp_tin_branch: '00000',
           prev_emp_name: 'STARTUP VENTURES INC.',
-          prev_emp_address: '88 Eastwood Avenue, Brgy. Bagumbayan, Quezon City, Metro Manila',
+          prev_emp_address: '88 EASTWOOD AVENUE, BRGY. BAGUMBAYAN, QUEZON CITY, METRO MANILA',
           prev_emp_zip: '1110',
           // Step 4: Summary (Part IV-A) — reconciled across both employers
           gross_compensation: '600000', // ACME Apr-Dec
@@ -1488,9 +1816,9 @@ export default function FormWizardPage() {
           emp_tin_1: '234', emp_tin_2: '567', emp_tin_3: '890', emp_tin_branch: '00000',
           emp_name: 'SANTOS, ANNA MARIE REYES',
           emp_rdo: '044',
-          emp_reg_address: '45 Pearl Drive, Brgy. San Antonio, Pasig City, Metro Manila',
+          emp_reg_address: '45 PEARL DRIVE, BRGY. SAN ANTONIO, PASIG CITY, METRO MANILA',
           emp_reg_zip: '1605',
-          emp_local_address: '45 Pearl Drive, Brgy. San Antonio, Pasig City, Metro Manila',
+          emp_local_address: '45 PEARL DRIVE, BRGY. SAN ANTONIO, PASIG CITY, METRO MANILA',
           emp_local_zip: '1605',
           emp_foreign_address: '',
           emp_dob: '11/22/1988',
@@ -1500,12 +1828,12 @@ export default function FormWizardPage() {
           // Step 2: Present Employer (Jul-Dec 2025)
           pres_emp_tin_1: '008', pres_emp_tin_2: '765', pres_emp_tin_3: '432', pres_emp_tin_branch: '00000',
           pres_emp_name: 'GLOBAL TECH SOLUTIONS PHILIPPINES INC.',
-          pres_emp_address: 'GT Tower, Ayala Avenue, Makati City, Metro Manila',
+          pres_emp_address: 'GT TOWER, AYALA AVENUE, MAKATI CITY, METRO MANILA',
           pres_emp_zip: '1226',
           // Step 3: Previous Employer (Jan-Jun 2025) — FILLED
           prev_emp_tin_1: '007', prev_emp_tin_2: '654', prev_emp_tin_3: '321', prev_emp_tin_branch: '00000',
           prev_emp_name: 'METRO BUSINESS CORPORATION',
-          prev_emp_address: '50 Ortigas Avenue, Brgy. San Antonio, Pasig City, Metro Manila',
+          prev_emp_address: '50 ORTIGAS AVENUE, BRGY. SAN ANTONIO, PASIG CITY, METRO MANILA',
           prev_emp_zip: '1605',
           // Step 4: Summary — present 6 months, previous 6 months
           gross_compensation: '350000', // Present employer Jul-Dec
@@ -1575,11 +1903,11 @@ export default function FormWizardPage() {
           emp_tin_1: '345', emp_tin_2: '678', emp_tin_3: '901', emp_tin_branch: '00000',
           emp_name: 'REYES, CARLOS MIGUEL VILLANUEVA',
           emp_rdo: '044',
-          emp_reg_address: 'Lot 12 Block 5, Forbes Park, Brgy. Bel-Air, Makati City, Metro Manila',
+          emp_reg_address: 'LOT 12 BLOCK 5, FORBES PARK, BRGY. BEL-AIR, MAKATI CITY, METRO MANILA',
           emp_reg_zip: '1209',
-          emp_local_address: 'Unit 4502 Trump Tower, Bonifacio Global City, Brgy. Fort Bonifacio, Taguig City',
+          emp_local_address: 'UNIT 4502 TRUMP TOWER, BONIFACIO GLOBAL CITY, BRGY. FORT BONIFACIO, TAGUIG CITY',
           emp_local_zip: '1634',
-          emp_foreign_address: '12 Sentosa Cove, Singapore 098297', // Has overseas property
+          emp_foreign_address: '12 SENTOSA COVE, SINGAPORE 098297', // Has overseas property
           emp_dob: '08/14/1972',
           emp_contact: '0918-222-9999',
           // Statutory Minimum Wage rates exposed (BIR requires these even for non-MWE)
@@ -1588,12 +1916,12 @@ export default function FormWizardPage() {
           // Step 2: Present Employer (Mar-Dec 2025)
           pres_emp_tin_1: '006', pres_emp_tin_2: '543', pres_emp_tin_3: '210', pres_emp_tin_branch: '00000',
           pres_emp_name: 'PHILSTAR INVESTMENT BANKING CORPORATION',
-          pres_emp_address: '40F PSE Tower, 28th Street, Bonifacio Global City, Taguig City',
+          pres_emp_address: '40F PSE TOWER, 28TH STREET, BONIFACIO GLOBAL CITY, TAGUIG CITY',
           pres_emp_zip: '1634',
           // Step 3: Previous Employer (Jan-Feb 2025) — FILLED per ZERO-blanks rule
           prev_emp_tin_1: '002', prev_emp_tin_2: '345', prev_emp_tin_3: '678', prev_emp_tin_branch: '00000',
           prev_emp_name: 'ASIAN DEVELOPMENT BANK PHILIPPINES OFFICE',
-          prev_emp_address: 'ADB Avenue, Ortigas Center, Brgy. San Antonio, Mandaluyong City',
+          prev_emp_address: 'ADB AVENUE, ORTIGAS CENTER, BRGY. SAN ANTONIO, MANDALUYONG CITY',
           prev_emp_zip: '1550',
           // Step 4: Summary — Mar-Dec at PhilStar + Jan-Feb at ADB
           gross_compensation: '1500000',
@@ -1648,6 +1976,84 @@ export default function FormWizardPage() {
           ctc_place: 'TAGUIG CITY',
           ctc_date_issued: '01/05/2026',
           ctc_amount: '5000', // Higher CTC for high-income earner
+        },
+        {
+          // Sample 4 (D): Mid-year RESIGNATION. Employee left ACME on 06/30
+          // (period_to=06/30, not 12/31). Previous employer is a sole
+          // proprietorship. Persona-distinct: emp_foreign_address blank,
+          // no PERA, non-MWE, gross_taxable inside 250-400K bracket
+          // (tax_due tiered: 15% over 250K under TRAIN).
+          year: '2025',
+          period_from: '01/01',
+          period_to: '06/30',
+          emp_tin_1: '456', emp_tin_2: '789', emp_tin_3: '012', emp_tin_branch: '00000',
+          emp_name: 'ABAYA, JOSEFINA MARTINEZ',
+          emp_rdo: '050',
+          emp_reg_address: '88 KAMUNING ROAD, BRGY. KAMUNING, QUEZON CITY, METRO MANILA',
+          emp_reg_zip: '1103',
+          emp_local_address: '88 KAMUNING ROAD, BRGY. KAMUNING, QUEZON CITY, METRO MANILA',
+          emp_local_zip: '1103',
+          emp_foreign_address: '',
+          emp_dob: '04/22/1986',
+          emp_contact: '0917-444-2233',
+          min_wage_per_day: '0',
+          min_wage_per_month: '0',
+          pres_emp_tin_1: '009', pres_emp_tin_2: '876', pres_emp_tin_3: '543', pres_emp_tin_branch: '00000',
+          pres_emp_name: 'ACME CORPORATION PHILIPPINES INC.',
+          pres_emp_address: '88 AYALA AVENUE, MAKATI CITY, METRO MANILA',
+          pres_emp_zip: '1226',
+          prev_emp_tin_1: '123', prev_emp_tin_2: '456', prev_emp_tin_3: '789', prev_emp_tin_branch: '00000',
+          prev_emp_name: 'CRUZ DESIGN STUDIO (SOLE PROPRIETORSHIP - JUAN P. CRUZ)',
+          prev_emp_address: '12 PEREZ ST, BRGY. PINYAHAN, QUEZON CITY, METRO MANILA',
+          prev_emp_zip: '1100',
+          gross_compensation: '270000',
+          less_non_taxable: '40000',
+          taxable_present: '230000',
+          taxable_previous: '90000',
+          gross_taxable: '320000',
+          tax_due: '10500',
+          taxes_withheld_present: '7500',
+          taxes_withheld_previous: '3000',
+          total_withheld_adjusted: '10500',
+          tax_credit_pera: '0',
+          total_taxes_withheld: '10500',
+          basic_salary_mwe: '0',
+          holiday_pay_mwe: '0',
+          overtime_pay_mwe: '0',
+          night_shift_mwe: '0',
+          hazard_pay_mwe: '0',
+          thirteenth_month: '0',
+          de_minimis: '0',
+          sss_gsis_phic_hdmf: '40000',
+          salaries_other: '0',
+          total_non_taxable: '40000',
+          basic_salary: '230000',
+          representation: '0',
+          transportation: '0',
+          cola: '0',
+          fixed_housing: '0',
+          others_a_label: '',
+          others_a_amount: '0',
+          others_b_label: '',
+          others_b_amount: '0',
+          commission: '0',
+          profit_sharing: '0',
+          fees_director: '0',
+          taxable_13th_benefits: '0',
+          supp_hazard: '0',
+          supp_overtime: '0',
+          others_supp_label: '',
+          others_51a_label: '',
+          others_51a_amount: '0',
+          others_51b_label: '',
+          others_51b_amount: '0',
+          total_taxable_compensation: '230000',
+          present_emp_date_signed: '07/15/2025',
+          employee_date_signed: '07/20/2025',
+          ctc_no: '45678901',
+          ctc_place: 'QUEZON CITY',
+          ctc_date_issued: '07/01/2025',
+          ctc_amount: '500',
         },
       ],
     };
@@ -1871,6 +2277,39 @@ export default function FormWizardPage() {
     setDraftModalOpen(false);
   }
 
+  // ── Hard reset for "Clear & Exit" ────────────────────────────────────────
+  // Cancels any pending debounced draft save, clears local-storage draft,
+  // wipes ALL in-memory state, and reloads the catalog so the form route
+  // can never resurrect from Next.js client cache.
+  // See L-CLEAR-01 in QuickFormsPH-PDFGenerationLearnings.md.
+  const handleHardClear = useCallback(() => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    if (slug) clearDraft(slug);
+    if (previewImageUrl && previewImageUrl.startsWith('blob:')) {
+      try { URL.revokeObjectURL(previewImageUrl); } catch { /* ignore */ }
+    }
+    setValues({});
+    setPreviewImageUrl('');
+    setShowPaymentModal(false);
+    setShowSuccessModal(false);
+    setPendingDraft(null);
+    setDraftModalOpen(false);
+    setMode('form');
+    setCurrentStep(0 as StepIndex);
+    setIsDemoMode(false);
+    setLocalModeActive(false);
+    setGateKey((k) => k + 1);
+    if (typeof window !== 'undefined') {
+      window.location.replace('/');
+    } else {
+      router.replace('/');
+    }
+  }, [slug, previewImageUrl, router]);
+
+
   if (!form) {
     return (
       <div className="flex min-h-screen items-center justify-center p-8 text-center">
@@ -1902,6 +2341,7 @@ export default function FormWizardPage() {
         key={gateKey}
         formName={form.name}
         formCode={form.code}
+        formSlug={form.slug}
         agency={form.agency}
         onAccessGranted={(isDemo) => setIsDemoMode(isDemo)}
         onClose={() => window.history.back()}
@@ -1968,14 +2408,20 @@ export default function FormWizardPage() {
           onDownload={handleLocalDownload}
           onBack={() => setMode('review')}
           onSaveAndClose={() => { if (isDemoMode) { handleReturnToGate(); } else { saveDraft(form.slug, values); router.push('/'); } }}
-          onCloseSession={() => { if (isDemoMode) { handleReturnToGate(); } else { clearDraft(form.slug); router.push('/'); } }}
+          onCloseSession={() => {
+            if (isDemoMode) { handleReturnToGate(); return; }
+            handleHardClear();
+          }}
         />
         {showSuccessModal && (
           <SuccessCodeModal
             onDownloadAgain={handleLocalDownload}
             onClose={() => setShowSuccessModal(false)}
             onSaveAndClose={() => { if (isDemoMode) { handleReturnToGate(); } else { saveDraft(form.slug, values); router.push('/'); } }}
-            onCloseSession={() => { if (isDemoMode) { handleReturnToGate(); } else { clearDraft(form.slug); router.push('/'); } }}
+            onCloseSession={() => {
+              if (isDemoMode) { handleReturnToGate(); return; }
+              handleHardClear();
+            }}
           />
         )}
       </>
@@ -1983,7 +2429,10 @@ export default function FormWizardPage() {
   }
 
   const stepDef = form.steps[currentStep];
-  const stepFields = form.fields.filter((f) => f.step === currentStep + 1);
+  const stepFields = form.fields.filter((f) => {
+    if (f.step !== currentStep + 1) return false;
+    return isFieldVisible(f, values);
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -2089,6 +2538,9 @@ export default function FormWizardPage() {
             />
           ))}
         </div>
+
+        {/* Smart Assistance — offline eligibility checks (opt-in via schema). */}
+        {form.smartAssistance && <SmartPanel form={form} values={values} />}
 
         {/* Step nav */}
         <div className="mt-8 flex gap-3">
@@ -2299,11 +2751,17 @@ function FieldInput({
   const [acFocused, setAcFocused] = useState(false);
   const acBlurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Smart-assistance: per-option contextual hint (green) takes precedence
+  // over the static field.hint (gray).
+  const optionHint = field.optionHints && value ? field.optionHints[value] : undefined;
+
   const commonProps = {
     id: field.id,
     value,
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-      const v = field.autoUppercase ? e.target.value.toUpperCase() : e.target.value;
+      let v = e.target.value;
+      if (field.mask) v = applyMask(field.mask, v);
+      if (field.autoUppercase) v = v.toUpperCase();
       onChange(v);
     },
     placeholder: field.placeholder ?? '',
@@ -2321,6 +2779,33 @@ function FieldInput({
     ? acOptions.filter((o) => o.toLowerCase().includes(acQuery)).slice(0, 8)
     : acOptions.slice(0, 8);
   const showAcList = field.type === 'autocomplete' && acFocused && acSuggestions.length > 0;
+
+  // ── Checkbox (Smart Assistance: Same-as-Permanent style toggle) ──────────
+  if (field.type === 'checkbox') {
+    const checked = value === 'true' || value === '1';
+    return (
+      <div>
+        <label className="flex items-start gap-2 cursor-pointer select-none rounded-lg border border-gray-200 bg-white px-3 py-2.5 hover:border-blue-400 transition-colors">
+          <input
+            type="checkbox"
+            id={field.id}
+            checked={checked}
+            onChange={(e) => onChange(e.target.checked ? 'true' : '')}
+            className="mt-0.5 h-4 w-4 accent-blue-600 cursor-pointer"
+          />
+          <span className="text-sm font-medium text-gray-900">
+            {labelText}
+            {isOptional && <span className="ml-1 text-xs font-normal text-gray-400">(optional)</span>}
+          </span>
+        </label>
+        {(optionHint || field.hint) && (
+          <p className={`mt-1 text-xs ${optionHint ? 'text-green-700' : 'text-gray-400'}`}>
+            {optionHint || field.hint}
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -2363,7 +2848,6 @@ function FieldInput({
               setAcFocused(true);
             }}
             onBlur={() => {
-              // Delay so click on a suggestion can fire before list disappears.
               acBlurTimer.current = setTimeout(() => setAcFocused(false), 150);
             }}
           />
@@ -2379,7 +2863,6 @@ function FieldInput({
                   aria-selected={value === opt}
                   className="px-3 py-2 cursor-pointer text-sm text-gray-900 hover:bg-blue-50"
                   onMouseDown={(e) => {
-                    // Use onMouseDown so it fires before the input's blur.
                     e.preventDefault();
                     onChange(field.autoUppercase ? opt.toUpperCase() : opt);
                     setAcFocused(false);
@@ -2392,14 +2875,13 @@ function FieldInput({
           )}
         </div>
       ) : field.type === 'date' ? (
-        // Rule 2 — Clear icon beside the textbox.
         // Rule 3 — site-wide: format = mm / dd / yyyy (masked text, not native picker).
         <div className="relative">
           <input
             type="text"
             id={field.id}
             value={value}
-            onChange={(e) => onChange(formatDateMask(e.target.value))}
+            onChange={(e) => onChange(applyMask('date', e.target.value))}
             placeholder="mm / dd / yyyy"
             className="input-field pr-9"
             inputMode="numeric"
@@ -2424,12 +2906,192 @@ function FieldInput({
         <input type={field.type} {...commonProps} />
       )}
 
-      {field.hint && (
-        <p className="mt-1 text-xs text-gray-400">{field.hint}</p>
+      {(optionHint || field.hint) && (
+        <p className={`mt-1 text-xs ${optionHint ? 'text-green-700' : 'text-gray-400'}`}>
+          {optionHint || field.hint}
+        </p>
       )}
     </div>
   );
 }
+
+// ─── SmartPanel ───────────────────────────────────────────────────────────────
+// Renders an offline Smart Assistance card driven by `form.smartAssistance`:
+//   • Live eligibility checklist (age, contributions, loan cap, digit count, email)
+//   • Live amortization (offline calculator) when applicable
+// Other forms can opt-in by populating `smartAssistance` on their FormSchema.
+// See L-SMART-01 in QuickFormsPH-PDFGenerationLearnings.md.
+function SmartPanel({ form, values }: { form: FormSchema; values: FormValues }) {
+  const sa = form.smartAssistance;
+  if (!sa) return null;
+
+  // ── Eligibility ────────────────────────────────────────────────────────
+  const checks = (sa.eligibility ?? []).map((rule) => {
+    let pass: boolean | null = null;
+    let note = '';
+    // `any-non-empty` is a multi-field rule — evaluated outside the
+    // single-field "raw" gate (L-SMART-PMRF-FN-01).
+    if (rule.rule === 'any-non-empty') {
+      const filled = rule.fieldIds.filter((fid) => (values[fid] ?? '').trim() !== '');
+      pass = filled.length > 0;
+      note = `${filled.length}/${rule.fieldIds.length}`;
+      return { id: rule.id, label: rule.label, pass, note };
+    }
+    const raw = (values[rule.fieldId] ?? '').trim();
+    if (!raw) {
+      pass = null;
+    } else if (rule.rule === 'age-min') {
+      const d = parseMaskedDate(raw);
+      if (d) {
+        const yrs = ageFrom(d);
+        pass = yrs >= rule.min;
+        note = `${yrs} yrs`;
+      }
+    } else if (rule.rule === 'months-min') {
+      const d = parseMaskedDate(raw);
+      if (d) {
+        const m = monthsBetween(d, new Date());
+        pass = m >= rule.min;
+        note = `${m} mo`;
+      }
+    } else if (rule.rule === 'amount-max') {
+      const n = Number(raw.replace(/[^\d]/g, ''));
+      if (!isNaN(n) && n > 0) {
+        pass = n <= rule.max;
+        note = fmtPHP(n);
+      }
+    } else if (rule.rule === 'digits-eq') {
+      const d = raw.replace(/\D/g, '');
+      pass = d.length === rule.count;
+      note = `${d.length}/${rule.count}`;
+    } else if (rule.rule === 'email') {
+      pass = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
+    } else if (rule.rule === 'date-not-before') {
+      const a = parseMaskedDate(raw);
+      const b = parseMaskedDate((values[rule.notBeforeFieldId] ?? '').trim());
+      if (a && b) {
+        const diff = Math.floor((a.getTime() - b.getTime()) / 86400000);
+        pass = diff >= 0;
+        note = diff >= 0 ? `+${diff}d` : `${diff}d`;
+      }
+    } else if (rule.rule === 'days-since-max') {
+      const d = parseMaskedDate(raw);
+      if (d) {
+        const now = new Date();
+        const days = Math.floor((now.getTime() - d.getTime()) / 86400000);
+        pass = days >= 0 && days <= rule.max;
+        note = `${days}d / ${rule.max}d`;
+      }
+    } else if (rule.rule === 'phone-ph') {
+      // L-SMART-PMRF-FN-01: PH phone — 10-digit landline or 11-digit mobile.
+      const d = raw.replace(/\D/g, '').replace(/^63/, '').replace(/^0/, '');
+      if (d.startsWith('9')) { pass = d.length === 10; note = `${d.length}/10 mobile`; }
+      else                   { pass = d.length === 9 || d.length === 10; note = `${d.length} landline`; }
+    }
+    return { id: rule.id, label: rule.label, pass, note };
+  });
+
+  const totalEvaluated = checks.filter((c) => c.pass !== null).length;
+  const totalPassed    = checks.filter((c) => c.pass === true).length;
+
+  // ── Amortization ───────────────────────────────────────────────────────
+  let amort: { monthly: number; totalInterest: number; totalRepayment: number; months: number } | null = null;
+  if (sa.amortization) {
+    const a = sa.amortization;
+    const principal = Number((values[a.principalFieldId] ?? '').replace(/[^\d]/g, ''));
+    const termLabel = values[a.termFieldId] ?? '';
+    const months = a.termMap[termLabel];
+    const r = amortize(principal, a.annualRate, months);
+    if (r && months) amort = { ...r, months };
+  }
+
+  return (
+    <aside
+      className="mt-6 rounded-xl border border-blue-200 bg-blue-50/60 shadow-sm"
+      aria-label="Smart Assistance"
+    >
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-xl px-4 py-3 select-none">
+          <span className="inline-flex items-center gap-1 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+            ✨ Smart Assist
+          </span>
+          {sa.eligibility && sa.eligibility.length > 0 && (
+            <span className="ml-auto text-xs font-mono text-blue-700">
+              {totalPassed}/{checks.length}
+              {totalEvaluated < checks.length ? ` (${checks.length - totalEvaluated} pending)` : ''}
+            </span>
+          )}
+          <span
+            aria-hidden
+            className="text-blue-600 text-xs transition-transform duration-150 group-open:rotate-180"
+          >
+            ▾
+          </span>
+        </summary>
+        <div className="px-4 pb-4">
+          {sa.eligibility && sa.eligibility.length > 0 && (
+            <div className="mb-3">
+              <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-blue-900">Eligibility</h3>
+              <ul className="space-y-1">
+                {checks.map((c) => (
+                  <li key={c.id} className="flex items-start gap-2 text-xs">
+                    <span
+                      aria-hidden
+                      className={`mt-0.5 inline-block h-4 w-4 flex-none rounded-full text-center text-[10px] font-bold leading-4 ${
+                        c.pass === true ? 'bg-green-600 text-white'
+                          : c.pass === false ? 'bg-red-500 text-white'
+                          : 'bg-gray-300 text-gray-700'
+                      }`}
+                    >
+                      {c.pass === true ? '✓' : c.pass === false ? '✕' : '·'}
+                    </span>
+                    <span className={
+                      c.pass === false ? 'text-red-700'
+                      : c.pass === true ? 'text-green-800'
+                      : 'text-gray-600'
+                    }>
+                      {c.label}
+                      {c.note && <span className="ml-1 font-mono text-gray-500">({c.note})</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {sa.amortization && (
+            <div className="rounded-lg border border-blue-200 bg-white p-3">
+              <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-blue-900">
+                {sa.amortization.label || 'Amortization'}
+              </h3>
+              {amort ? (
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <div className="text-[10px] uppercase text-gray-500">Monthly</div>
+                    <div className="text-sm font-bold text-blue-700">{fmtPHP(amort.monthly)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-gray-500">Total Interest</div>
+                    <div className="text-sm font-bold text-gray-900">{fmtPHP(amort.totalInterest)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase text-gray-500">Total Repay</div>
+                    <div className="text-sm font-bold text-gray-900">{fmtPHP(amort.totalRepayment)}</div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500">
+                  Enter loan amount &amp; loan term to see your live monthly payment.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </details>
+    </aside>
+  );
+}
+
 
 // ─── DraftResumeModal ────────────────────────────────────────────────────────
 function DraftResumeModal({
@@ -2582,7 +3244,7 @@ function ReviewScreen({
         </p>
 
         {form.steps.map((step, stepIdx) => {
-          const stepFields = form.fields.filter((f) => f.step === stepIdx + 1);
+          const stepFields = form.fields.filter((f) => f.step === stepIdx + 1 && isFieldVisible(f, values));
           const filledCount = stepFields.filter((f) => (values[f.id] ?? '').trim() !== '').length;
           return (
             <div key={stepIdx} className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -2877,6 +3539,48 @@ function GeneratingScreen() {
   );
 }
 
+// ─── ConfettiBurst ────────────────────────────────────────────────────────────
+// Tiny dependency-free confetti sprinkle rendered inside its parent. The
+// `trigger` prop is a counter that increments to retrigger the animation.
+const CONFETTI_PIECES = Array.from({ length: 14 }, (_, i) => {
+  // Deterministic-but-varied angles & colors so SSR & CSR markup match.
+  const angle = (i / 14) * Math.PI * 2;
+  const dist  = 38 + (i % 3) * 8;
+  const colors = ['#10b981', '#34d399', '#fbbf24', '#60a5fa', '#f472b6', '#a78bfa'];
+  return {
+    dx: Math.cos(angle) * dist,
+    dy: Math.sin(angle) * dist - 6, // bias upward
+    rot: (i * 47) % 360,
+    color: colors[i % colors.length],
+    delay: (i % 4) * 20,
+  };
+});
+
+function ConfettiBurst({ trigger }: { trigger: number }) {
+  if (trigger <= 0) return null;
+  return (
+    <span
+      key={trigger}
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center"
+    >
+      {CONFETTI_PIECES.map((p, i) => (
+        <span
+          key={i}
+          className="confetti-piece absolute block w-1.5 h-2 rounded-[1px]"
+          style={{
+            backgroundColor: p.color,
+            ['--dx' as string]: `${p.dx}px`,
+            ['--dy' as string]: `${p.dy}px`,
+            ['--rot' as string]: `${p.rot}deg`,
+            animationDelay: `${p.delay}ms`,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
 function PaymentModal({
   gcashNumber: gcashNumberProp,
   gcashName: gcashNameProp,
@@ -2903,6 +3607,15 @@ function PaymentModal({
   const [showQrPickerPopup, setShowQrPickerPopup] = useState(false);
   const [paymentMode, setPaymentMode]     = useState<'process' | 'upload_only'>('process');
   const [showAttachBtn, setShowAttachBtn] = useState(false);
+  const [thankYouBurst, setThankYouBurst] = useState(0); // increments to retrigger confetti animation
+  const [thankYouPressed, setThankYouPressed] = useState(false); // swaps label set after press
+  // Press handler — fires confetti, swaps labels, and auto-reverts after 5s
+  // so the user can re-attach if they cancel the OS file picker without choosing.
+  const handleThankYouPress = useCallback(() => {
+    setThankYouBurst((n) => n + 1);
+    setThankYouPressed(true);
+    window.setTimeout(() => setThankYouPressed(false), 5000);
+  }, []);
   // Live settings fetched from API (fall back to props)
   const [liveNumber, setLiveNumber] = useState(gcashNumberProp);
   const [liveName, setLiveName]     = useState(gcashNameProp);
@@ -3312,8 +4025,14 @@ function PaymentModal({
                       transition: 'max-height 0.4s ease, opacity 0.4s ease',
                     }}
                   >
-                    <label className="mt-1 flex items-center justify-center w-full rounded-lg border border-gray-300 bg-white hover:bg-gray-50 py-3 text-sm font-semibold text-gray-700 cursor-pointer transition-colors">
-                      Attach Transfer Screenshot
+                    <label
+                      onMouseDown={handleThankYouPress}
+                      onTouchStart={handleThankYouPress}
+                      className="thankyou-btn relative overflow-hidden mt-1 flex flex-col items-center justify-center w-full rounded-lg border border-emerald-300 bg-gradient-to-b from-white to-emerald-50 hover:from-emerald-50 hover:to-emerald-100 active:translate-y-[2px] active:shadow-inner shadow-[0_3px_0_0_rgba(16,185,129,0.35),0_4px_10px_-2px_rgba(16,185,129,0.25)] py-2.5 cursor-pointer transition-all duration-150"
+                    >
+                      <span className="text-sm font-semibold text-emerald-700 leading-tight relative z-10">{thankYouPressed ? 'Thank you' : 'Done'}</span>
+                      <span className="text-[10px] text-emerald-500/80 leading-tight mt-0.5 relative z-10">{thankYouPressed ? 'Opening… Please wait' : 'Attached transfer screenshot'}</span>
+                      <ConfettiBurst trigger={thankYouBurst} />
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -3336,8 +4055,14 @@ function PaymentModal({
                     transition: 'max-height 0.4s ease, opacity 0.4s ease',
                   }}
                 >
-                  <label className="flex items-center justify-center w-full rounded-lg border border-gray-300 bg-white hover:bg-gray-50 py-3 text-sm font-semibold text-gray-700 cursor-pointer transition-colors">
-                    Attach Transfer Screenshot
+                  <label
+                    onMouseDown={handleThankYouPress}
+                    onTouchStart={handleThankYouPress}
+                    className="thankyou-btn relative overflow-hidden flex flex-col items-center justify-center w-full rounded-lg border border-emerald-300 bg-gradient-to-b from-white to-emerald-50 hover:from-emerald-50 hover:to-emerald-100 active:translate-y-[2px] active:shadow-inner shadow-[0_3px_0_0_rgba(16,185,129,0.35),0_4px_10px_-2px_rgba(16,185,129,0.25)] py-2.5 cursor-pointer transition-all duration-150"
+                  >
+                    <span className="text-sm font-semibold text-emerald-700 leading-tight relative z-10">{thankYouPressed ? 'Thank you' : 'Done'}</span>
+                    <span className="text-[10px] text-emerald-500/80 leading-tight mt-0.5 relative z-10">{thankYouPressed ? 'Opening… Please wait' : 'Attached transfer screenshot'}</span>
+                    <ConfettiBurst trigger={thankYouBurst} />
                     <input
                       ref={fileInputRef}
                       type="file"

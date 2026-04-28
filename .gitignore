@@ -32,3 +32,6 @@ Thumbs.db
 # Misc
 *.tgz
 .yarn/install-state.gz
+
+# Local QA artifacts
+.qa-output/
