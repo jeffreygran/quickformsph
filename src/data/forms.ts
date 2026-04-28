@@ -2236,10 +2236,12 @@ const philhealthClaimForm3: FormSchema = {
       required: true, mask: 'time', hint: 'Format: hh:mm AM/PM', step: 2 },
 
     // ── Step 3: Clinical Narrative ──
-    // 540pt narrative band single-line capacity:
-    //   8pt native ≈ 135 chars  |  6pt min legible ≈ 200 chars (cap).
+    // L-SMART-CF3-05: narrative bands now use bounded multi-line word-wrap.
+    //   Q6 (95pt usable / 10pt line) = 9 lines × ≈130 chars ≈ 1100 cap.
+    //   Q8 (130pt) = 12 lines → 1500 cap.
+    //   Q9 (75pt)  = 7 lines  → 900 cap.
     { id: 'history_of_present_illness', label: 'Brief History of Present Illness / OB History',
-      type: 'textarea', required: true, maxLength: 200,
+      type: 'textarea', required: true, maxLength: 1100,
       hint: 'Onset, duration, character, associated symptoms, treatments tried.',
       step: 3 },
     { id: 'pe_general_survey', label: 'General Survey', type: 'textarea',
@@ -2264,10 +2266,10 @@ const philhealthClaimForm3: FormSchema = {
     { id: 'pe_genitourinary', label: 'Genitourinary (GU/IE)', type: 'textarea', required: false, maxLength: 56, step: 3 },
     { id: 'pe_extremities', label: 'Extremities', type: 'textarea', required: false, maxLength: 46, step: 3 },
     { id: 'course_in_the_ward', label: 'Course in the Ward', type: 'textarea',
-      required: true, maxLength: 200,
+      required: true, maxLength: 1500,
       hint: 'Chronological clinical course, treatments given, response.', step: 3 },
     { id: 'pertinent_lab_findings', label: 'Pertinent Laboratory & Diagnostic Findings',
-      type: 'textarea', required: false, maxLength: 200,
+      type: 'textarea', required: false, maxLength: 900,
       placeholder: 'e.g., CBC: Hgb 12.4 g/dL, WBC 8.6; UA: normal; CXR: clear',
       hint: 'CBC, urinalysis, fecalysis, X-ray, biopsy, etc.', step: 3 },
 

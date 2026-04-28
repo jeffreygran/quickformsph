@@ -41,7 +41,7 @@ const PERSONAS: Record<string, string>[] = [
     pe_genitourinary: 'Cervix 4 cm dilated, 80% effaced, station 0',
     pe_extremities: 'No edema, full and equal pulses',
     course_in_the_ward:
-      'Patient progressed in active labor and delivered live baby boy via NSD on 03/15/2026 at 1130H, BW 3.2 kg, AS 9/9. Postpartum course unremarkable; routine postpartum care + breastfeeding counselling.',
+      'Patient progressed in active labor and delivered a live baby boy via NSD on 03/15/2026 at 1130H, BW 3.2 kg, AS 9/9. Postpartum course unremarkable. Routine postpartum care + breastfeeding counselling were initiated. Lochia rubra moderate, fundus well-contracted at level of umbilicus on day 1, descending 1 fingerbreadth daily. No signs of infection. Patient ambulated without difficulty by day 2. Discharged improved on hospital day 3 with iron supplementation, paracetamol PRN for after-pains, and follow-up at OB-OPD in 1 week.',
     pertinent_lab_findings: 'CBC: Hgb 11.8 g/dL, WBC 9.2; UA: normal; HBsAg negative',
     patient_disposition: 'Improved',
     transferred_hci_name: '', expired_date: '',
@@ -104,7 +104,7 @@ const PERSONAS: Record<string, string>[] = [
     pe_genitourinary: 'Profuse fresh vaginal bleeding, retained placental fragments',
     pe_extremities: 'Cold and clammy, capillary refill > 4 sec',
     course_in_the_ward:
-      'Resuscitated with crystalloids + blood products. Manual removal of retained placental tissue performed. Despite aggressive resuscitation patient developed DIC, cardiac arrest; expired at 0815H 01/21/2026.',
+      'Resuscitated with crystalloids and blood products (4u PRBC, 2u FFP, 1u platelet concentrate). Manual removal of retained placental tissue performed under sedation. Despite aggressive resuscitation and uterotonics (oxytocin drip, methergine, carbetocin), patient developed disseminated intravascular coagulation. Bleeding remained uncontrolled. Patient went into cardiac arrest at 0745H. CPR performed for 30 minutes per ACLS protocol with epinephrine and bicarbonate; no return of spontaneous circulation. Patient pronounced expired at 0815H on 01/21/2026. Family informed; remains released to mortuary per family request.',
     pertinent_lab_findings:
       'Hgb 4.2 g/dL; PT/PTT prolonged; platelets 45; lactate 8.4',
     patient_disposition: 'Expired',

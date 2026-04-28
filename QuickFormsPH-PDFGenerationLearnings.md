@@ -3957,3 +3957,105 @@ clinically realistic text @Mai signed off on.
   band. Still print-legible at 100%.
 - Inputs in `/forms/philhealth-claim-form-3` now show character counter
   ticking against the new caps; user is blocked from typing past the limit.
+
+---
+
+## L-SMART-CF3-05 — Bounded multi-line word-wrap + center-aligned single-cell dates
+
+**Symptoms (@Mai 4-band QA on Sample C).**
+1. **Q6 / Q8 large empty whitespace:** narrative bands have ~95–130 pt of
+   vertical space but text rendered on a single line, leaving 80% of the band
+   blank when the value was short and silently auto-shrinking when long.
+2. **Q4 / Q5 date digits drifted left of cell center:** "01" "20" "2026"
+   appear hugging the left divider of each box, not centered.
+
+**Root causes.**
+1. The render path had only single-line auto-shrink (L-SMART-CF3-04). Long
+   narratives squeezed into 6 pt instead of using the available vertical
+   space; short narratives wasted it.
+2. Q4/Q5 cells (Month / Day / Year / Hour / Min) are SINGLE boxes — not
+   per-digit grids like the PAN row. I had used left-aligned `x` + `maxWidth`
+   placement, which left-justifies inside the cell. Helvetica digits at 10pt
+   are ~5.5 pt wide → "20" is 11 pt, but the box is 22.5 pt → 11.5 pt of
+   right-side blank.
+
+**Pattern 10 — Bounded multi-line word-wrap inside a fixed-height band.**
+
+Added new `CoordEntry` fields:
+```ts
+wrap?: boolean;
+maxHeight?: number;   // band height in pt; render stops when consumed
+lineHeight?: number;  // default fontSize * 1.2
+```
+Algorithm:
+1. Word-tokenize on `\s+`.
+2. Greedy line-fill: append next word if line+word measures ≤ `maxWidth`.
+3. Flush full lines stacked downward at `y, y - lineHeight, y - 2·lineHeight, …`.
+4. Stop emitting lines once `maxHeight / lineHeight` lines drawn.
+5. Hard-break inside a single word only if that word alone exceeds
+   `maxWidth` (rare — long URLs / PSN strings).
+
+**Why this is safe (vs L-SLF065-R3-01's pdf-lib wrap that spilled into next
+row):** we **never** pass `maxWidth` to `page.drawText`. We compute line
+breaks manually using `font.widthOfTextAtSize` and emit one `drawText` call
+per line at an explicit y. The band's `maxHeight` is a hard ceiling — extra
+lines simply don't render (consistent with Pattern 9: input `maxLength` is
+the ONLY user-visible cap; the layout engine just lays out what fits).
+
+**Pattern 11 — `align: 'center'` for single-cell date / time / numeric boxes.**
+
+Added `align?: 'left' | 'center'` to `CoordEntry`. When `'center'`, `x` is
+treated as the box midpoint and the renderer shifts left by `width/2`. Use
+this for ANY single-cell field where the target cell is a printed rectangle
+with a known midpoint (Q4 dates, Q5 dates, Q4/Q5 times, currency boxes,
+percentages, single-cell year boxes on other PhilHealth forms).
+
+**Cell-pair extraction recipe (cascade target for intake script):**
+```python
+# Find rect dividers in a known top-band, sort by x, pair adjacent → centers
+v = sorted([r['x0'] for r in p0.rects
+            if T_lo<r['top']<T_hi and 9<r['height']<14 and r['width']<2])
+pairs   = list(zip(v[::2], v[1::2]))   # (left, right) per cell
+centers = [(L+R)/2 for L,R in pairs]
+```
+
+**Cell measurements baked into CF-3 (L-SMART-CF3-05).**
+| Cell | Pair | Center |
+|---|---|---|
+| Q4/Q5 Month | 102.84–125.42 | 114.13 |
+| Q4/Q5 Day | 142.34–164.90 | 153.62 |
+| Q4/Q5 Year | 181.82–226.97 | 204.40 |
+| Q4/Q5 Hour | 311.57–334.15 | 322.86 |
+| Q4/Q5 Min | 362.35–384.91 | 373.63 |
+
+**Section band heights (CF-3 Part I).**
+| Section | top → bottom | total | usable¹ | maxHeight set |
+|---|---|---|---|---|
+| Q6 HPI | 307.5 → 452.2 | 144.7 | ≈95 | **95** |
+| Q8 Course | 642.2 → 800.0 | 157.8 | ≈130 | **130** |
+| Q9 Lab | 800.0 → 913.4 | 113.4 | ≈75 | **75** |
+
+¹usable = total − label-row height − bottom padding.
+
+**Schema cap recalibration (forms.ts, L-SMART-CF3-05).**
+`maxLength` for wrapped fields = `usable_lines × ≈130_chars_per_540pt_line`:
+- Q6 HPI: 9 lines × 130 → **1100** (was 200)
+- Q8 Course: 12 lines × 130 → **1500** (was 200)
+- Q9 Lab: 7 lines × 130 → **900** (was 200)
+
+**Cascade target for intake auto-onboarding.**
+1. For every text field whose underline rect is followed by ≥40 pt of
+   vertical whitespace before the next section divider, mark
+   `wrap: true; maxHeight: <measured>; lineHeight: fontSize * 1.2`.
+2. Recompute `maxLength` as `floor(maxHeight / lineHeight) × chars_per_line`.
+3. For every single-cell date/time/numeric box detected via paired rect
+   dividers, emit `align: 'center'` with `x = (L + R) / 2`.
+
+**Verification (Sample C).**
+- Q4 admitted: `01 — 20 — 2026` digits visually centered in each box.
+- Q5 discharged: `01 — 21 — 2026` likewise. Time `08 : 30 PM` centered.
+- Q8 narrative (594-char paragraph) word-wraps to 5 lines stacked at y, y−10,
+  y−20, y−30, y−40 inside the 130 pt band; visually balanced; no overflow
+  into Q9.
+- Q6 short narrative still single-line as expected (no padding artifact).
+- `npm run build` clean; 16/16 smoke tests pass.

@@ -19,6 +19,16 @@ type CoordEntry = {
   fontSize?: number;
   /** If set, render one character per box, centered at each x-coordinate listed here. */
   boxCenters?: number[];
+  /** Horizontal anchor for `x`. Default 'left'. 'center' is used by single-cell
+   *  date-style boxes (Month / Day / Year) where `x` is the box center. */
+  align?: 'left' | 'center';
+  /** Bounded multi-line word-wrap. When true, the renderer breaks the value on
+   *  word boundaries to fit `maxWidth`, then draws each line stacked downward
+   *  starting at `y`. Stops emitting lines once `maxHeight` is consumed.
+   *  Defaults: lineHeight = fontSize * 1.2; maxHeight unlimited (caller-set). */
+  wrap?: boolean;
+  maxHeight?: number;
+  lineHeight?: number;
 };
 type CoordsMap = Record<string, CoordEntry>;
 
@@ -981,26 +991,30 @@ const CF3_FIELD_COORDS: CoordsMap = {
   chief_complaint:           { page: 0, x: 432, y: CF3_PAGE_H - 230, maxWidth: 165, fontSize: 7 },
 
   // ── Q4 Date Admitted: split mm/dd/yyyy + Time hh:mm AM/PM ──
-  // Labels at top=258 ("Month Day Year" caption); underlines at top≈266.
-  // Boxes appear to end ≈275; baseline = 1008 - 273 = 735.
-  date_admitted_month:       { page: 0, x: 113, y: CF3_PAGE_H - 252, maxWidth:  20 },
-  date_admitted_day:         { page: 0, x: 156, y: CF3_PAGE_H - 252, maxWidth:  20 },
-  date_admitted_year:        { page: 0, x: 198, y: CF3_PAGE_H - 252, maxWidth:  35 },
-  time_admitted_hour:        { page: 0, x: 317, y: CF3_PAGE_H - 252, maxWidth:  16 },
-  time_admitted_min:         { page: 0, x: 367, y: CF3_PAGE_H - 252, maxWidth:  16 },
+  // Each cell is a single box (NOT a per-digit grid like the PAN row); use
+  //   align:'center' so the digits sit centered on the box midpoint.
+  // Box pairs measured from rect dividers (L-SMART-CF3-05):
+  //   Month 102.84–125.42 → c=114.13   Day 142.34–164.90 → c=153.62
+  //   Year  181.82–226.97 → c=204.40   Hour 311.57–334.15 → c=322.86
+  //   Min   362.35–384.91 → c=373.63
+  date_admitted_month:       { page: 0, x: 114.13, y: CF3_PAGE_H - 252, align: 'center' },
+  date_admitted_day:         { page: 0, x: 153.62, y: CF3_PAGE_H - 252, align: 'center' },
+  date_admitted_year:        { page: 0, x: 204.40, y: CF3_PAGE_H - 252, align: 'center' },
+  time_admitted_hour:        { page: 0, x: 322.86, y: CF3_PAGE_H - 252, align: 'center' },
+  time_admitted_min:         { page: 0, x: 373.63, y: CF3_PAGE_H - 252, align: 'center' },
 
   // ── Q5 Date Discharged + Time discharged ──
-  // Underlines at top≈296; baseline = 1008 - 303 = 705.
-  date_discharged_month:     { page: 0, x: 113, y: CF3_PAGE_H - 282, maxWidth:  20 },
-  date_discharged_day:       { page: 0, x: 156, y: CF3_PAGE_H - 282, maxWidth:  20 },
-  date_discharged_year:      { page: 0, x: 198, y: CF3_PAGE_H - 282, maxWidth:  35 },
-  time_discharged_hour:      { page: 0, x: 317, y: CF3_PAGE_H - 282, maxWidth:  16 },
-  time_discharged_min:       { page: 0, x: 367, y: CF3_PAGE_H - 282, maxWidth:  16 },
+  date_discharged_month:     { page: 0, x: 114.13, y: CF3_PAGE_H - 282, align: 'center' },
+  date_discharged_day:       { page: 0, x: 153.62, y: CF3_PAGE_H - 282, align: 'center' },
+  date_discharged_year:      { page: 0, x: 204.40, y: CF3_PAGE_H - 282, align: 'center' },
+  time_discharged_hour:      { page: 0, x: 322.86, y: CF3_PAGE_H - 282, align: 'center' },
+  time_discharged_min:       { page: 0, x: 373.63, y: CF3_PAGE_H - 282, align: 'center' },
 
   // ── Q6 Brief History of Present Illness / OB History ──
-  // Label at top=314 → baseline ≈322. Empty narrative band below.
-  // First line of free-text starts ≈10pt below label baseline.
-  history_of_present_illness:{ page: 0, x:  60, y: CF3_PAGE_H - 350, maxWidth: 540, fontSize: 8 },
+  // Section band top=307.5 → bottom=452.2 (height 144.7pt; usable ≈95pt below
+  //   label baseline). 540pt-wide narrative; word-wrap stacked downward.
+  history_of_present_illness:{ page: 0, x:  60, y: CF3_PAGE_H - 350, maxWidth: 540, fontSize: 8,
+                               wrap: true, maxHeight: 95, lineHeight: 10 },
 
   // ── Q7 Physical Examination block ──
   // Section header at top≈459. Sub-rows below.
@@ -1021,12 +1035,16 @@ const CF3_FIELD_COORDS: CoordsMap = {
   pe_extremities:            { page: 0, x: 460, y: CF3_PAGE_H - 568, maxWidth: 140, fontSize: 8 },
 
   // ── Q8 Course in the Wards ──
-  // Label "8. Course in the Wards" at top≈680. Empty narrative band below.
-  course_in_the_ward:        { page: 0, x:  60, y: CF3_PAGE_H - 700, maxWidth: 540, fontSize: 8 },
+  // Section band top=642.2 → bottom=800.0 (height 157.8pt; usable ≈130pt below
+  //   label baseline). word-wrap stacked downward.
+  course_in_the_ward:        { page: 0, x:  60, y: CF3_PAGE_H - 670, maxWidth: 540, fontSize: 8,
+                               wrap: true, maxHeight: 130, lineHeight: 10 },
 
   // ── Q9 Pertinent Laboratory and Diagnostic Findings ──
-  // Label at top=808. First narrative line starts ≈12pt below.
-  pertinent_lab_findings:    { page: 0, x:  60, y: CF3_PAGE_H - 825, maxWidth: 540, fontSize: 8 },
+  // Section band top=800.0 → bottom=913.4 (height 113.4pt; usable ≈75pt below
+  //   label baseline).
+  pertinent_lab_findings:    { page: 0, x:  60, y: CF3_PAGE_H - 825, maxWidth: 540, fontSize: 8,
+                               wrap: true, maxHeight: 75, lineHeight: 10 },
 
   // ── Q10 Disposition: Transferred-HCI text + Expired-date (when applicable) ──
   // Disposition label at top=940; checkboxes top≈939; conditional text fields
@@ -3692,6 +3710,51 @@ export async function generatePDF(
       //   next row's cell (root cause of SLF-065 R3 visual chaos).
       // See L-SLF065-R3-01 + L-SMART-CF3-04 in QuickFormsPH-PDFGenerationLearnings.md.
       const MIN_LEGIBLE_FONT_SIZE = 6;
+
+      // ── Bounded multi-line word-wrap branch (L-SMART-CF3-05) ─────────────
+      //   Used by long narrative bands (Q6 HPI / Q8 Course / Q9 Lab on CF-3).
+      //   Breaks on whitespace; emits lines stacked DOWNWARD from `y`; stops
+      //   once `maxHeight` is consumed. Never overflows into the next section.
+      if (coords.wrap && coords.maxWidth) {
+        const lineHeight = coords.lineHeight ?? fontSize * 1.2;
+        const maxLines = coords.maxHeight
+          ? Math.max(1, Math.floor(coords.maxHeight / lineHeight))
+          : Infinity;
+        const words = text.split(/\s+/).filter(Boolean);
+        const lines: string[] = [];
+        let cur = '';
+        for (const w of words) {
+          const trial = cur ? cur + ' ' + w : w;
+          if (font.widthOfTextAtSize(trial, fontSize) <= coords.maxWidth) {
+            cur = trial;
+          } else {
+            if (cur) lines.push(cur);
+            // word longer than maxWidth — hard-break by char (rare; long URLs)
+            if (font.widthOfTextAtSize(w, fontSize) > coords.maxWidth) {
+              let chunk = '';
+              for (const ch of w) {
+                if (font.widthOfTextAtSize(chunk + ch, fontSize) <= coords.maxWidth) chunk += ch;
+                else { lines.push(chunk); chunk = ch; }
+              }
+              cur = chunk;
+            } else cur = w;
+          }
+          if (lines.length >= maxLines) break;
+        }
+        if (cur && lines.length < maxLines) lines.push(cur);
+        for (let i = 0; i < Math.min(lines.length, maxLines); i++) {
+          page.drawText(lines[i], {
+            x: coords.x,
+            y: coords.y + yOff - i * lineHeight,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+          });
+        }
+        continue;
+      }
+
+      // ── Single-line auto-shrink branch ───────────────────────────────────
       let drawSize = fontSize;
       if (coords.maxWidth) {
         const measured = font.widthOfTextAtSize(text, drawSize);
@@ -3700,8 +3763,14 @@ export async function generatePDF(
           drawSize = Math.max(MIN_LEGIBLE_FONT_SIZE, scaled);
         }
       }
+      // Horizontal anchor: 'center' shifts x left by half the rendered width
+      //   (used by date-box single cells where `x` is the box midpoint).
+      const renderedW = font.widthOfTextAtSize(text, drawSize);
+      const drawX = coords.align === 'center'
+        ? coords.x - renderedW / 2
+        : coords.x;
       page.drawText(text, {
-        x: coords.x,
+        x: drawX,
         y: coords.y + yOff,
         size: drawSize,
         font,
