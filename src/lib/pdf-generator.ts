@@ -1357,6 +1357,76 @@ const CF4_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number;
     'Pain':                     { page: 0, x: 272, y: CF4_PAGE_H - 715.3 - 9 },
     'Others':                   { page: 0, x: 380, y: CF4_PAGE_H - 715.3 - 9 },
   },
+  // 5. Physical Examination — per-system multi-tick grids (L-SMART-CF4-03).
+  //   Each system has its own field id so 'Essentially normal' resolves
+  //   to the right system. Source PDF has D-glyph checkboxes at col x =
+  //   119, 218, 326, 425 (tick at +5pt). HEENT lives on page 0 (top=851/865);
+  //   CHEST/CVS/ABDOMEN/GU/SKIN/NEURO live on page 1.
+  pe_heent: {
+    'Essentially normal':           { page: 0, x: 124, y: CF4_PAGE_H - 851 - 9 },
+    'Abnormal pupillary reaction':  { page: 0, x: 223, y: CF4_PAGE_H - 851 - 9 },
+    'Cervical lymphadenopathy':     { page: 0, x: 331, y: CF4_PAGE_H - 851 - 9 },
+    'Dry mucous membrane':          { page: 0, x: 430, y: CF4_PAGE_H - 851 - 9 },
+    'Icteric sclerae':              { page: 0, x: 124, y: CF4_PAGE_H - 865 - 9 },
+    'Pale conjunctivae':            { page: 0, x: 223, y: CF4_PAGE_H - 865 - 9 },
+    'Sunken eyeballs':              { page: 0, x: 331, y: CF4_PAGE_H - 865 - 9 },
+    'Sunken fontanelle':            { page: 0, x: 430, y: CF4_PAGE_H - 865 - 9 },
+  },
+  pe_chest_lungs: {
+    'Essentially normal':                       { page: 1, x: 124, y: CF4_PAGE_H - 75.9 - 9 },
+    'Asymmetrical chest expansion':             { page: 1, x: 223, y: CF4_PAGE_H - 75.9 - 9 },
+    'Decreased breath sounds':                  { page: 1, x: 331, y: CF4_PAGE_H - 75.9 - 9 },
+    'Wheezes':                                  { page: 1, x: 430, y: CF4_PAGE_H - 75.9 - 9 },
+    'Lump/s over breast(s)':                    { page: 1, x: 124, y: CF4_PAGE_H - 89.9 - 9 },
+    'Rales/crackles/rhonchi':                   { page: 1, x: 223, y: CF4_PAGE_H - 89.9 - 9 },
+    'Intercostal rib/clavicular retraction':    { page: 1, x: 331, y: CF4_PAGE_H - 89.9 - 9 },
+  },
+  pe_cvs: {
+    'Essentially normal':         { page: 1, x: 124, y: CF4_PAGE_H - 121.3 - 9 },
+    'Displaced apex beat':        { page: 1, x: 223, y: CF4_PAGE_H - 121.3 - 9 },
+    'Heaves and/or thrills':      { page: 1, x: 331, y: CF4_PAGE_H - 121.3 - 9 },
+    'Pericardial bulge':          { page: 1, x: 430, y: CF4_PAGE_H - 121.3 - 9 },
+    'Irregular rhythm':           { page: 1, x: 124, y: CF4_PAGE_H - 135.7 - 9 },
+    'Muffled heart sounds':       { page: 1, x: 223, y: CF4_PAGE_H - 135.7 - 9 },
+    'Murmur':                     { page: 1, x: 331, y: CF4_PAGE_H - 135.7 - 9 },
+  },
+  pe_abdomen: {
+    'Essentially normal':         { page: 1, x: 124, y: CF4_PAGE_H - 167.3 - 9 },
+    'Abdominal rigidity':         { page: 1, x: 223, y: CF4_PAGE_H - 167.3 - 9 },
+    'Abdomen tenderness':         { page: 1, x: 331, y: CF4_PAGE_H - 167.3 - 9 },
+    'Hyperactive bowel sounds':   { page: 1, x: 430, y: CF4_PAGE_H - 167.3 - 9 },
+    'Palpable mass(es)':          { page: 1, x: 124, y: CF4_PAGE_H - 181.7 - 9 },
+    'Tympanitic/dull abdomen':    { page: 1, x: 223, y: CF4_PAGE_H - 181.7 - 9 },
+    'Uterine contraction':        { page: 1, x: 331, y: CF4_PAGE_H - 181.7 - 9 },
+  },
+  pe_gu: {
+    'Essentially normal':            { page: 1, x: 124, y: CF4_PAGE_H - 215.9 - 9 },
+    'Blood stained in exam finger':  { page: 1, x: 223, y: CF4_PAGE_H - 215.9 - 9 },
+    'Cervical dilatation':           { page: 1, x: 331, y: CF4_PAGE_H - 215.9 - 9 },
+    'Presence of abnormal discharge':{ page: 1, x: 430, y: CF4_PAGE_H - 215.9 - 9 },
+  },
+  pe_skin: {
+    'Essentially normal':         { page: 1, x: 124, y: CF4_PAGE_H - 247.9 - 9 },
+    'Clubbing':                   { page: 1, x: 223, y: CF4_PAGE_H - 247.9 - 9 },
+    'Cyanosis/mottled skin':      { page: 1, x: 331, y: CF4_PAGE_H - 247.9 - 9 },
+    'Cold clammy skin':           { page: 1, x: 430, y: CF4_PAGE_H - 247.9 - 9 },
+    'Edema/swelling':             { page: 1, x: 124, y: CF4_PAGE_H - 262.7 - 9 },
+    'Decreased mobility':         { page: 1, x: 223, y: CF4_PAGE_H - 262.7 - 9 },
+    'Pale nailbeds':              { page: 1, x: 331, y: CF4_PAGE_H - 262.7 - 9 },
+    'Poor skin turgor':           { page: 1, x: 430, y: CF4_PAGE_H - 262.7 - 9 },
+    'Rashes/petechiae':           { page: 1, x: 124, y: CF4_PAGE_H - 276.8 - 9 },
+    'Weak pulses':                { page: 1, x: 223, y: CF4_PAGE_H - 276.8 - 9 },
+  },
+  pe_neuro: {
+    'Essentially normal':           { page: 1, x: 124, y: CF4_PAGE_H - 306.3 - 9 },
+    'Abnormal position sense':      { page: 1, x: 223, y: CF4_PAGE_H - 306.3 - 9 },
+    'Abnormal gait':                { page: 1, x: 331, y: CF4_PAGE_H - 306.3 - 9 },
+    'Abnormal/decreased sensation': { page: 1, x: 430, y: CF4_PAGE_H - 306.3 - 9 },
+    'Abnormal reflex(es)':          { page: 1, x: 124, y: CF4_PAGE_H - 321.1 - 9 },
+    'Poor/altered memory':          { page: 1, x: 223, y: CF4_PAGE_H - 321.1 - 9 },
+    'Poor muscle tone/strength':    { page: 1, x: 331, y: CF4_PAGE_H - 321.1 - 9 },
+    'Poor coordination':            { page: 1, x: 430, y: CF4_PAGE_H - 321.1 - 9 },
+  },
 };
 
 // ── Per-form PDF config registry ─────────────────────────────────────────────
