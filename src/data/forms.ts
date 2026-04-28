@@ -2137,6 +2137,171 @@ const philhealthClaimSignatureForm: FormSchema = {
   },
 };
 
+// ─── PhilHealth Claim Form 3 — Patient's Clinical Record + MCP ───────────────
+// Revised November 2013, 2 pages US Legal 612×1008 pt.
+// v0 ONBOARDING SCOPE (L-SMART-CF3-V0): Part I narrative + admission/discharge
+// + disposition (~35 fields). Part II (Maternity Care Package — 12-visit grid,
+// obstetric tuple, birth outcomes) is stubbed in schema but not yet
+// PDF-rendered. Follow-up sprints will add the 84-cell prenatal grid via the
+// proposed `gridRepeat` primitive once cascadable.
+//
+// Cascade reuse:
+//  - PIN / hciPan masks ............................ from L-SMART-CSF-01
+//  - Combined dates (mm/dd/yyyy) × 4 ............... from L-SMART-CSF-01
+//  - Combined times (hh:mm AM/PM) × 2 .............. from L-SMART-CF2-01
+//  - Boolean toggle ⇄ Yes/No bridge ................ from L-SMART-CF1-01
+//  - Dropdown-value `visibleWhen` (disposition) .... from L-SMART-CF2-01
+const philhealthClaimForm3: FormSchema = {
+  slug: 'philhealth-claim-form-3',
+  code: 'CF-3',
+  version: 'Revised November 2013',
+  name: 'PhilHealth Claim Form 3',
+  agency: 'PhilHealth',
+  category: 'Health Insurance',
+  pdfPath: 'PhilHealth - ClaimForm3.pdf',
+  description:
+    "PhilHealth Claim Form 3 — Patient's Clinical Record and Maternity Care Package (MCP) report, attached to CF-1/CF-2 for MCP claims. v0 release covers Part I narrative + admission/discharge/disposition; Part II (MCP) onboarding scaffolded for follow-up.",
+  steps: [
+    {
+      label: 'HCI & Patient',
+      fieldIds: ['hci_pan', 'hci_name', 'patient_last_name', 'patient_first_name', 'patient_name_ext', 'patient_middle_name'],
+    },
+    {
+      label: 'Admission & Discharge',
+      fieldIds: ['chief_complaint', 'date_admitted', 'time_admitted', 'date_discharged', 'time_discharged'],
+    },
+    {
+      label: 'Clinical Narrative',
+      fieldIds: [
+        'history_of_present_illness',
+        'pe_general_survey', 'pe_heent', 'pe_chest_lungs', 'pe_cvs', 'pe_abdomen', 'pe_genitourinary', 'pe_extremities',
+        'vs_blood_pressure', 'vs_cardiac_rate', 'vs_respiratory_rate', 'vs_temperature',
+        'course_in_the_ward',
+        'pertinent_lab_findings',
+      ],
+    },
+    {
+      label: 'Disposition',
+      fieldIds: [
+        'patient_disposition',
+        'transferred_hci_name',
+        'expired_date',
+        'admitting_diagnosis', 'final_diagnosis',
+      ],
+    },
+    {
+      label: 'Certification',
+      fieldIds: ['attending_physician_name', 'attending_physician_prc', 'attending_physician_date_signed'],
+    },
+  ],
+  fields: [
+    // ── Step 1: HCI & Patient ──
+    { id: 'hci_pan', label: 'HCI PhilHealth Accreditation Number (PAN)',
+      type: 'text', required: true, placeholder: 'HCI-12-345678',
+      hint: '8-digit PAN issued by PhilHealth — auto-formatted.',
+      mask: 'hciPan', inputMode: 'numeric', maxLength: 14, step: 1 },
+    { id: 'hci_name', label: 'Name of Hospital / Health Care Institution',
+      type: 'text', required: true, placeholder: "e.g., ST. LUKE'S MEDICAL CENTER",
+      autoUppercase: true, step: 1 },
+    { id: 'patient_last_name', label: "Patient's Last Name", type: 'text',
+      required: true, autoUppercase: true, step: 1 },
+    { id: 'patient_first_name', label: "Patient's First Name", type: 'text',
+      required: true, autoUppercase: true, step: 1 },
+    { id: 'patient_name_ext', label: 'Name Extension', type: 'dropdown',
+      required: false,
+      options: ['N/A', 'JR.', 'SR.', 'II', 'III', 'IV', 'V'],
+      placeholder: 'N/A', step: 1 },
+    { id: 'patient_middle_name', label: "Patient's Middle Name", type: 'text',
+      required: false, autoUppercase: true, step: 1 },
+
+    // ── Step 2: Admission & Discharge ──
+    { id: 'chief_complaint', label: 'Chief Complaint', type: 'textarea',
+      required: true, placeholder: 'e.g., Labor pains, fever, abdominal pain',
+      hint: "The patient's primary reason for admission, in their own words.",
+      maxLength: 200, step: 2 },
+    { id: 'date_admitted', label: 'Date Admitted', type: 'date',
+      required: true, hint: 'Format: mm / dd / yyyy', step: 2 },
+    { id: 'time_admitted', label: 'Time Admitted', type: 'text',
+      required: true, mask: 'time', hint: 'Format: hh:mm AM/PM', step: 2 },
+    { id: 'date_discharged', label: 'Date Discharged', type: 'date',
+      required: true, hint: 'Format: mm / dd / yyyy', step: 2 },
+    { id: 'time_discharged', label: 'Time Discharged', type: 'text',
+      required: true, mask: 'time', hint: 'Format: hh:mm AM/PM', step: 2 },
+
+    // ── Step 3: Clinical Narrative ──
+    { id: 'history_of_present_illness', label: 'Brief History of Present Illness / OB History',
+      type: 'textarea', required: true, maxLength: 600,
+      hint: 'Onset, duration, character, associated symptoms, treatments tried.',
+      step: 3 },
+    { id: 'pe_general_survey', label: 'General Survey', type: 'textarea',
+      required: false,
+      placeholder: 'e.g., Conscious, coherent, ambulatory, NICRD',
+      maxLength: 200, step: 3 },
+    { id: 'vs_blood_pressure', label: 'Blood Pressure', type: 'text',
+      required: false, placeholder: '120/80', maxLength: 10,
+      hint: 'Systolic / Diastolic in mmHg.', step: 3 },
+    { id: 'vs_cardiac_rate', label: 'Cardiac Rate (bpm)', type: 'text',
+      required: false, placeholder: '78', inputMode: 'numeric', maxLength: 3, step: 3 },
+    { id: 'vs_respiratory_rate', label: 'Respiratory Rate (cpm)', type: 'text',
+      required: false, placeholder: '18', inputMode: 'numeric', maxLength: 2, step: 3 },
+    { id: 'vs_temperature', label: 'Temperature (°C)', type: 'text',
+      required: false, placeholder: '36.8', maxLength: 5,
+      hint: 'In degrees Celsius.', step: 3 },
+    { id: 'pe_heent', label: 'HEENT', type: 'textarea', required: false, maxLength: 200, step: 3 },
+    { id: 'pe_chest_lungs', label: 'Chest / Lungs', type: 'textarea', required: false, maxLength: 200, step: 3 },
+    { id: 'pe_cvs', label: 'Cardiovascular System', type: 'textarea', required: false, maxLength: 200, step: 3 },
+    { id: 'pe_abdomen', label: 'Abdomen', type: 'textarea', required: false, maxLength: 200, step: 3 },
+    { id: 'pe_genitourinary', label: 'Genitourinary (GU/IE)', type: 'textarea', required: false, maxLength: 200, step: 3 },
+    { id: 'pe_extremities', label: 'Extremities', type: 'textarea', required: false, maxLength: 200, step: 3 },
+    { id: 'course_in_the_ward', label: 'Course in the Ward', type: 'textarea',
+      required: true, maxLength: 800,
+      hint: 'Chronological clinical course, treatments given, response.', step: 3 },
+    { id: 'pertinent_lab_findings', label: 'Pertinent Laboratory & Diagnostic Findings',
+      type: 'textarea', required: false, maxLength: 600,
+      placeholder: 'e.g., CBC: Hgb 12.4 g/dL, WBC 8.6; UA: normal; CXR: clear',
+      hint: 'CBC, urinalysis, fecalysis, X-ray, biopsy, etc.', step: 3 },
+
+    // ── Step 4: Disposition ──
+    { id: 'patient_disposition', label: 'Disposition on Discharge', type: 'dropdown',
+      options: ['Improved', 'Transferred', 'HAMA', 'Absconded', 'Expired'],
+      required: true,
+      hint: 'HAMA = Home Against Medical Advice. Transferred-HCI / Expired-date fields appear when applicable.',
+      step: 4 },
+    { id: 'transferred_hci_name', label: 'Receiving HCI Name (if Transferred)',
+      type: 'text', required: false, autoUppercase: true,
+      visibleWhen: { field: 'patient_disposition', equals: 'Transferred' }, step: 4 },
+    { id: 'expired_date', label: 'Date of Expiration', type: 'date',
+      required: false, hint: 'Format: mm / dd / yyyy',
+      visibleWhen: { field: 'patient_disposition', equals: 'Expired' }, step: 4 },
+    { id: 'admitting_diagnosis', label: 'Admitting Diagnosis', type: 'textarea',
+      required: true, maxLength: 200, step: 4 },
+    { id: 'final_diagnosis', label: 'Final Diagnosis', type: 'textarea',
+      required: true, maxLength: 200, step: 4 },
+
+    // ── Step 5: Certification ──
+    { id: 'attending_physician_name', label: 'Attending Physician / Midwife — Name',
+      type: 'text', required: true, autoUppercase: true,
+      placeholder: 'e.g., JUAN DELA CRUZ, MD', step: 5 },
+    { id: 'attending_physician_prc', label: 'PRC License Number', type: 'text',
+      required: true, inputMode: 'numeric', maxLength: 7,
+      placeholder: '0123456', step: 5 },
+    { id: 'attending_physician_date_signed', label: 'Date Signed', type: 'date',
+      required: true, hint: 'Format: mm / dd / yyyy', step: 5 },
+  ],
+  smartAssistance: {
+    eligibility: [
+      { id: 'pan',  label: 'HCI PAN is 8 digits',  rule: 'digits-eq', fieldId: 'hci_pan', count: 8 },
+      { id: 'prc',  label: 'PRC license is 7 digits', rule: 'digits-eq', fieldId: 'attending_physician_prc', count: 7 },
+      { id: 'discharge_after_admit',
+        label: 'Date Discharged is on or after Date Admitted',
+        rule: 'date-not-before', fieldId: 'date_discharged', notBeforeFieldId: 'date_admitted' },
+      { id: 'signed_after_discharge',
+        label: 'Date Signed is on or after Date Discharged',
+        rule: 'date-not-before', fieldId: 'attending_physician_date_signed', notBeforeFieldId: 'date_discharged' },
+    ],
+  },
+};
+
 // ─── Pag-IBIG PFF-049 (MCIF) ─────────────────────────────────────────────────
 // Member's Change of Information Form (V12 12/2025), 2 pages legal 612×936.
 // MVP scope: covers the most common change requests — identity, membership
@@ -3386,7 +3551,7 @@ const bir1902: FormSchema = {
 };
 
 // ─── Form Catalog ─────────────────────────────────────────────────────────────
-export const FORMS: FormSchema[] = [hqpPff356, philhealthPmrf, philhealthClaimForm1, philhealthClaimForm2, philhealthPmrfForeignNatl, philhealthClaimSignatureForm, pagibigPff049, pagibigSlf089, pagibigSlf065, pagibigHlf868, pagibigHlf858, pagibigHlf068, bir2316, bir1904, bir1902];
+export const FORMS: FormSchema[] = [hqpPff356, philhealthPmrf, philhealthClaimForm1, philhealthClaimForm2, philhealthClaimForm3, philhealthPmrfForeignNatl, philhealthClaimSignatureForm, pagibigPff049, pagibigSlf089, pagibigSlf065, pagibigHlf868, pagibigHlf858, pagibigHlf068, bir2316, bir1904, bir1902];
 
 export function getFormBySlug(slug: string): FormSchema | undefined {
   return FORMS.find((f) => f.slug === slug);

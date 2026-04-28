@@ -703,6 +703,122 @@ export default function FormWizardPage() {
         },
       ],
 
+      // ── PhilHealth Claim Form 3 — Patient's Clinical Record + MCP ────────
+      // v0 ONBOARDING (L-SMART-CF3-V0): Part I + disposition + certification
+      // (~35 fields). Part II (MCP) personas TBD in follow-up sprint.
+      // Personas: A = Improved/NSD term, B = Transferred, C = Expired.
+      'philhealth-claim-form-3': [
+        {
+          // Sample A — Routine NSD term, Improved discharge.
+          hci_pan: 'HCI-10-123456', hci_name: 'MAKATI MEDICAL CENTER',
+          patient_last_name: 'DELA CRUZ', patient_first_name: 'MARIA CLARA',
+          patient_name_ext: 'N/A', patient_middle_name: 'SANTOS',
+          chief_complaint: 'Labor pains, gravida 2 para 1, 39 weeks AOG',
+          date_admitted:   '03 / 15 / 2026', time_admitted:   '06 : 30 AM',
+          date_discharged: '03 / 17 / 2026', time_discharged: '10 : 00 AM',
+          history_of_present_illness:
+            'G2P1 (1001), 39 weeks AOG by LMP, presented with regular uterine contractions ' +
+            'every 5 minutes since 0200H. Bag of waters intact. No vaginal bleeding. ' +
+            'Prenatal at this institution since 12 weeks AOG, unremarkable.',
+          pe_general_survey: 'Conscious, coherent, ambulatory, NICRD',
+          vs_blood_pressure: '120/80', vs_cardiac_rate: '82',
+          vs_respiratory_rate: '18', vs_temperature: '36.8',
+          pe_heent: 'PERRLA, anicteric sclerae, no cervical lymphadenopathy',
+          pe_chest_lungs: 'Symmetric chest expansion, clear breath sounds',
+          pe_cvs: 'Adynamic precordium, regular rhythm, no murmurs',
+          pe_abdomen: 'Gravid uterus, FH 32 cm, FHT 142 bpm, cephalic, LOA',
+          pe_genitourinary: 'Cervix 4 cm dilated, 80% effaced, station 0',
+          pe_extremities: 'No edema, full and equal pulses',
+          course_in_the_ward:
+            'Patient progressed in active labor and delivered a live baby boy via NSD on ' +
+            '03/15/2026 at 1130H, BW 3.2 kg, AS 9/9. Postpartum course unremarkable. ' +
+            'Started on routine postpartum care and breastfeeding counselling.',
+          pertinent_lab_findings: 'CBC: Hgb 11.8 g/dL, WBC 9.2; UA: normal; HBsAg negative',
+          patient_disposition: 'Improved',
+          transferred_hci_name: '', expired_date: '',
+          admitting_diagnosis: 'G2P1 PU 39 weeks AOG cephalic in active labor',
+          final_diagnosis: 'G2P2 (2002) delivered live baby boy via NSD',
+          attending_physician_name: 'JUAN P. DELA CRUZ, MD',
+          attending_physician_prc: '0123456',
+          attending_physician_date_signed: '03 / 17 / 2026',
+        },
+        {
+          // Sample B — Preterm CS, Transferred to higher-level NICU.
+          hci_pan: 'HCI-20-987654', hci_name: 'PHILIPPINE GENERAL HOSPITAL',
+          patient_last_name: 'REYES', patient_first_name: 'ANNA MARIE',
+          patient_name_ext: 'N/A', patient_middle_name: 'GARCIA',
+          chief_complaint: 'Severe preeclampsia at 32 weeks AOG',
+          date_admitted:   '02 / 08 / 2026', time_admitted:   '02 : 15 PM',
+          date_discharged: '02 / 14 / 2026', time_discharged: '11 : 30 AM',
+          history_of_present_illness:
+            'G1P0, 32 weeks AOG, with BP 170/110 noted on prenatal check, ' +
+            'severe headache and blurring of vision. Admitted for stabilization ' +
+            'and emergency CS for severe preeclampsia.',
+          pe_general_survey: 'Conscious but anxious, coherent, mild hyperreflexia',
+          vs_blood_pressure: '170/110', vs_cardiac_rate: '96',
+          vs_respiratory_rate: '20', vs_temperature: '37.1',
+          pe_heent: 'PERRLA, mild facial edema, no neck stiffness',
+          pe_chest_lungs: 'Clear breath sounds, no rales',
+          pe_cvs: 'Tachycardic, regular rhythm, no murmurs',
+          pe_abdomen: 'Gravid uterus 30 cm FH, FHT 148 bpm',
+          pe_genitourinary: 'Cervix closed, soft, posterior',
+          pe_extremities: '+2 bipedal pitting edema, brisk DTRs',
+          course_in_the_ward:
+            'Started on MgSO4 loading + maintenance and antihypertensives. ' +
+            'Underwent emergency low-segment CS on 02/09/2026 at 0810H delivering ' +
+            'preterm baby girl, BW 1.6 kg, AS 6/8. Neonate transferred to NICU. ' +
+            'Maternal course stable; transferred to PGH NICU for higher level of ' +
+            'neonatal care on 02/14/2026.',
+          pertinent_lab_findings:
+            'Hgb 10.4; platelets 145; ALT/AST elevated 2x normal; proteinuria 3+; ' +
+            'CXR clear; cord arterial pH 7.21',
+          patient_disposition: 'Transferred',
+          transferred_hci_name: 'PGH NICU LEVEL 3',
+          expired_date: '',
+          admitting_diagnosis: 'G1P0 PU 32 weeks AOG severe preeclampsia',
+          final_diagnosis: 'G1P1 (1001 preterm) s/p LSCS + severe preeclampsia',
+          attending_physician_name: 'MA. CRISTINA REYES, MD',
+          attending_physician_prc: '0234567',
+          attending_physician_date_signed: '02 / 14 / 2026',
+        },
+        {
+          // Sample C — Expired (postpartum hemorrhage). Tests Expired-date branch.
+          hci_pan: 'HCI-30-555111', hci_name: 'JOSE B. LINGAD MEMORIAL HOSPITAL',
+          patient_last_name: 'BAUTISTA', patient_first_name: 'LIWAYWAY',
+          patient_name_ext: 'N/A', patient_middle_name: 'TORRES',
+          chief_complaint: 'Profuse vaginal bleeding 4 hours postpartum',
+          date_admitted:   '01 / 20 / 2026', time_admitted:   '11 : 45 PM',
+          date_discharged: '01 / 21 / 2026', time_discharged: '08 : 30 AM',
+          history_of_present_illness:
+            'G4P3 (3003), delivered at home via TBA, with ongoing heavy vaginal ' +
+            'bleeding and signs of hypovolemic shock on arrival.',
+          pe_general_survey: 'Drowsy, pale, cold clammy extremities',
+          vs_blood_pressure: '70/40', vs_cardiac_rate: '142',
+          vs_respiratory_rate: '32', vs_temperature: '35.4',
+          pe_heent: 'Pale conjunctivae, dry lips',
+          pe_chest_lungs: 'Tachypneic, clear bilaterally',
+          pe_cvs: 'Tachycardic, thready pulses',
+          pe_abdomen: 'Boggy uterus, soft, fundus at umbilicus',
+          pe_genitourinary: 'Profuse fresh vaginal bleeding, retained placental fragments',
+          pe_extremities: 'Cold and clammy, capillary refill > 4 sec',
+          course_in_the_ward:
+            'Resuscitated with crystalloids, blood products. Manual removal of ' +
+            'retained placental tissue performed. Despite aggressive resuscitation ' +
+            'and uterotonics, patient developed DIC and went into cardiac arrest. ' +
+            'CPR done x 30 minutes; pronounced expired at 0815H 01/21/2026.',
+          pertinent_lab_findings:
+            'Hgb 4.2 g/dL; PT/PTT prolonged; platelets 45; lactate 8.4',
+          patient_disposition: 'Expired',
+          transferred_hci_name: '',
+          expired_date: '01 / 21 / 2026',
+          admitting_diagnosis: 'Postpartum hemorrhage, hypovolemic shock',
+          final_diagnosis: 'Postpartum hemorrhage 2° to retained POC; DIC; expired',
+          attending_physician_name: 'PEDRO M. SANTOS, MD',
+          attending_physician_prc: '0345678',
+          attending_physician_date_signed: '01 / 21 / 2026',
+        },
+      ],
+
       // ── PhilHealth PMRF (Foreign National) ───────────────────────────────
       // L-SMART-PMRF-FN-01: combined `dob`, `documentation_type` gate,
       // `is_mononymous` toggle, `phPhone` mask. Personas exercise all three

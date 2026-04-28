@@ -3651,3 +3651,41 @@ PMRF-FN is the **first A4 form** in QuickFormsPH (`PMRF_FN_PAGE_H = 841.9`). All
 | Dropdown-value gated `visibleWhen.equalsOneOf` | L-SMART-CF2-01 | CF-2, **PMRF-FN** (`documentation_type`) |
 | `optionHints` | L-SMART-CSF-01 | All 5 |
 | `autoUppercase` | (foundational) | All 5 |
+
+---
+
+## L-SMART-CF3-V0 — CF-3 onboarding (Part I baseline) (2026-04-28) *(cascadable)*
+
+**Goal.** Onboard PhilHealth Claim Form 3 (Patient's Clinical Record + MCP report) into the catalog. v0 SCOPE is intentionally Part I only (~35 fields) — Part II (Maternity Care Package: 12-visit×5-vital prenatal grid, obstetric tuple G_ P_ T_ P_ A_ L_, birth outcomes, postpartum care) is deferred until the proposed `gridRepeat` schema primitive is introduced.
+
+**Why split.** CF-3 is 2 pages × ~177 fields including an 84-cell repeating grid. Hand-coding 84 coords would produce a brittle one-off; the right cascade is a declarative `gridRepeat:{rowKeys, colCount, cellWidth, rowYOffsets}` primitive that any future tabular form (attendance sheets, multi-period vitals, payroll grids) can reuse. Shipping Part I first proves routing, lets Mai start QA on real PDF output, and unblocks payors who only need Part I clinical narrative.
+
+**Files touched.**
+- `src/data/forms.ts` — new `philhealthClaimForm3` schema (35 fields, 5 wizard steps, `smartAssistance.eligibility` × 4); registered in `FORMS[]`.
+- `src/lib/pdf-generator.ts` — new `CF3_FIELD_COORDS` (split-date sub-coords for 4 dates + 2 times) + `CF3_CHECKBOX_COORDS` (5-way disposition); registered in `FORM_PDF_CONFIGS`. Page height = **1008 pt** (US Legal long, vs CF-2's 936 pt — different anchor).
+- `src/app/forms/[slug]/page.tsx` — 3 personas (Improved NSD term / Transferred preeclampsia / Expired postpartum hemorrhage) exercising both `visibleWhen` branches (Transferred-HCI text + Expired-date split fields).
+
+**Cascades reused (no net-new primitives in v0).**
+1. Combined dates × 4 (admit, discharge, expired, signed) — from L-SMART-CSF-01.
+2. Combined times × 2 (admit, discharge) via `mask:'time'` — from L-SMART-CF2-01.
+3. `mask:'hciPan'` — from L-SMART-CF2-01.
+4. `visibleWhen.equals` gating (Transferred-HCI, Expired-date) — from L-SMART-CF2-01.
+5. Eligibility rules `digits-eq` (PAN-8, PRC-7) and `date-not-before` (discharge ≥ admit, signed ≥ discharge) — from L-SMART-PMRF-R1-01.
+
+**Net-new primitives flagged for follow-up sprint (Part II MCP).**
+- `gridRepeat` (declarative N×M cell rendering) — for the 12-visit prenatal grid.
+- `obstetricTuple` mask (`G_ P_ ( T_, P_, A_, L_ )`) — single field → 6 PDF cells.
+- `bloodPressure` mask (`120/80` → `{sys, dia}` with eligibility 60–250 / 30–150 / sys > dia).
+- `apgarScore` mask (`9/9` → 0–10 range, optional 1min/5min pair).
+- `temperatureUnit` formatter (auto °C suffix, accept `36.8` / `36.8°C` / `98.6F`).
+
+**Open items.**
+- Coords are **calibrated from pdfplumber word-positions only** (no rect-box anchors yet). Mai's first 4-band 150 dpi pass on Sample A will identify drift; expect ±5 pt corrections per row.
+- `autoShrink:true` flag was attempted but `CoordEntry` type doesn't yet support it. Long-text fields use `maxWidth` for truncation only — explicit auto-resize is a follow-up to `pdf-generator.ts` text drawer.
+- US Legal page height (1008 pt) differs from every other PhilHealth form (936 pt). Future PhilHealth onboardings must verify `pdfinfo Page size` before reusing CF-1/CF-2 coord anchors.
+
+**Verification.**
+- `npm run build` ✅ clean (linting + types).
+- `sudo systemctl restart quickformsph` ✅ active.
+- `curl -sI http://localhost:3400/forms/philhealth-claim-form-3` → `HTTP/1.1 200 OK`.
+- @Mai PDF inspection: **PENDING** (handoff to Phase 2 QA loop).

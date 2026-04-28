@@ -931,6 +931,111 @@ const CF2_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number;
   },
 };
 
+// ── PhilHealth Claim Form 3 calibrated coordinates (v0 ONBOARDING) ───────────
+// Page 1 & 2: 612.0 × 1008.0 pts (US Legal long). pdf_lib_y = 1008 - pdfplumber_bottom.
+//
+// v0 SCOPE: Part I narrative + admission/discharge + disposition + certification
+// (~35 fields). Coordinates calibrated from pdfplumber word-position pass on
+// 2026-04-28. Part II (MCP) coords = follow-up sprint per L-SMART-CF3-V0.
+//
+// Calibration anchors (pdfplumber tops, page 1):
+//   PAN row underline ........... top≈170 → y=838
+//   Patient Name row ............ top≈218 → y=790
+//   Chief Complaint ............. top≈245 → y=763
+//   Date Admitted (mm/dd/yyyy) .. top≈258 → y=750
+//   Date Discharged ............. top≈288 → y=720
+//   History block ............... top≈325 → y=683
+//   PE General Survey ........... top≈476 → y=532
+//   Vital signs row ............. top≈501 → y=507
+//   Course in Ward .............. top≈700 → y=308
+//   Lab Findings ................ top≈808 → y=200
+//   Disposition checkboxes row .. top≈939 → y=69
+//
+// Page 2 anchors:
+//   Final Diagnosis ............. top≈80  → y=928
+//   Attending Physician name .... top≈881 → y=127
+//   PRC + Date Signed ........... top≈881 → y=127
+const CF3_PAGE_H = 1008.0;
+const CF3_FIELD_COORDS: CoordsMap = {
+  // ── Header row: HCI PAN + HCI Name ──
+  hci_pan:                   { page: 0, x:  60, y: CF3_PAGE_H - 175, maxWidth: 200 },
+  hci_name:                  { page: 0, x: 280, y: CF3_PAGE_H - 175, maxWidth: 320 },
+
+  // ── Patient Name row (Last, First, Ext, Middle) ──
+  patient_last_name:         { page: 0, x:  60, y: CF3_PAGE_H - 218, maxWidth: 130 },
+  patient_first_name:        { page: 0, x: 195, y: CF3_PAGE_H - 218, maxWidth: 130 },
+  patient_name_ext:          { page: 0, x: 330, y: CF3_PAGE_H - 218, maxWidth:  40 },
+  patient_middle_name:       { page: 0, x: 380, y: CF3_PAGE_H - 218, maxWidth: 130 },
+
+  // ── Chief Complaint (Q3) ──
+  chief_complaint:           { page: 0, x:  60, y: CF3_PAGE_H - 248, maxWidth: 540 },
+
+  // ── Q4 Date Admitted: split into _month/_day/_year + _hour/_min ──
+  date_admitted_month:       { page: 0, x: 110, y: CF3_PAGE_H - 263, maxWidth:  35 },
+  date_admitted_day:         { page: 0, x: 155, y: CF3_PAGE_H - 263, maxWidth:  35 },
+  date_admitted_year:        { page: 0, x: 200, y: CF3_PAGE_H - 263, maxWidth:  45 },
+  time_admitted_hour:        { page: 0, x: 320, y: CF3_PAGE_H - 263, maxWidth:  20 },
+  time_admitted_min:         { page: 0, x: 345, y: CF3_PAGE_H - 263, maxWidth:  20 },
+
+  // ── Q5 Date Discharged ──
+  date_discharged_month:     { page: 0, x: 110, y: CF3_PAGE_H - 293, maxWidth:  35 },
+  date_discharged_day:       { page: 0, x: 155, y: CF3_PAGE_H - 293, maxWidth:  35 },
+  date_discharged_year:      { page: 0, x: 200, y: CF3_PAGE_H - 293, maxWidth:  45 },
+  time_discharged_hour:      { page: 0, x: 320, y: CF3_PAGE_H - 293, maxWidth:  20 },
+  time_discharged_min:       { page: 0, x: 345, y: CF3_PAGE_H - 293, maxWidth:  20 },
+
+  // ── Q6 History of Present Illness (free-text block) ──
+  history_of_present_illness:{ page: 0, x:  60, y: CF3_PAGE_H - 333, maxWidth: 540 },
+
+  // ── Q7 Physical Examination ──
+  pe_general_survey:         { page: 0, x: 100, y: CF3_PAGE_H - 482, maxWidth: 400 },
+  vs_blood_pressure:         { page: 0, x: 100, y: CF3_PAGE_H - 507, maxWidth:  60 },
+  vs_cardiac_rate:           { page: 0, x: 175, y: CF3_PAGE_H - 507, maxWidth:  40 },
+  vs_respiratory_rate:       { page: 0, x: 232, y: CF3_PAGE_H - 507, maxWidth:  40 },
+  vs_temperature:            { page: 0, x: 320, y: CF3_PAGE_H - 507, maxWidth:  40 },
+  pe_heent:                  { page: 0, x: 100, y: CF3_PAGE_H - 535, maxWidth: 230 },
+  pe_chest_lungs:            { page: 0, x: 100, y: CF3_PAGE_H - 562, maxWidth: 230 },
+  pe_cvs:                    { page: 0, x: 100, y: CF3_PAGE_H - 588, maxWidth: 230 },
+  pe_abdomen:                { page: 0, x: 415, y: CF3_PAGE_H - 506, maxWidth: 185 },
+  pe_genitourinary:          { page: 0, x: 415, y: CF3_PAGE_H - 535, maxWidth: 185 },
+  pe_extremities:            { page: 0, x: 415, y: CF3_PAGE_H - 562, maxWidth: 185 },
+
+  // ── Q8 Course in the Ward ──
+  course_in_the_ward:        { page: 0, x:  60, y: CF3_PAGE_H - 720, maxWidth: 540 },
+
+  // ── Q9 Pertinent Laboratory Findings ──
+  pertinent_lab_findings:    { page: 0, x:  60, y: CF3_PAGE_H - 825, maxWidth: 540 },
+
+  // ── Q10 Disposition: Transferred-HCI text + Expired-date (when applicable) ──
+  transferred_hci_name:      { page: 0, x: 240, y: CF3_PAGE_H - 970, maxWidth: 230 },
+  expired_date_month:        { page: 0, x: 510, y: CF3_PAGE_H - 970, maxWidth:  20 },
+  expired_date_day:          { page: 0, x: 535, y: CF3_PAGE_H - 970, maxWidth:  20 },
+  expired_date_year:         { page: 0, x: 560, y: CF3_PAGE_H - 970, maxWidth:  35 },
+
+  // ── Page 2: Diagnoses + Certification ──
+  admitting_diagnosis:       { page: 1, x:  60, y: CF3_PAGE_H -  85, maxWidth: 540 },
+  final_diagnosis:           { page: 1, x:  60, y: CF3_PAGE_H - 105, maxWidth: 540 },
+
+  // ── Q19 Certification of Attending Physician/Midwife (Page 2 footer) ──
+  attending_physician_name:  { page: 1, x:  60, y: CF3_PAGE_H - 870, maxWidth: 200 },
+  attending_physician_prc:   { page: 1, x: 270, y: CF3_PAGE_H - 870, maxWidth:  80 },
+  attending_physician_date_signed_month: { page: 1, x: 365, y: CF3_PAGE_H - 870, maxWidth: 18 },
+  attending_physician_date_signed_day:   { page: 1, x: 388, y: CF3_PAGE_H - 870, maxWidth: 18 },
+  attending_physician_date_signed_year:  { page: 1, x: 411, y: CF3_PAGE_H - 870, maxWidth: 35 },
+};
+
+// ── CF-3 disposition checkboxes (5-way: Improved | Transferred | HAMA | Absconded | Expired) ──
+// Checkbox row pdfplumber tops≈930-940. y_pdflib = 1008 - 940 + offset ≈ 70.
+const CF3_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number; page?: number }>> = {
+  patient_disposition: {
+    'Improved':    { page: 0, x: 162, y: 67 },
+    'Transferred': { page: 0, x: 246, y: 67 },
+    'HAMA':        { page: 0, x: 336, y: 67 },
+    'Absconded':   { page: 0, x: 422, y: 67 },
+    'Expired':     { page: 0, x: 495, y: 67 },
+  },
+};
+
 // ── Per-form PDF config registry ─────────────────────────────────────────────
 
 // ── PhilHealth PMRF Foreign National calibrated coordinates ──────────────────
@@ -3211,6 +3316,23 @@ export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
     },
     copyYOffsets: [0],
     checkboxCoords: CF2_CHECKBOX_COORDS,
+  },
+  'philhealth-claim-form-3': {
+    fieldCoords: CF3_FIELD_COORDS,
+    skipValues: {
+      patient_name_ext: ['N/A'],
+      // UI-only / split-parent fields (render via _month/_day/_year/_hour/_min sub-coords):
+      date_admitted: [],
+      time_admitted: [],
+      date_discharged: [],
+      time_discharged: [],
+      expired_date: [],
+      attending_physician_date_signed: [],
+      // visibleWhen-gated fields render as blank when not applicable:
+      transferred_hci_name: [''],
+    },
+    copyYOffsets: [0],
+    checkboxCoords: CF3_CHECKBOX_COORDS,
   },
   'philhealth-pmrf-foreign-natl': {
     fieldCoords: PMRF_FN_FIELD_COORDS,

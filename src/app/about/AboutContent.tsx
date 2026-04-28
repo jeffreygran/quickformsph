@@ -65,7 +65,7 @@ export default function AboutContent() {
 
   const STEPS = [
     { step: '1', title: 'Pick a Form',    body: 'Choose from the list of available Philippine government forms.',             vk: 's1' as const },
-    { step: '2', title: 'Fill It In w/ Smart Assistance',     body: 'Complete the form with auto-complete support for faster data entry (e.g. Cities, Branches, etc).',                                       vk: 's2' as const },
+    { step: '2', title: 'Fill It In w/ Smart Assistance',     body: 'Type less, finish faster — we auto-format your numbers, suggest cities and branches as you type, and do the math for you. No guesswork, no re-typing.', vk: 's2' as const },
     { step: '3', title: 'Generate PDF',   body: 'Generated PDF is processed locally on your device.',                          vk: 's3' as const },
   ];
 
