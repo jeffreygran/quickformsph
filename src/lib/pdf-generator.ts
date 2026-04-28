@@ -957,18 +957,24 @@ const CF2_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number;
 //   PRC + Date Signed ........... top≈881 → y=127
 const CF3_PAGE_H = 1008.0;
 const CF3_FIELD_COORDS: CoordsMap = {
-  // ── Q1 PAN + HCI Name (single label row + underline below) ──
-  // Row 1 (label):     "1. PhilHealth Accreditation No (PAN) - Institutional Health Care Provider:"
-  // Row 2 (underline): PAN | HCI Name share underline; PAN occupies left ~140pt, HCI name remainder.
-  hci_pan:                   { page: 0, x: 442, y: CF3_PAGE_H - 175, maxWidth:  85, fontSize: 7 },
-  hci_name:                  { page: 0, x:  60, y: CF3_PAGE_H - 215, maxWidth: 540 },
+  // ── Q1 PAN: 9 cells (top=162.6, bottom=173.8). Centers measured from
+  //   pdfplumber rect dividers; using boxCenters splits the value digit-by-digit.
+  //   Input may include 'HCI-NN-XXXXXX' prefix — generator strips non-digits before
+  //   per-cell render. The form has NO separate HCI-Name slot on this row, so
+  //   `hci_name` is captured in schema for sample data only and is NOT drawn here.
+  hci_pan: {
+    page: 0, x: 0, y: CF3_PAGE_H - 173, fontSize: 9,
+    boxCenters: [291.83, 308.75, 325.68, 342.61, 359.53, 376.45, 393.37, 410.29, 427.23],
+  },
 
   // ── Q2 Patient Name row (Last, First, Middle, Ext) ──
-  // Underline tops≈233, baselines≈242. y_pdflib = 1008 - 242 = 766.
-  patient_last_name:         { page: 0, x:  60, y: CF3_PAGE_H - 242, maxWidth: 130 },
-  patient_first_name:        { page: 0, x: 200, y: CF3_PAGE_H - 242, maxWidth: 130 },
-  patient_middle_name:       { page: 0, x: 340, y: CF3_PAGE_H - 242, maxWidth: 130 },
-  patient_name_ext:          { page: 0, x: 480, y: CF3_PAGE_H - 242, maxWidth:  40 },
+  // CF-3 quirk: underline is at top=219.9 ABOVE the sub-labels at top=223. Text
+  //   must render ON the underline (above the descriptive labels), NOT below.
+  //   y_pdflib = 1008 - 218 = 790.
+  patient_last_name:         { page: 0, x:  60, y: CF3_PAGE_H - 218, maxWidth: 130 },
+  patient_first_name:        { page: 0, x: 200, y: CF3_PAGE_H - 218, maxWidth: 130 },
+  patient_middle_name:       { page: 0, x: 340, y: CF3_PAGE_H - 218, maxWidth: 130 },
+  patient_name_ext:          { page: 0, x: 480, y: CF3_PAGE_H - 218, maxWidth:  40 },
 
   // ── Q3 Chief Complaint (right-side boxed area, top-right of header band) ──
   // Box top≈215 right column; box height ~40. Render at top of box.
@@ -980,16 +986,16 @@ const CF3_FIELD_COORDS: CoordsMap = {
   date_admitted_month:       { page: 0, x: 113, y: CF3_PAGE_H - 252, maxWidth:  20 },
   date_admitted_day:         { page: 0, x: 156, y: CF3_PAGE_H - 252, maxWidth:  20 },
   date_admitted_year:        { page: 0, x: 198, y: CF3_PAGE_H - 252, maxWidth:  35 },
-  time_admitted_hour:        { page: 0, x: 325, y: CF3_PAGE_H - 252, maxWidth:  20 },
-  time_admitted_min:         { page: 0, x: 357, y: CF3_PAGE_H - 252, maxWidth:  20 },
+  time_admitted_hour:        { page: 0, x: 317, y: CF3_PAGE_H - 252, maxWidth:  16 },
+  time_admitted_min:         { page: 0, x: 367, y: CF3_PAGE_H - 252, maxWidth:  16 },
 
   // ── Q5 Date Discharged + Time discharged ──
   // Underlines at top≈296; baseline = 1008 - 303 = 705.
   date_discharged_month:     { page: 0, x: 113, y: CF3_PAGE_H - 282, maxWidth:  20 },
   date_discharged_day:       { page: 0, x: 156, y: CF3_PAGE_H - 282, maxWidth:  20 },
   date_discharged_year:      { page: 0, x: 198, y: CF3_PAGE_H - 282, maxWidth:  35 },
-  time_discharged_hour:      { page: 0, x: 325, y: CF3_PAGE_H - 282, maxWidth:  20 },
-  time_discharged_min:       { page: 0, x: 357, y: CF3_PAGE_H - 282, maxWidth:  20 },
+  time_discharged_hour:      { page: 0, x: 317, y: CF3_PAGE_H - 282, maxWidth:  16 },
+  time_discharged_min:       { page: 0, x: 367, y: CF3_PAGE_H - 282, maxWidth:  16 },
 
   // ── Q6 Brief History of Present Illness / OB History ──
   // Label at top=314 → baseline ≈322. Empty narrative band below.
@@ -1010,9 +1016,9 @@ const CF3_FIELD_COORDS: CoordsMap = {
   pe_heent:                  { page: 0, x: 100, y: CF3_PAGE_H - 540, maxWidth: 230, fontSize: 8 },
   pe_chest_lungs:            { page: 0, x: 100, y: CF3_PAGE_H - 568, maxWidth: 230, fontSize: 8 },
   pe_cvs:                    { page: 0, x: 100, y: CF3_PAGE_H - 595, maxWidth: 230, fontSize: 8 },
-  pe_abdomen:                { page: 0, x: 415, y: CF3_PAGE_H - 511, maxWidth: 185, fontSize: 8 },
-  pe_genitourinary:          { page: 0, x: 415, y: CF3_PAGE_H - 540, maxWidth: 185, fontSize: 8 },
-  pe_extremities:            { page: 0, x: 415, y: CF3_PAGE_H - 568, maxWidth: 185, fontSize: 8 },
+  pe_abdomen:                { page: 0, x: 430, y: CF3_PAGE_H - 511, maxWidth: 170, fontSize: 8 },
+  pe_genitourinary:          { page: 0, x: 430, y: CF3_PAGE_H - 540, maxWidth: 170, fontSize: 8 },
+  pe_extremities:            { page: 0, x: 460, y: CF3_PAGE_H - 568, maxWidth: 140, fontSize: 8 },
 
   // ── Q8 Course in the Wards ──
   // Label "8. Course in the Wards" at top≈680. Empty narrative band below.
@@ -3342,6 +3348,10 @@ export const FORM_PDF_CONFIGS: Record<string, FormPdfConfig> = {
     fieldCoords: CF3_FIELD_COORDS,
     skipValues: {
       patient_name_ext: ['N/A'],
+      // Schema-only field — captured for sample data / API but the CF-3 form has
+      //   no PDF slot for the HCI provider name (PAN row ends at x=435 then the
+      //   chief-complaint box starts at x=430). See L-SMART-CF3-02 Pattern 6.
+      hci_name: [],
       // UI-only / split-parent fields (render via _month/_day/_year/_hour/_min sub-coords):
       date_admitted: [],
       time_admitted: [],

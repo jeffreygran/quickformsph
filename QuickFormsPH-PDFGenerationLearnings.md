@@ -3760,3 +3760,101 @@ PGH NICU LEVEL 3) and Sample C (Expired → date 01/21/2026).
   Diagnosis` / `Final Diagnosis` to verify they're on Part I bottom strip first.
 - Pattern 4 (checkbox tick offset) → use `boxCenters` array (already in CoordEntry)
   for known-width squares instead of guessing fixed offsets.
+
+---
+
+## L-SMART-CF3-02 — Root-cause patterns from @Mai 2nd-pass QA on CF-3 Sample C
+
+**Context.** After L-SMART-CF3-01 ship, @Mai's visual QA on Sample C surfaced
+two recurring issues that have been silently broken across multiple onboardings:
+
+1. **Empty PAN box-grid.** `hci_pan` value `"HCI-30-555111"` rendered as a
+   left-aligned single string SPILLING past the 9-cell PAN box-grid instead of
+   filling the boxes digit-by-digit.
+2. **HCI-Name landed on Patient-Name row.** I had assumed every PhilHealth form
+   has a slot for the HCI name on row 2 — CF-3 does NOT. The hospital name
+   text overwrote the patient-name underline.
+3. **Patient names rendered ABOVE the sub-labels** instead of on the underline.
+   CF-3's Q2 inverts the typical label-above/blank-below convention.
+
+**Patterns (cascadable to ALL future onboardings).**
+
+### Pattern 5 — Use `boxCenters` for EVERY multi-cell digit-box row.
+**Anti-pattern observed:** Treating PAN/PIN/PSN/PEN/TIN as a single text field
+with `maxWidth` and hoping it visually lands "in the boxes." It will NOT.
+The boxes are typically 14–18 pt wide each — at default fontSize (10 pt) a
+single 8-digit string occupies ~70 pt and overflows ~140 pt of box-grid
+unevenly because monospace doesn't match the box pitch.
+
+**Correct primitive:** Already exists in `CoordEntry` —
+```ts
+hci_pan: { page: 0, x: 0, y: …, fontSize: 9,
+           boxCenters: [c1, c2, c3, …] }
+```
+The generator strips `\D` from the input and centers each digit at the
+corresponding `boxCenters[i]`. Excess cells stay empty (e.g. 9-cell row + 8-digit
+input = last cell blank).
+
+**How to extract `boxCenters`:** the boxes are drawn as thin vertical rect
+dividers (`width<1, height≈11`). Filter `p.rects` by `top`-band and `height`,
+sort by `x0`, then midpoints between adjacent dividers are the box centers:
+```python
+v = sorted([r['x0'] for r in p0.rects if 160<r['top']<170 and 11<r['height']<13])
+centers = [(v[i]+v[i+1])/2 for i in range(len(v)-1)]
+```
+
+**Cascade target:** every future PhilHealth onboarding intake script must run
+this rect-divider scan PER ROW with digit boxes and emit `boxCenters` arrays
+into the coord dictionary by default. Manual `x` placement for digit rows is
+now considered an intake bug.
+
+### Pattern 6 — Verify each schema field has a PDF slot before adding to FIELD_COORDS.
+**Anti-pattern observed:** Assuming `hci_name` (captured in schema for sample
+data) must have a coord entry. CF-3 has no slot for it; my entry at
+`y=CF3_PAGE_H-215` rendered the hospital name onto the Patient-Name row.
+
+**Rule:** schema fields and PDF coord fields are **NOT** 1:1. A field can exist
+in `FormField[]` for data entry / API capture / downstream processing yet have
+no corresponding entry in `<FORM>_FIELD_COORDS`. The generator silently skips
+fields not in the coord map — that's the correct behavior.
+
+**Cascade target:** intake auto-extraction script must mark fields without a
+detectable PDF underline / box / blank-region as `pdfRender: false` and emit
+them as schema-only. Don't fabricate a coord just to "use" the field.
+
+### Pattern 7 — Sub-label inversion on PhilHealth Q2 / name rows.
+**Anti-pattern observed:** Assuming sub-labels ("Last Name, First Name, Middle
+Name") sit ABOVE the input underline. CF-3's Q2 has them BELOW:
+- Q2 header `"2. Name of Patient"` at `top=187`
+- Underline (where text goes) at `top=219.9`
+- Sub-labels `"Last Name, First Name, Middle Name (example: Dela Cruz, …)"` at `top=223`
+- Q4 header `"4. Date Admitted:"` at `top=244`
+
+If you put text at `top≈242` (between sub-labels and Q4), it floats in the
+empty space below the labels — visually wrong. Correct baseline is
+`top≈218` (1–2 pt above the underline rect).
+
+**Detection rule for intake:** for every input-row label, scan ±20 pt
+vertically for the underline rect AND for example/instructional words. If
+example words have `top > underline_top`, the row is sub-label-INVERTED and
+text baseline must be `≈ underline_top - 2`, NOT `underline_top + 8`.
+
+**Cascade target:** intake script must annotate each row with
+`subLabelPosition: 'above' | 'below' | 'none'` based on word vs underline ordering,
+and the coord generator must respect that flag.
+
+**Verification.**
+- All 3 personas regenerated with patches:
+  - Sample A (Improved): PAN `1012345**6**` → "1 0 1 2 3 4 5 6" filling 8 of 9 cells.
+  - Sample B (Transferred): PAN `2098765**4**` → "2 0 9 8 7 6 5 4".
+  - Sample C (Expired): PAN `3055511**1**` → "3 0 5 5 5 1 1 1".
+- Patient-name row now sits ON the underline (`y_pdflib = 1008 - 218 = 790`).
+- `hci_name` schema field retained; coord entry **removed** — no draw, no overlap.
+- Time `_min` x shifted to 367 (centered in 362.35–384.91 box).
+- PE right-col `pe_genitourinary` / `pe_extremities` x shifted to 430/460 to clear
+  `"GU ( IE )"` and `"Skin/Extremities"` printed labels.
+
+**Remaining limitations carried forward (unchanged from L-SMART-CF3-01).**
+- `textareaWrap` primitive still pending (HPI / course / lab still single-line).
+- `amPmFromTime` primitive still pending (AM/PM ticks unset).
+- Part II MCP primitives suite still pending.
