@@ -1121,8 +1121,10 @@ const CF3_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number;
 const CF4_PAGE_H = 936.0;
 const CF4_FIELD_COORDS: CoordsMap = {
   // ── Header ──
-  // Series# 15 boxes between x=376.6..538.0 at top 110.6-148.9 (~10.6pt/cell)
-  series_no: { page: 0, x: 380, y: CF4_PAGE_H - 148.9 + 1, maxWidth: 158, fontSize: 7 },
+  // Series #: single underline at top=149.2 spanning x=499–541 (42pt wide).
+  //   Source PDF has NO per-cell box structure here — it's just one
+  //   horizontal line. fontSize 6 lets a 13-digit serial fit comfortably.
+  series_no: { page: 0, x: 499, y: CF4_PAGE_H - 149.2 + 1, maxWidth: 42, fontSize: 6, align: 'center' },
 
   // ── I. HCI Information ──
   // Row 1: HCI Name (left, x≈45-340) + Accred Number (right, x≈350-540)
@@ -1132,13 +1134,15 @@ const CF4_FIELD_COORDS: CoordsMap = {
   hci_address: { page: 0, x: 45, y: CF4_PAGE_H - 229.1 + 1, maxWidth: 495, fontSize: 8 },
 
   // ── II. Patient's Data ──
-  // Patient Name row: "1. Name of Patient" label top=231.4; sub-labels
-  // "Last/First/Middle Name" at top=252; V-dividers ("I" glyphs) at x=150.9 / 264.3.
-  // Fill ON the row underline at top=260.8 → y=677.2.
-  patient_last_name:   { page: 0, x:  46, y: CF4_PAGE_H - 260.8 + 2, maxWidth: 102, fontSize: 9 },
-  patient_first_name:  { page: 0, x: 154, y: CF4_PAGE_H - 260.8 + 2, maxWidth: 108, fontSize: 9 },
-  patient_name_ext:    { page: 0, x: 268, y: CF4_PAGE_H - 260.8 + 2, maxWidth:  46, fontSize: 9 },
-  patient_middle_name: { page: 0, x: 318, y: CF4_PAGE_H - 260.8 + 2, maxWidth:  82, fontSize: 9 },
+  // Patient row spans top=231.4 (header) to top=263 (Chief Complaint header).
+  // Sub-labels "Last|First|Middle Name" at top=252 are at the BOTTOM of the
+  // fill cell; names fill ABOVE the sub-labels. V-dividers ("I" glyphs) at
+  // x=150.9 / 264.3 / 314 / 401. Baseline above the 250.3 V-divider line
+  //   places the names in the upper half of the cell, clear of sub-labels.
+  patient_last_name:   { page: 0, x:  46, y: CF4_PAGE_H - 250.3 + 1, maxWidth: 102, fontSize: 9 },
+  patient_first_name:  { page: 0, x: 154, y: CF4_PAGE_H - 250.3 + 1, maxWidth: 108, fontSize: 9 },
+  patient_name_ext:    { page: 0, x: 268, y: CF4_PAGE_H - 250.3 + 1, maxWidth:  46, fontSize: 9 },
+  patient_middle_name: { page: 0, x: 318, y: CF4_PAGE_H - 250.3 + 1, maxWidth:  82, fontSize: 9 },
   // PIN: right column under "2. PIN" label top=231.4; PIN value cell sits
   //   between top dividers 229.1 and 250.0. Fill ON underline 250.0 → y=688.
   patient_pin: { page: 0, x: 405, y: CF4_PAGE_H - 250.0 + 2, maxWidth: 135, fontSize: 9 },
@@ -1286,6 +1290,19 @@ const CF4_CHECKBOX_COORDS: Record<string, Record<string, { x: number; y: number;
     'EXPIRED':     { page: 1, x: 215, y: CF4_PAGE_H - 818 },
     'ABSCONDED':   { page: 1, x: 261, y: CF4_PAGE_H - 818 },
     'TRANSFERRED': { page: 1, x: 317, y: CF4_PAGE_H - 818 },
+  },
+  // AM/PM auto-tick for time fields (synthesized by expandCombinedTimes):
+  //   `time_admitted_ampm` and `time_discharged_ampm` carry 'AM' or 'PM'.
+  // Source PDF has checkbox glyphs at top=342.3 (admit row 9) and top=362.1
+  //   (discharge row 10), x=449.1 (AM box) / 473.6 (PM box). Tick character
+  //   baseline sits 3pt above the checkbox top, so y = page_h - top - 4.
+  time_admitted_ampm: {
+    'AM': { page: 0, x: 451, y: CF4_PAGE_H - 346 },
+    'PM': { page: 0, x: 475, y: CF4_PAGE_H - 346 },
+  },
+  time_discharged_ampm: {
+    'AM': { page: 0, x: 451, y: CF4_PAGE_H - 366 },
+    'PM': { page: 0, x: 475, y: CF4_PAGE_H - 366 },
   },
 };
 
