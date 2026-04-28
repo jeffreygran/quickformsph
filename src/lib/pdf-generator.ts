@@ -3678,29 +3678,29 @@ export async function generatePDF(
     }
 
     for (const yOff of copyYOffsets) {
-      // Auto-fit horizontally:
-      //   1. If text overflows `maxWidth` at the configured fontSize, scale
-      //      down (min 4pt, still legible on print).
-      //   2. If even 4pt is too wide, truncate from the right until it fits.
+      // Auto-fit horizontally (2-tier — see L-SMART-CF3-04 Pattern 9):
+      //   1. If text fits at configured fontSize → render native.
+      //   2. Else scale fontSize down to MIN_LEGIBLE_FONT_SIZE (6pt — still
+      //      print-legible at 100% zoom).
+      // We do NOT truncate. The input UI's `maxLength` (set per field in
+      //   `forms.ts`) is the SINGLE hard cap. maxLength values must be
+      //   calibrated so the longest possible value fits at the 6pt floor.
+      //   If a value still overflows at 6pt, that's a maxLength calibration
+      //   bug to fix in `forms.ts`, NOT a render-time clipping concern.
       // We deliberately DO NOT pass `maxWidth` to `page.drawText` because
-      // pdf-lib then wraps onto a second line that spills DOWN into the next
-      // row's cell (root cause of SLF-065 R3 visual chaos).
-      // See L-SLF065-R3-01 in QuickFormsPH-PDFGenerationLearnings.md.
+      //   pdf-lib then wraps onto a second line that spills DOWN into the
+      //   next row's cell (root cause of SLF-065 R3 visual chaos).
+      // See L-SLF065-R3-01 + L-SMART-CF3-04 in QuickFormsPH-PDFGenerationLearnings.md.
+      const MIN_LEGIBLE_FONT_SIZE = 6;
       let drawSize = fontSize;
-      let drawTextStr = text;
       if (coords.maxWidth) {
-        let measured = font.widthOfTextAtSize(drawTextStr, drawSize);
+        const measured = font.widthOfTextAtSize(text, drawSize);
         if (measured > coords.maxWidth) {
           const scaled = (drawSize * coords.maxWidth) / measured;
-          drawSize = Math.max(4, scaled);
-          measured = font.widthOfTextAtSize(drawTextStr, drawSize);
-          while (measured > coords.maxWidth && drawTextStr.length > 1) {
-            drawTextStr = drawTextStr.slice(0, -1);
-            measured = font.widthOfTextAtSize(drawTextStr, drawSize);
-          }
+          drawSize = Math.max(MIN_LEGIBLE_FONT_SIZE, scaled);
         }
       }
-      page.drawText(drawTextStr, {
+      page.drawText(text, {
         x: coords.x,
         y: coords.y + yOff,
         size: drawSize,

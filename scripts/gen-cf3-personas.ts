@@ -30,9 +30,7 @@ const PERSONAS: Record<string, string>[] = [
     date_admitted:   '03 / 15 / 2026', time_admitted:   '06 : 30 AM',
     date_discharged: '03 / 17 / 2026', time_discharged: '10 : 00 AM',
     history_of_present_illness:
-      'G2P1 (1001), 39 weeks AOG by LMP, presented with regular uterine contractions ' +
-      'every 5 minutes since 0200H. Bag of waters intact. No vaginal bleeding. ' +
-      'Prenatal at this institution since 12 weeks AOG, unremarkable.',
+      'G2P1 (1001), 39 weeks AOG by LMP, presented with regular uterine contractions every 5 minutes since 0200H. BOW intact, no vaginal bleeding. Prenatal at this institution since 12 weeks AOG, unremarkable.',
     pe_general_survey: 'Conscious, coherent, ambulatory, NICRD',
     vs_blood_pressure: '120/80', vs_cardiac_rate: '82',
     vs_respiratory_rate: '18', vs_temperature: '36.8',
@@ -43,9 +41,7 @@ const PERSONAS: Record<string, string>[] = [
     pe_genitourinary: 'Cervix 4 cm dilated, 80% effaced, station 0',
     pe_extremities: 'No edema, full and equal pulses',
     course_in_the_ward:
-      'Patient progressed in active labor and delivered a live baby boy via NSD on ' +
-      '03/15/2026 at 1130H, BW 3.2 kg, AS 9/9. Postpartum course unremarkable. ' +
-      'Started on routine postpartum care and breastfeeding counselling.',
+      'Patient progressed in active labor and delivered live baby boy via NSD on 03/15/2026 at 1130H, BW 3.2 kg, AS 9/9. Postpartum course unremarkable; routine postpartum care + breastfeeding counselling.',
     pertinent_lab_findings: 'CBC: Hgb 11.8 g/dL, WBC 9.2; UA: normal; HBsAg negative',
     patient_disposition: 'Improved',
     transferred_hci_name: '', expired_date: '',
@@ -64,9 +60,7 @@ const PERSONAS: Record<string, string>[] = [
     date_admitted:   '02 / 08 / 2026', time_admitted:   '02 : 15 PM',
     date_discharged: '02 / 14 / 2026', time_discharged: '11 : 30 AM',
     history_of_present_illness:
-      'G1P0, 32 weeks AOG, with BP 170/110 noted on prenatal check, ' +
-      'severe headache and blurring of vision. Admitted for stabilization ' +
-      'and emergency CS for severe preeclampsia.',
+      'G1P0, 32 weeks AOG, BP 170/110 noted on prenatal check with severe headache and blurring of vision. Admitted for stabilization and emergency CS due to severe preeclampsia with impending eclampsia.',
     pe_general_survey: 'Conscious but anxious, coherent, mild hyperreflexia',
     vs_blood_pressure: '170/110', vs_cardiac_rate: '96',
     vs_respiratory_rate: '20', vs_temperature: '37.1',
@@ -77,11 +71,7 @@ const PERSONAS: Record<string, string>[] = [
     pe_genitourinary: 'Cervix closed, soft, posterior',
     pe_extremities: '+2 bipedal pitting edema, brisk DTRs',
     course_in_the_ward:
-      'Started on MgSO4 loading + maintenance and antihypertensives. ' +
-      'Underwent emergency low-segment CS on 02/09/2026 at 0810H delivering ' +
-      'preterm baby girl, BW 1.6 kg, AS 6/8. Neonate transferred to NICU. ' +
-      'Maternal course stable; transferred to PGH NICU for higher level of ' +
-      'neonatal care on 02/14/2026.',
+      'Started on MgSO4 loading + maintenance and antihypertensives. Underwent emergency LSCS 02/09/2026 0810H delivering preterm baby girl 1.6 kg AS 6/8; transferred to PGH NICU Level 3 for higher care.',
     pertinent_lab_findings:
       'Hgb 10.4; platelets 145; ALT/AST elevated 2x normal; proteinuria 3+; ' +
       'CXR clear; cord arterial pH 7.21',
@@ -103,8 +93,7 @@ const PERSONAS: Record<string, string>[] = [
     date_admitted:   '01 / 20 / 2026', time_admitted:   '11 : 45 PM',
     date_discharged: '01 / 21 / 2026', time_discharged: '08 : 30 AM',
     history_of_present_illness:
-      'G4P3 (3003), delivered at home via TBA, with ongoing heavy vaginal ' +
-      'bleeding and signs of hypovolemic shock on arrival.',
+      'G4P3 (3003), delivered at home via TBA, with ongoing heavy vaginal bleeding and signs of hypovolemic shock on arrival.',
     pe_general_survey: 'Drowsy, pale, cold clammy extremities',
     vs_blood_pressure: '70/40', vs_cardiac_rate: '142',
     vs_respiratory_rate: '32', vs_temperature: '35.4',
@@ -115,10 +104,7 @@ const PERSONAS: Record<string, string>[] = [
     pe_genitourinary: 'Profuse fresh vaginal bleeding, retained placental fragments',
     pe_extremities: 'Cold and clammy, capillary refill > 4 sec',
     course_in_the_ward:
-      'Resuscitated with crystalloids, blood products. Manual removal of ' +
-      'retained placental tissue performed. Despite aggressive resuscitation ' +
-      'and uterotonics, patient developed DIC and went into cardiac arrest. ' +
-      'CPR done x 30 minutes; pronounced expired at 0815H 01/21/2026.',
+      'Resuscitated with crystalloids + blood products. Manual removal of retained placental tissue performed. Despite aggressive resuscitation patient developed DIC, cardiac arrest; expired at 0815H 01/21/2026.',
     pertinent_lab_findings:
       'Hgb 4.2 g/dL; PT/PTT prolonged; platelets 45; lactate 8.4',
     patient_disposition: 'Expired',

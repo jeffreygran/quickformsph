@@ -3893,3 +3893,67 @@ front-of-pipeline filter.
 **Verification.** Sample C HPI now renders complete on Q6 underline at native
 fontSize=8. No regression on PAN/checkbox/digit-box paths (`boxCenters` branch
 is unaffected; it strips `\D` independently).
+
+---
+
+## L-SMART-CF3-04 — Single source of truth for length caps: input `maxLength`
+
+**Context.** L-SMART-CF3-03 removed a global pre-render 60-char cap. @Mai then
+asked: "What if a value still doesn't fit?" Two failure modes were on the table:
+
+1. **Render-time tail-truncation with `…`** (initial fix attempt). Rejected by
+   @Mai: invisible at submission time, surprises the user only when they open
+   the generated PDF.
+2. **Hard cap on the input control** + auto-shrink-only render. ACCEPTED.
+
+**Pattern 9 — Single source of truth for length caps.**
+
+The input control's `maxLength` (already a field in `FormField`, wired to
+HTML `<input maxLength>` and the textarea variant) is the **only** hard cap.
+The PDF generator NEVER truncates or appends `…`. Its job is purely to fit
+whatever the user submitted into the cell, scaling fontSize down to a min
+legible floor of **6 pt**.
+
+**Calibration rule per field:**
+```
+maxLength_chars  ≤  maxWidth_pt  /  avg_char_width_at_6pt
+                ≈  maxWidth_pt  /  3.0
+```
+Examples for CF-3 single-line bands:
+- 540 pt narrative band (Q6 HPI / Q8 Course / Q9 Lab) → cap = **200 chars**
+- 230 pt PE left-col rows → cap = **75 chars**
+- 170 pt PE right-col rows (Abdomen / GU) → cap = **56 chars**
+- 140 pt PE Extremities → cap = **46 chars**
+- 130 pt patient name cells (Last/First/Middle) → cap = **30 chars**
+
+If a field still appears truncated visually, the FIX is in `forms.ts`
+(`maxLength`), NOT in `pdf-generator.ts`. The render path is intentionally
+dumb: render at native size if it fits, scale to 6pt if it doesn't, full stop.
+
+**Generator changes (`pdf-generator.ts`).**
+- Removed pre-render 60-char `slice` cap (L-SMART-CF3-03).
+- Removed the tail-truncate-with-`…` branch (this round).
+- Auto-shrink floor raised from 4 pt → 6 pt (4 pt failed legibility @150 dpi).
+- `MIN_LEGIBLE_FONT_SIZE` named constant for clarity.
+
+**Cascade target.** Intake auto-onboarding (§2a in FormIntake.md) must:
+1. Compute `maxLength` for every text/textarea field from its measured PDF
+   `maxWidth` using the formula above.
+2. Refuse to commit any text/textarea schema entry without `maxLength`.
+3. Add a `check-maxlength-coverage.ts` pre-commit gate analogous to
+   `check-coords-coverage.ts` so missing caps fail CI immediately.
+
+**Why no multi-line wrap.** Considered and deferred. Multi-line wrap inside a
+fixed-height band requires per-row width measurement + line-break selection,
+and pdf-lib's built-in wrap spills past the band into the next row's cell
+(L-SLF065-R3-01). For CF-3 the 6 pt single-line cap suffices for the
+clinically realistic text @Mai signed off on.
+
+**Verification.**
+- Q6 HPI (Sample C): "G4P3 (3003), delivered at home via TBA, with ongoing
+  heavy vaginal bleeding and signs of hypovolemic shock on arrival." — 124
+  chars, renders in full at fontSize=8 (no shrink needed).
+- Q8 Course (Sample C): 195 chars, auto-shrinks to ≈6.7 pt to fit 540 pt
+  band. Still print-legible at 100%.
+- Inputs in `/forms/philhealth-claim-form-3` now show character counter
+  ticking against the new caps; user is blocked from typing past the limit.

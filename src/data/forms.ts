@@ -2207,18 +2207,25 @@ const philhealthClaimForm3: FormSchema = {
       required: true, autoUppercase: true, step: 1 },
     { id: 'patient_first_name', label: "Patient's First Name", type: 'text',
       required: true, autoUppercase: true, step: 1 },
+    { id: 'patient_last_name', label: "Patient's Last Name", type: 'text',
+      required: true, autoUppercase: true, maxLength: 30, step: 1 },
+    { id: 'patient_first_name', label: "Patient's First Name", type: 'text',
+      required: true, autoUppercase: true, maxLength: 30, step: 1 },
     { id: 'patient_name_ext', label: 'Name Extension', type: 'dropdown',
       required: false,
       options: ['N/A', 'JR.', 'SR.', 'II', 'III', 'IV', 'V'],
       placeholder: 'N/A', step: 1 },
     { id: 'patient_middle_name', label: "Patient's Middle Name", type: 'text',
-      required: false, autoUppercase: true, step: 1 },
+      required: false, autoUppercase: true, maxLength: 30, step: 1 },
 
     // ── Step 2: Admission & Discharge ──
+    // maxLength values reflect PDF cell capacity at the min legible 6pt floor
+    //   (avg ≈3pt/char in Helvetica). UI inputs enforce this so users see the
+    //   cap BEFORE the PDF would have to truncate with “…”. See L-SMART-CF3-04.
     { id: 'chief_complaint', label: 'Chief Complaint', type: 'textarea',
       required: true, placeholder: 'e.g., Labor pains, fever, abdominal pain',
       hint: "The patient's primary reason for admission, in their own words.",
-      maxLength: 200, step: 2 },
+      maxLength: 55, step: 2 },
     { id: 'date_admitted', label: 'Date Admitted', type: 'date',
       required: true, hint: 'Format: mm / dd / yyyy', step: 2 },
     { id: 'time_admitted', label: 'Time Admitted', type: 'text',
@@ -2229,14 +2236,16 @@ const philhealthClaimForm3: FormSchema = {
       required: true, mask: 'time', hint: 'Format: hh:mm AM/PM', step: 2 },
 
     // ── Step 3: Clinical Narrative ──
+    // 540pt narrative band single-line capacity:
+    //   8pt native ≈ 135 chars  |  6pt min legible ≈ 200 chars (cap).
     { id: 'history_of_present_illness', label: 'Brief History of Present Illness / OB History',
-      type: 'textarea', required: true, maxLength: 600,
+      type: 'textarea', required: true, maxLength: 200,
       hint: 'Onset, duration, character, associated symptoms, treatments tried.',
       step: 3 },
     { id: 'pe_general_survey', label: 'General Survey', type: 'textarea',
       required: false,
       placeholder: 'e.g., Conscious, coherent, ambulatory, NICRD',
-      maxLength: 200, step: 3 },
+      maxLength: 80, step: 3 },
     { id: 'vs_blood_pressure', label: 'Blood Pressure', type: 'text',
       required: false, placeholder: '120/80', maxLength: 10,
       hint: 'Systolic / Diastolic in mmHg.', step: 3 },
@@ -2247,17 +2256,18 @@ const philhealthClaimForm3: FormSchema = {
     { id: 'vs_temperature', label: 'Temperature (°C)', type: 'text',
       required: false, placeholder: '36.8', maxLength: 5,
       hint: 'In degrees Celsius.', step: 3 },
-    { id: 'pe_heent', label: 'HEENT', type: 'textarea', required: false, maxLength: 200, step: 3 },
-    { id: 'pe_chest_lungs', label: 'Chest / Lungs', type: 'textarea', required: false, maxLength: 200, step: 3 },
-    { id: 'pe_cvs', label: 'Cardiovascular System', type: 'textarea', required: false, maxLength: 200, step: 3 },
-    { id: 'pe_abdomen', label: 'Abdomen', type: 'textarea', required: false, maxLength: 200, step: 3 },
-    { id: 'pe_genitourinary', label: 'Genitourinary (GU/IE)', type: 'textarea', required: false, maxLength: 200, step: 3 },
-    { id: 'pe_extremities', label: 'Extremities', type: 'textarea', required: false, maxLength: 200, step: 3 },
+    // PE rows: left column maxWidth=230 (≈76 chars @ 6pt); right column 170 (≈56 chars).
+    { id: 'pe_heent', label: 'HEENT', type: 'textarea', required: false, maxLength: 75, step: 3 },
+    { id: 'pe_chest_lungs', label: 'Chest / Lungs', type: 'textarea', required: false, maxLength: 75, step: 3 },
+    { id: 'pe_cvs', label: 'Cardiovascular System', type: 'textarea', required: false, maxLength: 75, step: 3 },
+    { id: 'pe_abdomen', label: 'Abdomen', type: 'textarea', required: false, maxLength: 56, step: 3 },
+    { id: 'pe_genitourinary', label: 'Genitourinary (GU/IE)', type: 'textarea', required: false, maxLength: 56, step: 3 },
+    { id: 'pe_extremities', label: 'Extremities', type: 'textarea', required: false, maxLength: 46, step: 3 },
     { id: 'course_in_the_ward', label: 'Course in the Ward', type: 'textarea',
-      required: true, maxLength: 800,
+      required: true, maxLength: 200,
       hint: 'Chronological clinical course, treatments given, response.', step: 3 },
     { id: 'pertinent_lab_findings', label: 'Pertinent Laboratory & Diagnostic Findings',
-      type: 'textarea', required: false, maxLength: 600,
+      type: 'textarea', required: false, maxLength: 200,
       placeholder: 'e.g., CBC: Hgb 12.4 g/dL, WBC 8.6; UA: normal; CXR: clear',
       hint: 'CBC, urinalysis, fecalysis, X-ray, biopsy, etc.', step: 3 },
 
