@@ -21,31 +21,39 @@ import { listFormCatalog } from './db';
 import { FORMS, type FormSchema } from '@/data/forms';
 
 /**
- * Self-heal helper: if the SQLite `forms` table is empty (e.g. fresh Azure
- * container with a wiped persisted volume, or first cold-start after a new
- * App Service Plan), trigger a one-time scan of public/forms/* to populate
- * the catalog. Idempotent — does nothing once any row exists.
+ * Self-heal helper: runs a forms-scan ONCE per process lifetime to reconcile
+ * the SQLite `forms` table with the on-disk PDFs in public/forms/. This both:
+ *   1. Seeds the catalog on a cold container with an empty DB (the original
+ *      v2.3.1 fix), and
+ *   2. Soft-deletes obsolete rows whose PDFs were removed in a release (so
+ *      duplicate/orphan entries clear themselves on the first request after
+ *      each Azure deploy / container restart).
+ *
+ * Memoized via `_syncPromise` — concurrent first-callers all await the same
+ * scan; subsequent callers return immediately. Failures clear the memo so a
+ * later request can retry.
  *
  * Must be awaited from Server Components BEFORE calling getPublicCatalog().
  * Kept out of getDB()/getPublicCatalog() so those stay sync and don't break
  * synchronous call sites (kuya-quim prompt builder).
  */
-let _seedPromise: Promise<void> | null = null;
+let _syncPromise: Promise<void> | null = null;
 export async function ensureCatalogSeeded(): Promise<void> {
-  if (listFormCatalog().length > 0) return;
-  if (_seedPromise) return _seedPromise;
-  _seedPromise = (async () => {
+  if (_syncPromise) return _syncPromise;
+  _syncPromise = (async () => {
     try {
       const { runScan } = await import('./forms-scan');
       const r = await runScan();
-      console.log(`[catalog] auto-seed complete: scanned=${r.scanned} inserted=${r.inserted} updated=${r.updated}`);
+      console.log(
+        `[catalog] sync complete: scanned=${r.scanned} inserted=${r.inserted} updated=${r.updated} softDeleted=${r.softDeleted}`,
+      );
     } catch (err) {
-      console.error('[catalog] auto-seed failed:', err);
-      _seedPromise = null; // allow retry on next request
+      console.error('[catalog] sync failed:', err);
+      _syncPromise = null; // allow retry on next request
       throw err;
     }
   })();
-  return _seedPromise;
+  return _syncPromise;
 }
 
 export interface CatalogEntry {
