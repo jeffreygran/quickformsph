@@ -71,8 +71,8 @@ function streamFromString(text: string): ReadableStream<Uint8Array> {
 
 const DONATION_NUDGE =
   'Pasensya na, kailangan munang ma-activate si Kuya Quim. ' +
-  'Mag-donate ng kahit ₱5 sa pamamagitan ng 💚 Donate button sa itaas ng Forms page para mabuksan ang AI assistant. ' +
-  'Salamat sa suporta — tutulungan kita matapos mong mag-donate! 🙏';
+  'Para magamit ang AI assistant, i-tap lang ang 💚 Donate ₱5 button sa ibaba para mag-activate. ' +
+  'Salamat sa suporta — tutulungan kita kaagad pagkatapos! 🙏';
 
 export async function POST(req: NextRequest) {
   // 1. CSRF / same-origin guard

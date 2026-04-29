@@ -154,6 +154,7 @@ export default function KuyaQuimChat({ hideLauncher = false }: { hideLauncher?: 
   const [streaming, setStreaming] = useState(false);
   const [showDonate, setShowDonate] = useState(false);
   const [needsDonation, setNeedsDonation] = useState(false);
+  const [donateClicked, setDonateClicked] = useState(false);
   const [toast, setToast] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const upvotedSlugsRef = useRef<Set<string>>(new Set());
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -229,6 +230,12 @@ export default function KuyaQuimChat({ hideLauncher = false }: { hideLauncher?: 
     setInput('');
     setStreaming(true);
     setNeedsDonation(false);
+    // NOTE: do NOT reset `donateClicked` here. Once the user has tapped
+    // "Donate ₱5 to activate", we want the morphed "Done / Attached transfer
+    // screenshot" state to persist until they actually complete the donation
+    // (which writes the shared access token in localStorage — same 24-hour
+    // gate used by the Form Editor). After the token exists, the backend
+    // stops returning the donation gate, so this block won't render anyway.
 
     const apiMessages = next.map((m) => ({ role: m.role, content: m.content }));
     const tok = readAccessToken();
@@ -469,12 +476,23 @@ export default function KuyaQuimChat({ hideLauncher = false }: { hideLauncher?: 
                   )}
                   {m.role === 'assistant' && needsDonation && i === messages.length - 1 && (
                     <div className="mt-2.5">
-                      <button
-                        onClick={() => setShowDonate(true)}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-green-600 px-3.5 py-1.5 text-[12px] font-bold text-white shadow hover:bg-green-700"
-                      >
-                        💚 Donate ₱5 to activate
-                      </button>
+                      {!donateClicked ? (
+                        <button
+                          onClick={() => { setShowDonate(true); setDonateClicked(true); }}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-green-600 px-3.5 py-1.5 text-[12px] font-bold text-white shadow hover:bg-green-700"
+                        >
+                          💚 Donate ₱5 to activate
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setShowDonate(true)}
+                          className="relative overflow-hidden flex flex-col items-center justify-center w-full rounded-lg border border-emerald-300 bg-gradient-to-b from-white to-emerald-50 hover:from-emerald-50 hover:to-emerald-100 active:translate-y-[2px] active:shadow-inner shadow-[0_3px_0_0_rgba(16,185,129,0.35),0_4px_10px_-2px_rgba(16,185,129,0.25)] py-2.5 cursor-pointer transition-all duration-150"
+                          title="Re-open donation to attach your transfer screenshot"
+                        >
+                          <span className="text-sm font-semibold text-emerald-700 leading-tight">Done</span>
+                          <span className="text-[10px] text-emerald-500/80 leading-tight mt-0.5">Attached transfer screenshot</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

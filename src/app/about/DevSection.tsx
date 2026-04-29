@@ -100,7 +100,7 @@ export default function DevSection({ forceVisible = false }: DevSectionProps) {
 
         {/* Version stamp */}
         <p className="mt-2 w-full max-w-sm text-right text-[10px] text-gray-300 select-none">
-          QuickFormsPH v2.3.1
+          QuickFormsPH v2.3.2
         </p>
       </div>
 
