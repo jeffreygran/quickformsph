@@ -18,6 +18,20 @@ import { parsePdfFilename } from '@/lib/forms-scanner';
 const PUBLIC_FORMS_DIR = path.join(process.cwd(), 'public', 'forms');
 const NO_EDITOR_DIR    = path.join(PUBLIC_FORMS_DIR, 'NoFormEditor');
 
+/**
+ * Filenames to ignore during scan. Used for orphan PDFs that were removed
+ * from the repo but may still linger on Azure App Service /home/site/wwwroot
+ * because zip-deploy uses rsync WITHOUT --delete by default. Listing them
+ * here keeps their slugs out of seenSlugs so the soft-delete pass below
+ * cleanly removes the corresponding catalog rows.
+ *
+ * Each entry is the exact basename (case-sensitive) of the PDF file.
+ */
+const DENY_FILENAMES = new Set<string>([
+  'BIR 2316.pdf',         // duplicate of canonical BIR-2316_Certificate...pdf
+  'CSF-2018.pdf',         // legacy BIR-1901 copy; real CSF is philhealth-claim-signature-form
+]);
+
 export interface ScanResult {
   scanned: number;
   inserted: number;
@@ -38,6 +52,7 @@ async function listPdfs(dir: string): Promise<string[]> {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     return entries
       .filter((e) => e.isFile() && e.name.toLowerCase().endsWith('.pdf'))
+      .filter((e) => !DENY_FILENAMES.has(e.name))
       .map((e) => e.name);
   } catch {
     return [];
