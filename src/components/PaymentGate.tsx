@@ -22,6 +22,7 @@ import {
   type StoredAccessToken,
 } from '@/lib/access-token-client';
 import { trackEvent } from '@/lib/analytics-client';
+import PrivacyNoticeModal, { hasPrivacyAck, setPrivacyAck } from '@/components/PrivacyNoticeModal';
 
 type Mode = 'choice' | 'pay' | 'key';
 
@@ -58,10 +59,15 @@ export default function PaymentGate({
   const [mode, setMode]                     = useState<Mode>('choice');
   const [existingToken, setExistingToken]   = useState<StoredAccessToken | null>(null);
   const [isExiting, setIsExiting]           = useState(false);
+  // Privacy Notice gate — shown ONCE per browser before the choice screen.
+  // Uses the shared `qfph_privacy_ack` localStorage flag. If a returning
+  // visitor already acknowledged on a previous form, this stays false.
+  const [showPrivacy, setShowPrivacy]       = useState(false);
 
   useEffect(() => {
     setHydrated(true);
     setExistingToken(readAccessToken());
+    if (!hasPrivacyAck()) setShowPrivacy(true);
   }, []);
 
   // Avoid SSR/hydration flash.
@@ -127,6 +133,16 @@ export default function PaymentGate({
           onSuccess: handleTokenIssued,
           onClose: () => setMode('choice'),
         })}
+
+      {/* Privacy Notice — first-time gate, shown above the choice screen. */}
+      {showPrivacy && (
+        <PrivacyNoticeModal
+          onAck={() => {
+            setPrivacyAck();
+            setShowPrivacy(false);
+          }}
+        />
+      )}
     </>
   );
 }

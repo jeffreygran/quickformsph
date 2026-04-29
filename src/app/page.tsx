@@ -75,9 +75,6 @@ export default function HomePage() {
     } catch { /* ignore */ }
   }, []);
 
-  // Privacy notice — show only on first visit
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-
   // Hero category animation
   const [heroCategoryIdx, setHeroCategoryIdx] = useState(0);
   const [heroAnim, setHeroAnim]               = useState<HeroAnim>('anim-fade');
@@ -168,25 +165,10 @@ export default function HomePage() {
       setShowQfphPlaceholder(true);
     }
 
-    try {
-      if (!localStorage.getItem('qfph_privacy_ack')) {
-        setShowPrivacyModal(true);
-      } else if (!skipIntro) {
-        setIntroStarted(true);
-      }
-    } catch {
-      // localStorage unavailable — start intro anyway (unless skipped)
-      if (!skipIntro) setIntroStarted(true);
-    }
+    // Privacy notice was relocated to PaymentGate (shown right before the
+    // "How would you like to access?" choice). Landing page no longer prompts.
+    if (!skipIntro) setIntroStarted(true);
   }, []);
-
-  const handlePrivacyAck = () => {
-    try { localStorage.setItem('qfph_privacy_ack', '1'); } catch { /* ignore */ }
-    setShowPrivacyModal(false);
-    // If we already short-circuited to the final state (returning visitor),
-    // don't kick off the timed intro again.
-    if (!showHeroTitle) setIntroStarted(true);
-  };
 
   // Infinite scroll
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -658,11 +640,6 @@ export default function HomePage() {
 
       {/* ── Kuya Quim Chat (floating, listens for `kuya-quim:open`) ── */}
       <KuyaQuimChat hideLauncher />
-
-      {/* ── Privacy Notice (first visit only) ── */}
-      {showPrivacyModal && (
-        <PrivacyNoticeModal onAck={handlePrivacyAck} />
-      )}
 
       <footer
         className={`border-t border-gray-200 py-4 px-6 text-center text-xs text-gray-400 ${showFooter ? 'intro-footer-up' : 'invisible'}`}

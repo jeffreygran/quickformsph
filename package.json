@@ -1,6 +1,6 @@
 {
   "name": "quickformsph-dev",
-  "version": "2.3.4",
+  "version": "2.3.3",
   "private": true,
   "scripts": {
     "dev": "next dev",
