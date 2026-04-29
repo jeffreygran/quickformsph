@@ -26,9 +26,10 @@ const GCASH_NAME   = process.env.NEXT_PUBLIC_GCASH_NAME   ?? 'JE****Y JO*N G.';
 
 // ─── Agency logos ────────────────────────────────────────────────────────────
 const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
-  'Bureau of Internal Revenue': { src: '/logos/bir.png',       w: 36, h: 36 },
-  'Pag-IBIG Fund':              { src: '/logos/pagibig.png',   w: 36, h: 36 },
+  'BIR': { src: '/logos/bir.png',       w: 36, h: 36 },
+  'Pag-IBIG':              { src: '/logos/pagibig.png',   w: 36, h: 36 },
   'PhilHealth':                 { src: '/logos/philhealth.png?v=3', w: 40, h: 40 },
+  'PRC':                        { src: '/logos/prc.png',        w: 36, h: 36 },
 };
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -870,7 +871,11 @@ export default function FormWizardPage() {
             'Started on ceftriaxone 2 g IV q24h + azithromycin 500 mg PO OD per CAP-MR pathway. O2 via nasal cannula titrated to SpO2 >= 95%. Defervesced day 2; weaned off oxygen day 3; shifted to PO cefuroxime day 4. Discharged improved on cefuroxime BID for 7 more days; follow-up at OPD in 1 week with repeat CXR.',
           surgical_procedure_rvs: '',
           drugs_medicines_summary:
-            'Ceftriaxone 2g IV q24h x 4d -- P3,200; Azithromycin 500mg PO OD x 5d -- P520; Cefuroxime 500mg BID x 7d (TTOH) -- P680; Paracetamol 500mg q4h PRN -- P120; D5NSS 1L x 3 -- P270.',
+            'Ceftriaxone 2g IV; q24h x 4d; 3,200\n' +
+            'Azithromycin 500mg PO; OD x 5d; 520\n' +
+            'Cefuroxime 500mg PO; BID x 7d TTOH; 680\n' +
+            'Paracetamol 500mg; q4h PRN; 120\n' +
+            'D5NSS 1L; x 3 bags; 270',
           patient_disposition: 'IMPROVED',
           transferred_hci_name: '', expired_date: '',
           attending_physician_name: 'JUAN P. DELA CRUZ, MD',
@@ -4091,7 +4096,7 @@ function PaymentModal({
             {/* Heartfelt note */}
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
               <p className="text-xs text-blue-800 leading-relaxed">
-                Made to help Filipinos fill out government forms more easily. Your ₱5 or any amount helps support maintenance and future updates. <strong>Maraming salamat po. 🙏</strong>
+                Made to help Filipinos easily search and fill out government forms. Any amount helps support maintenance and future updates. <strong>Maraming salamat po. 🙏</strong>
               </p>
             </div>
 

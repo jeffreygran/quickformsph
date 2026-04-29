@@ -6,7 +6,7 @@
  * and an idempotent re-scan is run so the new row appears in the catalog
  * with `has_form_editor = 0` ("Soon").
  *
- * Auth: requires the `mc_auth` cookie.
+ * Auth: requires the `qfph_admin` cookie.
  * Limits: 25 MB, must be a real PDF (magic bytes %PDF-).
  */
 
@@ -18,7 +18,7 @@ import { runScan, NO_EDITOR_DIR } from '@/lib/forms-scan';
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
 
 function isAuthed(req: NextRequest): boolean {
-  return Boolean(req.cookies.get('mc_auth')?.value);
+  return Boolean(req.cookies.get('qfph_admin')?.value);
 }
 
 /**

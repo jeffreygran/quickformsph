@@ -31,6 +31,8 @@ export interface CatalogEntry {
   isOldFormReported: boolean;
   isPaid: boolean;
   upVote: number;
+  /** Short subtitle shown on the catalog card. */
+  description: string | null;
   /** TS render schema, present iff a fillable form is wired up for this slug. */
   schema: FormSchema | null;
 }
@@ -39,17 +41,34 @@ export function getPublicCatalog(
   opts: { onlyWithEditor?: boolean } = {},
 ): CatalogEntry[] {
   const rows = listFormCatalog({ onlyWithEditor: opts.onlyWithEditor });
-  return rows.map((r) => ({
-    slug:               r.slug,
-    formCode:           r.form_code,
-    formName:           r.form_name,
-    agency:             r.agency,
-    pdfPath:            r.pdf_path,
-    sourceUrl:          r.source_url,
-    hasFormEditor:      Boolean(r.has_form_editor),
-    isOldFormReported:  Boolean(r.is_old_form_reported),
-    isPaid:             Boolean(r.is_paid),
-    upVote:             r.up_vote,
-    schema:             FORMS.find((f) => f.slug === r.slug) ?? null,
-  }));
+  return rows.map((r) => {
+    // Resolve the schema by pdf_path (the canonical key), NOT by slug — the
+    // scanner-generated DB slug is derived from the filename and almost
+    // never matches the hand-authored schema slug in src/data/forms.ts.
+    const schema = FORMS.find((f) => f.pdfPath === r.pdf_path) ?? null;
+    // The DB flag may say "has editor" but if no schema is wired the button
+    // would 404. Trust the schema's existence as the actual signal.
+    const hasFormEditor = Boolean(r.has_form_editor) && schema !== null;
+    return {
+      // Use the schema slug when an editor exists so /forms/[slug] resolves;
+      // otherwise fall back to the DB slug (used as a stable upvote key).
+      slug:               schema?.slug ?? r.slug,
+      // For schema-backed rows the schema is the source of truth for the
+      // human-readable name/code/agency — schemas are hand-curated, the DB
+      // copies (filename-derived) are messy.
+      formCode:           schema?.code   ?? r.form_code,
+      formName:           schema?.name   ?? r.form_name,
+      agency:             schema?.agency ?? r.agency,
+      pdfPath:            r.pdf_path,
+      sourceUrl:          r.source_url,
+      hasFormEditor,
+      isOldFormReported:  Boolean(r.is_old_form_reported),
+      isPaid:             Boolean(r.is_paid),
+      upVote:             r.up_vote,
+      // DB description is the catalog subtitle for NoFormEditor rows that
+      // don't have a wired TS schema yet. Schema wins when present.
+      description:        schema?.description ?? r.description ?? null,
+      schema,
+    };
+  });
 }

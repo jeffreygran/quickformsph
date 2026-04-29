@@ -141,7 +141,7 @@ const hqpPff356: FormSchema = {
   code: 'HQP-PFF-356',
   version: 'V02 (03/2024)',
   name: 'Application for the Release of MP2 Annual Dividends',
-  agency: 'Pag-IBIG Fund',
+  agency: 'Pag-IBIG',
   category: 'Savings & Dividends',
   pdfPath: 'hqp-pff-356.pdf',
   description:
@@ -2324,7 +2324,7 @@ const pagibigPff049: FormSchema = {
   code: 'HQP-PFF-049',
   version: 'V12 (12/2025)',
   name: "Member's Change of Information Form (MCIF)",
-  agency: 'Pag-IBIG Fund',
+  agency: 'Pag-IBIG',
   category: 'Membership',
   pdfPath: 'Pagibig - PFF049_MembersChangeInformationForm.pdf',
   description:
@@ -2426,7 +2426,7 @@ const pagibigSlf089: FormSchema = {
   code: 'HQP-SLF-089',
   version: 'V05 (05/2025)',
   name: 'Pag-IBIG HELPs Application Form',
-  agency: 'Pag-IBIG Fund',
+  agency: 'Pag-IBIG',
   category: 'Loans',
   pdfPath: 'PagIbig - SLF089_PagIBIGHELPsApplicationForm.pdf',
   description:
@@ -2570,7 +2570,7 @@ const pagibigSlf065: FormSchema = {
   code: 'HQP-SLF-065',
   version: 'V10 (05/2025)',
   name: 'Pag-IBIG Multi-Purpose Loan Application Form',
-  agency: 'Pag-IBIG Fund',
+  agency: 'Pag-IBIG',
   category: 'Loans',
   pdfPath: 'Pagibig - SLF065_MultiPurposeLoanApplicationForm.pdf',
   description:
@@ -2759,7 +2759,7 @@ const pagibigHlf868: FormSchema = {
   code: 'HQP-HLF-868',
   version: 'V01 (07/2021)',
   name: 'Pag-IBIG HEAL Application — Co-Borrower',
-  agency: 'Pag-IBIG Fund',
+  agency: 'Pag-IBIG',
   category: 'Loans',
   pdfPath: 'PagIbig - HLF868_ApplicationHomeEquityAppreciationLoan(Co-borrower).pdf',
   description:
@@ -2887,7 +2887,7 @@ const pagibigHlf858: FormSchema = {
   code: 'HQP-HLF-858',
   version: 'V01 (07/2021)',
   name: 'Pag-IBIG HEAL Application — Principal Borrower',
-  agency: 'Pag-IBIG Fund',
+  agency: 'Pag-IBIG',
   category: 'Loans',
   pdfPath: 'PagIbig - HLF858_ApplicationHomeEquityAppreciationLoan.pdf',
   description:
@@ -3036,7 +3036,7 @@ const pagibigHlf068: FormSchema = {
   code: 'HQP-HLF-068',
   version: 'V01 (07/2021)',
   name: 'Pag-IBIG Housing Loan Application',
-  agency: 'Pag-IBIG Fund',
+  agency: 'Pag-IBIG',
   category: 'Loans',
   pdfPath: 'PagIbig - HLF068_HousingLoanApplication.pdf',
   description:
@@ -3154,7 +3154,7 @@ const bir2316: FormSchema = {
   code: 'BIR-2316',
   version: 'September 2021 (ENCS)',
   name: 'Certificate of Compensation Payment / Tax Withheld',
-  agency: 'Bureau of Internal Revenue',
+  agency: 'BIR',
   category: 'Tax',
   pdfPath: 'BIR - 2316_CertificateOfCompensationPaymentTaxWithheld.pdf',
   description:
@@ -3324,7 +3324,7 @@ const bir1904: FormSchema = {
   code: 'BIR-1904',
   version: 'October 2025 (ENCS)',
   name: 'Application for Registration — One-Time Taxpayer & Persons Registering under E.O. 98',
-  agency: 'Bureau of Internal Revenue',
+  agency: 'BIR',
   category: 'Tax',
   pdfPath: 'BIR - 1904 October 2025 ENCS Final.pdf',
   description:
@@ -3489,7 +3489,7 @@ const bir1902: FormSchema = {
   code: 'BIR-1902',
   version: 'October 2025 (ENCS)',
   name: 'Application for Registration For Individuals Earning Purely Compensation Income',
-  agency: 'Bureau of Internal Revenue',
+  agency: 'BIR',
   category: 'Tax',
   pdfPath: 'BIR - 1902 October 2025 (ENCS) Final.pdf',
   description: 'BIR 1902 is filed by employees earning purely compensation income (local and resident-alien). Captures TIN application, identity, address, ID, contact, and spouse details.',
@@ -3826,9 +3826,10 @@ const philhealthClaimForm4 = {
       type: 'text', required: false, autoUppercase: true, maxLength: 60,
       placeholder: 'e.g., LSCS — RVS 59514', step: 4 },
     { id: 'drugs_medicines_summary',
-      label: 'V. Drugs / Medicines (free-text summary)',
+      label: 'V. Drugs / Medicines',
       type: 'textarea', required: false, maxLength: 700,
-      hint: 'Quick free-text list (Generic name — Quantity/Dosage/Route/Frequency — Total Cost). Structured per-row capture is on the Phase 2 roadmap.',
+      placeholder: 'Ceftriaxone 2g IV; q24h x 4d; ₱3,200\nAzithromycin 500mg PO; OD x 5d; ₱520',
+      hint: 'One row per line. Within a row, separate the 3 columns with a semicolon (;): Generic name ; Quantity/Dosage/Route/Frequency ; Total Cost. Up to 7 rows render in the structured table; legacy single-line free-text still works.',
       step: 4 },
 
     // ── Step 5: Outcome & Certification ──

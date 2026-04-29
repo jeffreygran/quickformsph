@@ -90,7 +90,7 @@ export default function DonationModal({ onClose }: { onClose: () => void }) {
             {/* Heartfelt note */}
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
               <p className="text-xs text-blue-800 leading-relaxed">
-                Made to help Filipinos fill out government forms more easily. Your ₱5 or any amount helps support maintenance and future updates. <strong>Maraming salamat po. 🙏</strong>
+                Made to help Filipinos easily search and fill out government forms. Any amount helps support maintenance and future updates. <strong>Maraming salamat po. 🙏</strong>
               </p>
             </div>
 

@@ -446,6 +446,205 @@ function StorageConfigTab() {
 }
 
 // ─── Settings Tab ─────────────────────────────────────────────────────────────
+function AIAssistantCard() {
+  type AdminView = {
+    enabled: boolean;
+    provider: 'azure_openai' | 'openai';
+    endpoint: string;
+    apiKeyMask: string;
+    apiKeyFromEnv: boolean;
+    model: string;
+    maxTokens: number;
+    temperature: number;
+  };
+  const [s, setS] = useState<AdminView | null>(null);
+  const [newKey, setNewKey] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    fetch('/api/admin/ai-settings')
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((d: AdminView) => setS(d))
+      .catch(() => setErr('Failed to load AI settings'));
+  }, []);
+
+  async function save(patch: Record<string, unknown>) {
+    setSaving(true); setMsg(''); setErr('');
+    try {
+      const res = await fetch('/api/admin/ai-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      const data = await res.json() as { ok?: boolean; settings?: AdminView; error?: string };
+      if (!res.ok || !data.ok) throw new Error(data.error ?? 'Save failed');
+      setS(data.settings ?? null);
+      setNewKey('');
+      setMsg('Saved ✓');
+      setTimeout(() => setMsg(''), 2500);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!s) {
+    return (
+      <div className="rounded-2xl bg-white border border-gray-200 p-6">
+        <h2 className="text-sm font-semibold text-gray-900">Kuya Quim — AI Assistant</h2>
+        <p className="mt-2 text-xs text-gray-500">{err || 'Loading…'}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl bg-white border border-gray-200 p-6 space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900">Kuya Quim — AI Assistant</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Configures the LLM used by the chat assistant on the Forms Listing page.
+            Access is gated to ₱5 donors.
+          </p>
+        </div>
+        <label className="inline-flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={s.enabled}
+            onChange={(e) => save({ enabled: e.target.checked })}
+            disabled={saving}
+            className="h-4 w-4"
+          />
+          <span className="font-medium text-gray-700">{s.enabled ? 'Enabled' : 'Disabled'}</span>
+        </label>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Provider</label>
+        <select
+          value={s.provider}
+          onChange={(e) => setS({ ...s, provider: e.target.value as AdminView['provider'] })}
+          className="input-field text-sm"
+        >
+          <option value="azure_openai">Azure OpenAI</option>
+          <option value="openai">OpenAI</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">
+          Endpoint
+          <span className="ml-2 text-[10px] font-normal text-gray-400">
+            (Azure: full chat-completions URL incl. deployment)
+          </span>
+        </label>
+        <input
+          type="text"
+          value={s.endpoint}
+          onChange={(e) => setS({ ...s, endpoint: e.target.value })}
+          placeholder="https://<resource>.openai.azure.com/openai/deployments/<dep>/chat/completions?api-version=2024-08-01-preview"
+          className="input-field text-sm font-mono"
+        />
+      </div>
+
+      {s.provider === 'openai' && (
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Model</label>
+          <input
+            type="text"
+            value={s.model}
+            onChange={(e) => setS({ ...s, model: e.target.value })}
+            placeholder="gpt-4o-mini"
+            className="input-field text-sm"
+          />
+        </div>
+      )}
+
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">
+          API Key
+          {s.apiKeyMask && (
+            <span className="ml-2 text-[10px] font-mono text-gray-500">
+              current: {s.apiKeyMask}{s.apiKeyFromEnv ? ' (from env)' : ''}
+            </span>
+          )}
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="password"
+            value={newKey}
+            onChange={(e) => setNewKey(e.target.value)}
+            placeholder="Paste new key to replace, or leave blank to keep"
+            className="input-field text-sm flex-1"
+            autoComplete="off"
+          />
+          {s.apiKeyMask && !s.apiKeyFromEnv && (
+            <button
+              onClick={() => save({ apiKey: '__CLEAR__' })}
+              disabled={saving}
+              className="text-xs text-red-600 border border-red-200 rounded-xl px-3 py-1.5 hover:bg-red-50 disabled:opacity-50"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        <p className="text-[10px] text-gray-400 mt-1">
+          Stored encrypted at rest (AES-256-GCM, key derived from FORM_DATA_ENCRYPTION_KEY).
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Max Tokens</label>
+          <input
+            type="number"
+            min={1}
+            max={4000}
+            value={s.maxTokens}
+            onChange={(e) => setS({ ...s, maxTokens: Number(e.target.value) })}
+            className="input-field text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Temperature</label>
+          <input
+            type="number"
+            min={0}
+            max={2}
+            step={0.1}
+            value={s.temperature}
+            onChange={(e) => setS({ ...s, temperature: Number(e.target.value) })}
+            className="input-field text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => save({
+            provider: s.provider,
+            endpoint: s.endpoint,
+            model: s.model,
+            maxTokens: s.maxTokens,
+            temperature: s.temperature,
+            ...(newKey ? { apiKey: newKey } : {}),
+          })}
+          disabled={saving}
+          className="btn-primary py-2 px-5 text-xs disabled:opacity-50"
+        >
+          {saving ? 'Saving…' : 'Save Settings'}
+        </button>
+        {msg && <span className="text-xs text-green-600">{msg}</span>}
+        {err && <span className="text-xs text-red-600">{err}</span>}
+      </div>
+    </div>
+  );
+}
+
+
 function SettingsTab() {
   const [gcashNumber, setGcashNumber] = useState('');
   const [gcashName, setGcashName]     = useState('');
@@ -636,6 +835,8 @@ function SettingsTab() {
           <p className={`text-xs ${mayaUploadMsg.includes('success') || mayaUploadMsg.includes('removed') ? 'text-green-600' : 'text-red-600'}`}>{mayaUploadMsg}</p>
         )}
       </div>
+      <AIAssistantCard />
+
       <div className="rounded-2xl bg-white border border-gray-200 p-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-4">Environment Info</h2>
         <div className="space-y-2">

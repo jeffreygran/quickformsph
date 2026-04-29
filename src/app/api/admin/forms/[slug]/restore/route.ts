@@ -1,13 +1,13 @@
 /**
  * POST /api/admin/forms/[slug]/restore — clear deleted_at (undo soft delete).
- * Auth: `mc_auth` cookie.
+ * Auth: `qfph_admin` cookie.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { restoreFormCatalog } from '@/lib/db';
 
 function isAuthed(req: NextRequest): boolean {
-  return Boolean(req.cookies.get('mc_auth')?.value);
+  return Boolean(req.cookies.get('qfph_admin')?.value);
 }
 
 interface Ctx { params: { slug: string } }

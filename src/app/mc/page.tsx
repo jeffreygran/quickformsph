@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FORMS } from '@/data/forms';
@@ -27,20 +27,23 @@ export default function AdminPage() {
     window.location.href = '/mc/login';
   }
 
-  const tabs: { id: AdminTab; icon: string; label: string }[] = [
+  const tabsTop: { id: AdminTab; icon: string; label: string }[] = [
     { id: 'dashboard',   icon: '📊', label: 'Dashboard' },
     { id: 'catalog',     icon: '📋', label: 'Form Catalog' },
-    { id: 'forms',       icon: '🗄️', label: 'Forms (DB)' },
-    { id: 'upload',      icon: '⬆️', label: 'Upload PDF' },
     { id: 'storage',     icon: '💾', label: 'Storage Config' },
-    { id: 'suggestions', icon: '💡', label: 'Suggestions' },
     { id: 'refs',        icon: '🧾', label: 'Payments' },
     { id: 'settings',    icon: '⚙️', label: 'Settings' },
     { id: 'security',    icon: '🛡️', label: 'Security' },
+  ];
+  const tabsMid: { id: AdminTab; icon: string; label: string }[] = [
+    { id: 'suggestions', icon: '💡', label: 'Suggestions' },
     { id: 'keys',        icon: '🏷️', label: 'Promo Codes' },
     { id: 'referral',    icon: '🤝', label: 'Referral Program' },
-    { id: 'docs',        icon: '📚', label: 'Docs' },
   ];
+  const tabsBottom: { id: AdminTab; icon: string; label: string }[] = [
+    { id: 'docs',        icon: '📚', label: 'Form Data Dictionary' },
+  ];
+  const tabs = [...tabsTop, ...tabsMid, ...tabsBottom];
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -76,7 +79,43 @@ export default function AdminPage() {
         </div>
 
         <nav className="flex-1 py-3 overflow-y-auto">
-          {tabs.map((t) => (
+          {tabsTop.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => {
+                setTab(t.id);
+                setSidebarOpen(false);
+              }}
+              className={`flex w-full items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                tab === t.id
+                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <span>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+          <hr className="my-2 border-t border-gray-100" />
+          {tabsMid.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => {
+                setTab(t.id);
+                setSidebarOpen(false);
+              }}
+              className={`flex w-full items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                tab === t.id
+                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <span>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+          <hr className="my-2 border-t border-gray-100" />
+          {tabsBottom.map((t) => (
             <button
               key={t.id}
               onClick={() => {
@@ -117,8 +156,48 @@ export default function AdminPage() {
             ☰
           </button>
           <h1 className="text-sm font-semibold text-gray-900">
-            {tabs.find((t) => t.id === tab)?.label ?? 'Admin'}
+            {tab === 'forms'
+              ? 'Forms (DB)'
+              : tab === 'upload'
+              ? 'Upload PDF'
+              : tabs.find((t) => t.id === tab)?.label ?? 'Admin'}
           </h1>
+          {(tab === 'catalog' || tab === 'forms' || tab === 'upload') && (
+            <div className="flex items-center gap-3 pl-3 ml-1 border-l border-gray-200">
+              <button
+                onClick={() => setTab('catalog')}
+                className={`text-xs font-medium transition-colors ${
+                  tab === 'catalog'
+                    ? 'text-blue-700 font-semibold'
+                    : 'text-gray-500 hover:text-blue-600 hover:underline'
+                }`}
+              >
+                📋 Form Catalog
+              </button>
+              <span className="text-gray-300">|</span>
+              <button
+                onClick={() => setTab('forms')}
+                className={`text-xs font-medium transition-colors ${
+                  tab === 'forms'
+                    ? 'text-blue-700 font-semibold'
+                    : 'text-gray-500 hover:text-blue-600 hover:underline'
+                }`}
+              >
+                🗄️ Forms (DB)
+              </button>
+              <span className="text-gray-300">|</span>
+              <button
+                onClick={() => setTab('upload')}
+                className={`text-xs font-medium transition-colors ${
+                  tab === 'upload'
+                    ? 'text-blue-700 font-semibold'
+                    : 'text-gray-500 hover:text-blue-600 hover:underline'
+                }`}
+              >
+                ⬆️ Upload PDF
+              </button>
+            </div>
+          )}
           <div className="ml-auto">
             <Link href="/" className="text-xs text-blue-600 hover:underline">
               ← View Site
@@ -167,6 +246,7 @@ interface DashboardStats {
   totalFormViews: number;
   totalDemoClicks: number;
   totalPaymentSuccesses: number;
+  totalChatQuestions: number;
   uniqueVisitors: number;
   claimedCodes: number;
   unclaimedCodes: number;
@@ -368,12 +448,13 @@ function DashboardTab() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
         {[
           { label: 'Unique Visitors',    value: loading ? '…' : (data?.uniqueVisitors        ?? 0), icon: '👥', color: 'bg-cyan-50 text-cyan-700'    },
           { label: 'Form Clicks',        value: loading ? '…' : (data?.totalFormViews        ?? 0), icon: '👆', color: 'bg-indigo-50 text-indigo-700' },
           { label: 'Demo Clicks',        value: loading ? '…' : (data?.totalDemoClicks       ?? 0), icon: '🧪', color: 'bg-violet-50 text-violet-700' },
           { label: 'Paid Users',         value: loading ? '…' : (data?.totalPaymentSuccesses ?? 0), icon: '💰', color: 'bg-green-50 text-green-700'  },
+          { label: 'Chat Questions',     value: loading ? '…' : (data?.totalChatQuestions    ?? 0), icon: '🤖', color: 'bg-pink-50 text-pink-700'    },
           { label: 'Claimed Codes',      value: loading ? '…' : (data?.claimedCodes          ?? 0), icon: '🏷️', color: 'bg-amber-50 text-amber-700'  },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl bg-white border border-gray-200 p-5">
@@ -916,8 +997,432 @@ function StorageConfigTab() {
   );
 }
 
+// ─── Collapsible Section helper ──────────────────────────────────────────────
+const SettingsCollapseCtx = React.createContext<{
+  open: string | null;
+  setOpen: (id: string | null) => void;
+  showAll: boolean;
+}>({ open: null, setOpen: () => {}, showAll: false });
+
+function CollapsibleSection({
+  id,
+  title,
+  subtitle,
+  rightSlot,
+  accent,
+  children,
+}: {
+  id: string;
+  title: string;
+  subtitle?: string;
+  rightSlot?: React.ReactNode;
+  accent?: 'default' | 'danger';
+  children: React.ReactNode;
+}) {
+  const { open, setOpen, showAll } = React.useContext(SettingsCollapseCtx);
+  const isOpen = showAll || open === id;
+  const danger = accent === 'danger';
+  return (
+    <div
+      className={`rounded-2xl border overflow-hidden ${
+        danger ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-white'
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen(isOpen ? null : id)}
+        className={`w-full flex items-center gap-3 px-6 py-4 text-left ${
+          danger ? 'hover:bg-red-100/50' : 'hover:bg-gray-50'
+        } transition-colors`}
+        aria-expanded={isOpen}
+      >
+        <span
+          className={`text-xs transition-transform inline-block w-3 ${
+            isOpen ? 'rotate-90' : ''
+          } ${danger ? 'text-red-700' : 'text-gray-400'}`}
+        >
+          ▶
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2
+            className={`text-sm font-semibold ${
+              danger ? 'text-red-900' : 'text-gray-900'
+            }`}
+          >
+            {title}
+          </h2>
+          {subtitle && (
+            <p
+              className={`text-xs mt-0.5 ${
+                danger ? 'text-red-600' : 'text-gray-500'
+              }`}
+            >
+              {subtitle}
+            </p>
+          )}
+        </div>
+        {rightSlot && (
+          <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+            {rightSlot}
+          </div>
+        )}
+      </button>
+      {isOpen && <div className="px-6 pb-6 -mt-1">{children}</div>}
+    </div>
+  );
+}
+
+// ─── AI Assistant (Kuya Quim) Settings Card ──────────────────────────────────
+function AIAssistantCard() {
+  type AdminView = {
+    enabled: boolean;
+    provider: 'azure_openai' | 'openai';
+    endpoint: string;
+    apiKeyMask: string;
+    apiKeyFromEnv: boolean;
+    model: string;
+    maxTokens: number;
+    temperature: number;
+  };
+  const [s, setS] = useState<AdminView | null>(null);
+  const [newKey, setNewKey] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+  // Test button state
+  const [testInput, setTestInput] = useState('Anong form ang kailangan ko para mag-apply ng TIN?');
+  const [testing, setTesting] = useState(false);
+  type TestResult = {
+    ok: boolean;
+    status?: number;
+    latencyMs?: number;
+    reply?: string;
+    error?: string;
+    code?: string | null;
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null;
+    finishReason?: string | null;
+    sentMessage?: string;
+  };
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/ai-settings')
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((d: AdminView) => setS(d))
+      .catch(() => setErr('Failed to load AI settings'));
+  }, []);
+
+  async function save(patch: Record<string, unknown>) {
+    setSaving(true); setMsg(''); setErr('');
+    try {
+      const res = await fetch('/api/admin/ai-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      const data = await res.json() as { ok?: boolean; settings?: AdminView; error?: string };
+      if (!res.ok || !data.ok) throw new Error(data.error ?? 'Save failed');
+      setS(data.settings ?? null);
+      setNewKey('');
+      setMsg('Saved ✓');
+      setTimeout(() => setMsg(''), 2500);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function runTest() {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/admin/ai-settings/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: testInput,
+          // Send the currently-typed values so admins can test BEFORE saving.
+          overrides: {
+            provider: s?.provider,
+            endpoint: s?.endpoint,
+            model: s?.model,
+            maxTokens: s?.maxTokens,
+            temperature: s?.temperature,
+            ...(newKey ? { apiKey: newKey } : {}),
+          },
+        }),
+      });
+      const data = (await res.json()) as TestResult;
+      setTestResult(data);
+    } catch (e) {
+      setTestResult({
+        ok: false,
+        error: e instanceof Error ? e.message : 'Test request failed',
+      });
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  if (!s) {
+    return <p className="text-xs text-gray-500">{err || 'Loading…'}</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs text-gray-500">
+          Configures the LLM used by the chat assistant on the Forms Listing page.
+          Access is gated to ₱5 donors.
+        </p>
+        <label className="inline-flex items-center gap-2 text-xs shrink-0">
+          <input
+            type="checkbox"
+            checked={s.enabled}
+            onChange={(e) => save({ enabled: e.target.checked })}
+            disabled={saving}
+            className="h-4 w-4"
+          />
+          <span className="font-medium text-gray-700">{s.enabled ? 'Enabled' : 'Disabled'}</span>
+        </label>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Provider</label>
+        <select
+          value={s.provider}
+          onChange={(e) => setS({ ...s, provider: e.target.value as AdminView['provider'] })}
+          className="input-field text-sm"
+        >
+          <option value="azure_openai">Azure OpenAI</option>
+          <option value="openai">OpenAI</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">
+          Endpoint
+          <span className="ml-2 text-[10px] font-normal text-gray-400">
+            (Azure: full chat-completions URL incl. deployment)
+          </span>
+        </label>
+        <input
+          type="text"
+          value={s.endpoint}
+          onChange={(e) => setS({ ...s, endpoint: e.target.value })}
+          placeholder="https://<resource>.openai.azure.com/openai/deployments/<dep>/chat/completions?api-version=2024-08-01-preview"
+          className="input-field text-sm font-mono"
+        />
+      </div>
+
+      {s.provider === 'openai' && (
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Model</label>
+          <input
+            type="text"
+            value={s.model}
+            onChange={(e) => setS({ ...s, model: e.target.value })}
+            placeholder="gpt-4o-mini"
+            className="input-field text-sm"
+          />
+        </div>
+      )}
+
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">
+          API Key
+          {s.apiKeyMask && (
+            <span className="ml-2 text-[10px] font-mono text-gray-500">
+              current: {s.apiKeyMask}{s.apiKeyFromEnv ? ' (from env)' : ''}
+            </span>
+          )}
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="password"
+            value={newKey}
+            onChange={(e) => setNewKey(e.target.value)}
+            placeholder="Paste new key to replace, or leave blank to keep"
+            className="input-field text-sm flex-1"
+            autoComplete="off"
+          />
+          {s.apiKeyMask && !s.apiKeyFromEnv && (
+            <button
+              onClick={() => save({ apiKey: '__CLEAR__' })}
+              disabled={saving}
+              className="text-xs text-red-600 border border-red-200 rounded-xl px-3 py-1.5 hover:bg-red-50 disabled:opacity-50"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        <p className="text-[10px] text-gray-400 mt-1">
+          Stored encrypted at rest (AES-256-GCM, key derived from FORM_DATA_ENCRYPTION_KEY).
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Max Tokens</label>
+          <input
+            type="number"
+            min={1}
+            max={4000}
+            value={s.maxTokens}
+            onChange={(e) => setS({ ...s, maxTokens: Number(e.target.value) })}
+            className="input-field text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Temperature</label>
+          <input
+            type="number"
+            min={0}
+            max={2}
+            step={0.1}
+            value={s.temperature}
+            onChange={(e) => setS({ ...s, temperature: Number(e.target.value) })}
+            className="input-field text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => save({
+            provider: s.provider,
+            endpoint: s.endpoint,
+            model: s.model,
+            maxTokens: s.maxTokens,
+            temperature: s.temperature,
+            ...(newKey ? { apiKey: newKey } : {}),
+          })}
+          disabled={saving}
+          className="btn-primary py-2 px-5 text-xs disabled:opacity-50"
+        >
+          {saving ? 'Saving…' : 'Save Settings'}
+        </button>
+        {msg && <span className="text-xs text-green-600">{msg}</span>}
+        {err && <span className="text-xs text-red-600">{err}</span>}
+      </div>
+
+      {/* ── Test panel ── */}
+      <div className="border-t border-gray-100 pt-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold text-gray-700">
+            🧪 Test Kuya Quim
+          </h3>
+          <span className="text-[10px] text-gray-400">
+            Bypasses donation gate · admin-only
+          </span>
+        </div>
+        <p className="text-[11px] text-gray-500">
+          Sends one message through the configured LLM with the live system prompt and forms catalog. Use this to verify the endpoint and key after changing them.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={testInput}
+            onChange={(e) => setTestInput(e.target.value)}
+            placeholder="Type a question for Kuya Quim…"
+            className="input-field text-sm flex-1"
+            disabled={testing}
+            maxLength={1000}
+          />
+          <button
+            onClick={runTest}
+            disabled={testing || !testInput.trim() || !s.enabled}
+            className="text-xs font-semibold rounded-xl px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          >
+            {testing ? 'Testing…' : 'Run Test'}
+          </button>
+        </div>
+
+        {testResult && (
+          <div
+            className={`rounded-xl border p-3 text-xs space-y-2 ${
+              testResult.ok
+                ? 'border-green-200 bg-green-50'
+                : 'border-red-200 bg-red-50'
+            }`}
+          >
+            <div className="flex items-center justify-between font-mono text-[10px]">
+              <span
+                className={
+                  testResult.ok ? 'text-green-700' : 'text-red-700'
+                }
+              >
+                {testResult.ok ? '✓ OK' : '✗ FAIL'}
+                {testResult.status != null && ` · HTTP ${testResult.status}`}
+                {testResult.latencyMs != null && ` · ${testResult.latencyMs}ms`}
+              </span>
+              {testResult.usage?.total_tokens != null && (
+                <span className="text-gray-500">
+                  {testResult.usage.prompt_tokens ?? '?'} in / {testResult.usage.completion_tokens ?? '?'} out / {testResult.usage.total_tokens} total tokens
+                </span>
+              )}
+            </div>
+
+            {testResult.ok ? (
+              <>
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
+                  Reply
+                </div>
+                <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+                  {testResult.reply || '(empty reply)'}
+                </div>
+                {testResult.finishReason && testResult.finishReason !== 'stop' && (
+                  <div className="text-[10px] text-amber-700">
+                    finish_reason: {testResult.finishReason}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="text-[10px] uppercase tracking-wider text-red-700 font-semibold">
+                  Error
+                </div>
+                <div className="font-mono text-red-800 break-all">
+                  {testResult.code ? `[${testResult.code}] ` : ''}
+                  {testResult.error || 'Unknown error'}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Settings Tab ─────────────────────────────────────────────────────────────
 function SettingsTab() {
+  // Collapsible-sections state (single-open + Show-All override, persisted)
+  const STORAGE_OPEN = 'qfph_mc_settings_open_v1';
+  const STORAGE_ALL  = 'qfph_mc_settings_showall_v1';
+  const [openSection, setOpenSectionRaw] = useState<string | null>(null);
+  const [showAllSections, setShowAllRaw] = useState(false);
+  useEffect(() => {
+    try {
+      const o = localStorage.getItem(STORAGE_OPEN);
+      if (o) setOpenSectionRaw(o);
+      setShowAllRaw(localStorage.getItem(STORAGE_ALL) === '1');
+    } catch { /* ignore */ }
+  }, []);
+  const setOpenSection = (id: string | null) => {
+    setOpenSectionRaw(id);
+    try {
+      if (id) localStorage.setItem(STORAGE_OPEN, id);
+      else localStorage.removeItem(STORAGE_OPEN);
+    } catch { /* ignore */ }
+  };
+  const toggleShowAll = () => {
+    const next = !showAllSections;
+    setShowAllRaw(next);
+    try { localStorage.setItem(STORAGE_ALL, next ? '1' : '0'); } catch { /* ignore */ }
+  };
+
   const [curPw, setCurPw]     = useState('');
   const [newPw, setNewPw]     = useState('');
   const [confirmPw, setConfirm] = useState('');
@@ -1046,11 +1551,33 @@ function SettingsTab() {
   }
 
   return (
+    <SettingsCollapseCtx.Provider
+      value={{ open: openSection, setOpen: setOpenSection, showAll: showAllSections }}
+    >
     <div className="max-w-lg space-y-4">
-      {/* Change Password */}
-      <div className="rounded-2xl bg-white border border-gray-200 p-6">
-        <h2 className="text-sm font-semibold text-gray-900 mb-1">Change Password</h2>
-        <p className="text-xs text-gray-400 mb-4">Update the admin login password.</p>
+      {/* Banner with Show All toggle */}
+      <div className="flex items-center justify-between gap-3 px-1">
+        <p className="text-xs text-gray-500">
+          Click a section to expand. The last-opened section is remembered.
+        </p>
+        <button
+          type="button"
+          onClick={toggleShowAll}
+          className={`text-[11px] font-semibold rounded-full border px-3 py-1 transition-colors ${
+            showAllSections
+              ? 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700'
+              : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:text-blue-700'
+          }`}
+        >
+          {showAllSections ? '▼ Collapse all' : '▶ Show all'}
+        </button>
+      </div>
+
+      <CollapsibleSection
+        id="password"
+        title="Change Password"
+        subtitle="Update the admin login password."
+      >
         <form onSubmit={handleChangePassword} className="space-y-3">
           <div>
             <label className="field-label">Current Password</label>
@@ -1113,12 +1640,22 @@ function SettingsTab() {
             {pwBusy ? 'Saving…' : '🔑 Update Password'}
           </button>
         </form>
-      </div>
+      </CollapsibleSection>
 
-      {/* eWallet Payment Settings */}
-      <div className="rounded-2xl bg-white border border-gray-200 p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-900">eWallet Payment Settings</h2>
-        {loadError && <p className="text-xs text-red-600">{loadError}</p>}
+      <CollapsibleSection
+        id="ai"
+        title="Kuya Quim — AI Assistant"
+        subtitle="LLM provider, endpoint, key, and test panel."
+      >
+        <AIAssistantCard />
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        id="ewallet"
+        title="eWallet Payment Settings"
+        subtitle="GCash / Maya account name and number."
+      >
+        {loadError && <p className="text-xs text-red-600 mb-2">{loadError}</p>}
         <div className="space-y-3">
           <div>
             <label className="field-label">Mobile Number</label>
@@ -1135,12 +1672,13 @@ function SettingsTab() {
             {saving ? 'Saving…' : saved ? '✓ Saved!' : 'Save Changes'}
           </button>
         </div>
-      </div>
+      </CollapsibleSection>
 
-      {/* GCash QR Code */}
-      <div className="rounded-2xl bg-white border border-gray-200 p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-900">GCash QR Code</h2>
-        <p className="text-xs text-gray-500">Upload a QR code image so users can scan and pay directly.</p>
+      <CollapsibleSection
+        id="gcash-qr"
+        title="GCash QR Code"
+        subtitle="Scannable QR for direct payment."
+      >
         {qrUrl ? (
           <div className="space-y-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1163,14 +1701,15 @@ function SettingsTab() {
           </label>
         )}
         {uploadMsg && (
-          <p className={`text-xs ${uploadMsg.includes('success') || uploadMsg.includes('removed') ? 'text-green-600' : 'text-red-600'}`}>{uploadMsg}</p>
+          <p className={`text-xs mt-2 ${uploadMsg.includes('success') || uploadMsg.includes('removed') ? 'text-green-600' : 'text-red-600'}`}>{uploadMsg}</p>
         )}
-      </div>
+      </CollapsibleSection>
 
-      {/* Maya QR Code */}
-      <div className="rounded-2xl bg-white border border-gray-200 p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-900">Maya QR Code</h2>
-        <p className="text-xs text-gray-500">Upload a Maya QR code image as an alternative payment option.</p>
+      <CollapsibleSection
+        id="maya-qr"
+        title="Maya QR Code"
+        subtitle="Alternative scannable QR for Maya payments."
+      >
         {mayaQrUrl ? (
           <div className="space-y-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1193,11 +1732,15 @@ function SettingsTab() {
           </label>
         )}
         {mayaUploadMsg && (
-          <p className={`text-xs ${mayaUploadMsg.includes('success') || mayaUploadMsg.includes('removed') ? 'text-green-600' : 'text-red-600'}`}>{mayaUploadMsg}</p>
+          <p className={`text-xs mt-2 ${mayaUploadMsg.includes('success') || mayaUploadMsg.includes('removed') ? 'text-green-600' : 'text-red-600'}`}>{mayaUploadMsg}</p>
         )}
-      </div>
-      <div className="rounded-2xl bg-white border border-gray-200 p-6">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Environment Info</h2>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        id="env"
+        title="Environment Info"
+        subtitle="Runtime details (read-only)."
+      >
         <div className="space-y-2">
           {[
             ['Environment', 'Development (local DGX)'],
@@ -1211,18 +1754,20 @@ function SettingsTab() {
             </div>
           ))}
         </div>
-      </div>
+      </CollapsibleSection>
 
-      <div className="rounded-2xl bg-red-50 border border-red-200 p-5">
-        <h3 className="text-sm font-semibold text-red-900">Danger Zone</h3>
-        <p className="text-xs text-red-600 mt-1 mb-3">
-          These actions cannot be undone.
-        </p>
+      <CollapsibleSection
+        id="danger"
+        title="Danger Zone"
+        subtitle="These actions cannot be undone."
+        accent="danger"
+      >
         <button className="text-xs text-red-600 border border-red-300 rounded-lg px-3 py-1.5 hover:bg-red-100">
           Clear All Generated PDFs
         </button>
-      </div>
+      </CollapsibleSection>
     </div>
+    </SettingsCollapseCtx.Provider>
   );
 }
 

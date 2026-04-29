@@ -133,9 +133,13 @@ export default function PaymentGate({
 
 // ── Agency logos (mirrors AGENCY_LOGO in form page) ────────────────────────────
 const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
-  'Bureau of Internal Revenue': { src: '/logos/bir.png',        w: 44, h: 44 },
-  'Pag-IBIG Fund':              { src: '/logos/pagibig.png',    w: 44, h: 44 },
+  'BIR': { src: '/logos/bir.png',        w: 44, h: 44 },
+  'Pag-IBIG':              { src: '/logos/pagibig.png',    w: 44, h: 44 },
   'PhilHealth':                 { src: '/logos/philhealth.png', w: 88, h: 27 },
+  'DFA':                        { src: '/logos/dfa.png',         w: 44, h: 44 },
+  'SSS':                        { src: '/logos/sss.png',         w: 44, h: 44 },
+  'GSIS':                       { src: '/logos/gsis.png',        w: 44, h: 44 },
+  'PRC':                        { src: '/logos/prc.png',         w: 44, h: 44 },
 };
 
 // ── Choice Screen ─────────────────────────────────────────────────────────────

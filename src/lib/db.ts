@@ -174,6 +174,13 @@ export function getDB(): Database.Database {
     _db.exec(`ALTER TABLE license_keys ADD COLUMN expires_at INTEGER;`);
   }
 
+  // Migration: add description to forms if missing (catalog subtitle for
+  // NoFormEditor rows that don't have a wired-up TS schema yet).
+  const formsCols = (_db.prepare('PRAGMA table_info(forms)').all() as { name: string }[]).map((c) => c.name);
+  if (!formsCols.includes('description')) {
+    _db.exec(`ALTER TABLE forms ADD COLUMN description TEXT;`);
+  }
+
   // Seed referral_config default row if not present
   _db.prepare(`
     INSERT OR IGNORE INTO referral_config (id, required_referrals, promo_expiry_hours, updated_at)
@@ -469,7 +476,7 @@ export function getReferralStats(): { email: string; count: number; earned_codes
 
 // ─── analytics_events CRUD ────────────────────────────────────────────────────
 
-export type AnalyticsEventType = 'form_view' | 'demo_click' | 'payment_success';
+export type AnalyticsEventType = 'form_view' | 'demo_click' | 'payment_success' | 'chat_question';
 
 export interface AnalyticsEvent {
   event_type: AnalyticsEventType;
@@ -507,6 +514,8 @@ export interface DashboardStats {
   totalFormViews: number;
   totalDemoClicks: number;
   totalPaymentSuccesses: number;
+  /** Number of questions sent to Kuya Quim chat assistant within the period. */
+  totalChatQuestions: number;
   /** Distinct visitors within the period — uses ip_hash (daily-salted SHA-256) as the de-dupe key. */
   uniqueVisitors: number;
   claimedCodes: number;
@@ -545,6 +554,13 @@ export function getDashboardStats(period: 'day' | 'week' | 'month'): DashboardSt
   // Prefer the authoritative count; fall back to beacon if both source tables are empty.
   const totalPaymentSuccesses = (paid_refs + paid_keys) || beaconPayments;
 
+  // Kuya Quim chat questions — counts every user-submitted question within the period.
+  const { chat_questions } = db.prepare(`
+    SELECT COUNT(*) AS chat_questions FROM analytics_events
+    WHERE event_type = 'chat_question' AND created_at >= ?
+  `).get(since) as { chat_questions: number };
+  const totalChatQuestions = chat_questions ?? 0;
+
   // Unique visitors within the period — distinct ip_hash (daily-salted SHA-256).
   // Falls back to session_id when ip_hash is empty (server-side events have no IP).
   const { unique_visitors } = db.prepare(`
@@ -578,6 +594,7 @@ export function getDashboardStats(period: 'day' | 'week' | 'month'): DashboardSt
     totalFormViews,
     totalDemoClicks,
     totalPaymentSuccesses,
+    totalChatQuestions,
     uniqueVisitors: unique_visitors ?? 0,
     claimedCodes: claimed,
     unclaimedCodes: unclaimed,
@@ -613,6 +630,7 @@ export interface FormCatalogRecord {
   created_at: number;
   updated_at: number;
   deleted_at: number | null;
+  description: string | null;
 }
 
 export interface FormCatalogUpsert {
@@ -623,6 +641,7 @@ export interface FormCatalogUpsert {
   pdf_path: string;
   source_url?: string | null;
   has_form_editor: 0 | 1;
+  description?: string | null;
 }
 
 /**
@@ -647,10 +666,16 @@ export function upsertFormCatalog(rec: FormCatalogUpsert): { inserted: boolean }
              pdf_path        = @pdf_path,
              source_url      = COALESCE(@source_url, source_url),
              has_form_editor = @has_form_editor,
+             description     = COALESCE(@description, description),
              updated_at      = @updated_at,
              deleted_at      = NULL
        WHERE slug = @slug
-    `).run({ ...rec, source_url: rec.source_url ?? null, updated_at: now });
+    `).run({
+      ...rec,
+      source_url:  rec.source_url  ?? null,
+      description: rec.description ?? null,
+      updated_at: now,
+    });
     return { inserted: false };
   }
 
@@ -658,14 +683,15 @@ export function upsertFormCatalog(rec: FormCatalogUpsert): { inserted: boolean }
     INSERT INTO forms
       (slug, form_code, form_name, agency, pdf_path, source_url,
        has_form_editor, is_old_form_reported, up_vote, is_paid,
-       created_at, updated_at, deleted_at)
+       description, created_at, updated_at, deleted_at)
     VALUES
       (@slug, @form_code, @form_name, @agency, @pdf_path, @source_url,
        @has_form_editor, 0, 0, 0,
-       @created_at, @updated_at, NULL)
+       @description, @created_at, @updated_at, NULL)
   `).run({
     ...rec,
-    source_url: rec.source_url ?? null,
+    source_url:  rec.source_url  ?? null,
+    description: rec.description ?? null,
     created_at: now,
     updated_at: now,
   });

@@ -29,6 +29,24 @@ type CoordEntry = {
   wrap?: boolean;
   maxHeight?: number;
   lineHeight?: number;
+  /** Structured row × col grid rendering (e.g. CF-4 drugs table).
+   *  Triggered when the value contains newlines. Each line = one row;
+   *  cells are split on `colSep` (default ';'). Up to `rows` lines are
+   *  rendered, each at y = CF4_PAGE_H - (rowTop0 + n*rowHeight + 5.3),
+   *  with each cell drawn at the matching `cols[i].x` (truncated to
+   *  `maxWidth`). See L-SMART-CF4-04. */
+  grid?: {
+    rowTop0: number;       // pdfplumber-style top of first row (page coords from top)
+    rowHeight: number;     // pt between consecutive row tops
+    rows: number;          // max rows to render
+    cols: {
+      x: number;
+      maxWidth: number;
+      align?: 'left' | 'right' | 'center';
+    }[];
+    colSep?: string;       // default ';'
+    fontSize?: number;     // default 7
+  };
 };
 type CoordsMap = Record<string, CoordEntry>;
 
@@ -1234,10 +1252,28 @@ const CF4_FIELD_COORDS: CoordsMap = {
   surgical_procedure_rvs: { page: 1, x: 220, y: CF4_PAGE_H - 525.1 + 1, maxWidth: 320, fontSize: 8 },
 
   // ── V. Drugs/Medicines (page 2, band 541.3-655.9, ~114pt) ──
-  // Header labels at top≈547 ; data from top≈565 down
+  // Two rendering modes:
+  //   • Free-text wrap (legacy) — used when value has no newlines.
+  //   • Structured 7-row × 3-col grid — used when value contains '\n'.
+  //     Row anchor lines (pdfplumber tops): 686.9, 701.6, 716.2, 730.8,
+  //     745.7, 760.5, 775.6, 790.7 → 7 cells of ~14.6pt each.
+  //     Left-side cols only in v1 (Generic | Qty/Dose | Total Cost).
+  //     See L-SMART-CF4-04.
   drugs_medicines_summary: {
     page: 1, x: 45, y: CF4_PAGE_H - 565, maxWidth: 495,
     maxHeight: 88, lineHeight: 9, fontSize: 7, wrap: true,
+    grid: {
+      rowTop0: 686.9,
+      rowHeight: 14.6,
+      rows: 7,
+      fontSize: 7,
+      colSep: ';',
+      cols: [
+        { x:  46, maxWidth:  76 },                  // Generic Name
+        { x: 125, maxWidth: 113 },                  // Qty/Dose/Route/Freq
+        { x: 285, maxWidth:  44, align: 'right' },  // Total Cost
+      ],
+    },
   },
 
   // ── VI. Outcome — handled via CF4_CHECKBOX_COORDS ──
@@ -4073,6 +4109,50 @@ export async function generatePDF(
     //   overflows. A pre-render slice(0,60) clobbered values that would have
     //   fit the underline at the configured size. See L-SMART-CF3-03.
     const text = toWinAnsi(rawValue);
+
+    // ── Structured grid rendering (L-SMART-CF4-04) ─────────────────────────
+    //   Triggered when the value contains newlines AND the field declares a
+    //   `grid` config. Each line = one row; cells split on `colSep`. Falls
+    //   back to wrap/single-line when no newlines (legacy free-text path).
+    if (coords.grid && rawValue.includes('\n')) {
+      const g = coords.grid;
+      const gFontSize = g.fontSize ?? coords.fontSize ?? 7;
+      const colSep = g.colSep ?? ';';
+      const rowsIn = rawValue.split('\n').map((s) => s.trim()).filter(Boolean);
+      const nRows = Math.min(rowsIn.length, g.rows);
+      for (let r = 0; r < nRows; r++) {
+        const cells = rowsIn[r].split(colSep).map((s) => s.trim());
+        const yBase = CF4_PAGE_H - (g.rowTop0 + r * g.rowHeight + 5.3);
+        for (let c = 0; c < g.cols.length; c++) {
+          const cellRaw = cells[c] ?? '';
+          if (!cellRaw) continue;
+          const cell = toWinAnsi(cellRaw);
+          const col = g.cols[c];
+          // Auto-fit per cell: scale down to 6pt if needed.
+          let size = gFontSize;
+          while (size > 6 && font.widthOfTextAtSize(cell, size) > col.maxWidth) size -= 0.5;
+          let drawText = cell;
+          // Tail-truncate if even 6pt overflows.
+          if (font.widthOfTextAtSize(drawText, size) > col.maxWidth) {
+            while (drawText.length > 1 &&
+                   font.widthOfTextAtSize(drawText + '…', size) > col.maxWidth) {
+              drawText = drawText.slice(0, -1);
+            }
+            drawText += '…';
+          }
+          const w = font.widthOfTextAtSize(drawText, size);
+          let x = col.x;
+          if (col.align === 'right') x = col.x + col.maxWidth - w;
+          else if (col.align === 'center') x = col.x + (col.maxWidth - w) / 2;
+          for (const yOff of copyYOffsets) {
+            page.drawText(drawText, {
+              x, y: yBase + yOff, size, font, color: rgb(0, 0, 0),
+            });
+          }
+        }
+      }
+      continue;
+    }
 
     // ── Per-character box rendering (PIN, DOB digit boxes) ─────────────────
     if (coords.boxCenters) {

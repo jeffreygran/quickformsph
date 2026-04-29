@@ -13,7 +13,7 @@ import { createHash } from 'crypto';
 import { insertAnalyticsEvent, type AnalyticsEventType } from '@/lib/db';
 import { isBlocked } from '@/lib/ip-blocklist';
 
-const VALID_EVENTS = new Set<AnalyticsEventType>(['form_view', 'demo_click', 'payment_success']);
+const VALID_EVENTS = new Set<AnalyticsEventType>(['form_view', 'demo_click', 'payment_success', 'chat_question']);
 const SLUG_RE = /^[a-z0-9-]{1,80}$/;
 
 function getIP(req: NextRequest): string {

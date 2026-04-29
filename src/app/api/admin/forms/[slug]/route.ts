@@ -5,7 +5,7 @@
  *                                    is_old_form_reported, is_paid, up_vote)
  * DELETE /api/admin/forms/[slug]   — soft delete (preserves up_vote history)
  *
- * Auth: `mc_auth` cookie.
+ * Auth: `qfph_admin` cookie.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,7 +16,7 @@ import {
 } from '@/lib/db';
 
 function isAuthed(req: NextRequest): boolean {
-  return Boolean(req.cookies.get('mc_auth')?.value);
+  return Boolean(req.cookies.get('qfph_admin')?.value);
 }
 
 interface Ctx { params: { slug: string } }

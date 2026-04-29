@@ -9,7 +9,7 @@
  * Secret is derived from FORM_DATA_ENCRYPTION_KEY (already provisioned).
  */
 
-import { SignJWT } from 'jose';
+import { SignJWT, jwtVerify } from 'jose';
 
 const TOKEN_TTL_SECONDS = 48 * 60 * 60; // 48 hours
 
@@ -41,4 +41,22 @@ export async function issueAccessToken(
     .setExpirationTime(expSec)
     .sign(getSecret());
   return { token, expiresAt: expSec * 1000 };
+}
+
+/**
+ * Verify a previously issued access token. Returns the decoded payload when
+ * valid (and unexpired), or null otherwise. Used by the Kuya Quim chat
+ * endpoint to gate AI access to donors only.
+ */
+export async function verifyAccessToken(
+  token: string,
+): Promise<{ ref: string; amt: number } | null> {
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
+    if (typeof payload.ref !== 'string') return null;
+    return { ref: payload.ref, amt: typeof payload.amt === 'number' ? payload.amt : 0 };
+  } catch {
+    return null;
+  }
 }

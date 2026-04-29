@@ -70,7 +70,12 @@ const PERSONAS: Record<string, string>[] = [
       'On admission, patient was started on ceftriaxone 2 g IV q24h + azithromycin 500 mg PO OD per CAP-MR pathway. Oxygen via nasal cannula 2 LPM titrated to SpO2 ≥ 95%. Day 2: defervesced; cough productive with decreasing volume of sputum. Day 3: weaned off oxygen, ambulated without dyspnea. Day 4: shifted to PO cefuroxime; observed for 24 h. Day 5: discharged improved on cefuroxime 500 mg BID for 7 more days, paracetamol PRN, salbutamol nebulization PRN. Follow-up at OPD in 1 week with repeat CXR.',
     surgical_procedure_rvs: '',
     drugs_medicines_summary:
-      'Ceftriaxone 2g IV q24h x 4d — ₱3,200; Azithromycin 500mg PO OD x 5d — ₱520; Cefuroxime 500mg BID x 7d (TTOH) — ₱680; Paracetamol 500mg q4h PRN — ₱120; Salbutamol neb 1neb q6h PRN — ₱340; D5NSS 1L x 3 — ₱270.',
+      'Ceftriaxone 2g IV; q24h x 4d; 3,200\n' +
+      'Azithromycin 500mg PO; OD x 5d; 520\n' +
+      'Cefuroxime 500mg PO; BID x 7d TTOH; 680\n' +
+      'Paracetamol 500mg; q4h PRN; 120\n' +
+      'Salbutamol neb; q6h PRN; 340\n' +
+      'D5NSS 1L; x 3 bags; 270',
     patient_disposition: 'IMPROVED',
     transferred_hci_name: '', expired_date: '',
     attending_physician_name: 'JUAN P. DELA CRUZ, MD',
@@ -124,7 +129,10 @@ const PERSONAS: Record<string, string>[] = [
       'Patient kept on NPO; started on D5LR + cefoxitin 2 g IV loading + ketorolac 30 mg IV q6h. Surgical service evaluated and recommended emergency appendectomy; however, OR was occupied by an ongoing trauma case with no other available slot until next day. Given peritoneal signs and rising WBC, decision was made to TRANSFER to a tertiary center capable of immediate surgical intervention. Patient and family briefed; vitals stable at transfer; pain pharmacologically controlled.',
     surgical_procedure_rvs: 'Appendectomy planned at receiving HCI — RVS 44970',
     drugs_medicines_summary:
-      'Cefoxitin 2g IV loading — ₱950; Ketorolac 30mg IV q6h x 1 — ₱120; D5LR 1L x 1 — ₱110; Hyoscine 20mg IV q8h PRN x 1 — ₱85.',
+      'Cefoxitin 2g IV; loading dose; 950\n' +
+      'Ketorolac 30mg IV; q6h x 1; 120\n' +
+      'D5LR 1L; x 1; 110\n' +
+      'Hyoscine 20mg IV; q8h PRN x 1; 85',
     patient_disposition: 'TRANSFERRED',
     transferred_hci_name: 'BATANGAS MEDICAL CENTER (BatMC) — SURGERY',
     expired_date: '',
@@ -179,7 +187,13 @@ const PERSONAS: Record<string, string>[] = [
       'Resuscitated with 30 mL/kg crystalloid bolus and started on norepinephrine drip titrated to MAP ≥ 65. Empiric IV piperacillin-tazobactam 4.5 g q6h + amikacin 15 mg/kg OD initiated after blood and urine cultures. Despite escalation to dual vasopressor (norepinephrine + vasopressin), patient developed worsening lactic acidosis and acute kidney injury requiring CRRT. Day 2: developed acute respiratory failure requiring mechanical ventilation; ARDS picture on CXR. Day 2 PM: progressive hypotension unresponsive to maximal vasopressors. Family informed and opted for DNR. Patient developed bradyarrhythmia then asystole at 04:00H on 01/27/2026. CPR not initiated per family wishes; pronounced expired at 04:15H. Blood culture later grew E. coli ESBL+, sensitive to meropenem.',
     surgical_procedure_rvs: '',
     drugs_medicines_summary:
-      'Norepinephrine drip — ₱4,800; Vasopressin drip — ₱3,200; Piperacillin-tazobactam 4.5g q6h x 2d — ₱5,400; Amikacin 1g IV OD x 2 — ₱1,200; Hydrocortisone 50mg IV q6h x 2d — ₱880; CRRT consumables — ₱22,500; Mechanical ventilator rental x 1d — ₱8,000.',
+      'Norepinephrine drip; titrated x 2d; 4,800\n' +
+      'Vasopressin drip; x 1d; 3,200\n' +
+      'Pip-Tazo 4.5g IV; q6h x 2d; 5,400\n' +
+      'Amikacin 1g IV; OD x 2; 1,200\n' +
+      'Hydrocortisone 50mg IV; q6h x 2d; 880\n' +
+      'CRRT consumables; x 1 session; 22,500\n' +
+      'Mech ventilator rental; x 1d; 8,000',
     patient_disposition: 'EXPIRED',
     transferred_hci_name: '',
     expired_date: '01 / 27 / 2026',

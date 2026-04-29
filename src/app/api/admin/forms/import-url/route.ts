@@ -8,7 +8,7 @@
  * runs an idempotent re-scan, and patches `source_url` on the resulting row
  * so the official URL is preserved.
  *
- * Auth: `mc_auth` cookie.
+ * Auth: `qfph_admin` cookie.
  * Limits: 25 MB, must respond with PDF magic bytes (%PDF-),
  *         only http(s) URLs accepted (no file://, no localhost / private IPs).
  */
@@ -24,7 +24,7 @@ const MAX_BYTES   = 25 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 30_000;
 
 function isAuthed(req: NextRequest): boolean {
-  return Boolean(req.cookies.get('mc_auth')?.value);
+  return Boolean(req.cookies.get('qfph_admin')?.value);
 }
 
 /** Block private/loopback hosts to avoid SSRF. */

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Kuya Kim icon">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#fcd34d"/>
+    </radialGradient>
+  </defs>
+  <!-- Frame -->
+  <rect x="0" y="0" width="64" height="64" rx="12" fill="url(#bg)" stroke="#92400e" stroke-width="2"/>
+  <!-- Face -->
+  <circle cx="32" cy="36" r="16" fill="#fcd9b6"/>
+  <!-- Hat brim -->
+  <ellipse cx="32" cy="22" rx="22" ry="5" fill="#a16207" stroke="#78350f" stroke-width="1.5"/>
+  <!-- Hat crown -->
+  <path d="M16 22 Q16 8 32 8 Q48 8 48 22 Z" fill="#b45309" stroke="#78350f" stroke-width="1.5"/>
+  <!-- Hat band -->
+  <rect x="16" y="20" width="32" height="3" fill="#78350f"/>
+  <!-- Eyes -->
+  <ellipse cx="26" cy="36" rx="2.2" ry="2.6" fill="#1f2937"/>
+  <ellipse cx="38" cy="36" rx="2.2" ry="2.6" fill="#1f2937"/>
+  <!-- Smile -->
+  <path d="M24 44 Q32 50 40 44" stroke="#7c2d12" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

@@ -1,7 +1,7 @@
 /**
  * POST /api/admin/forms/scan
  *
- * Auth: requires the `mc_auth` cookie (set by /mc/login).
+ * Auth: requires the `qfph_admin` cookie (set by /mc/login).
  * Returns: ScanResult (see src/lib/forms-scan.ts).
  */
 
@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runScan } from '@/lib/forms-scan';
 
 function isAuthed(req: NextRequest): boolean {
-  return Boolean(req.cookies.get('mc_auth')?.value);
+  return Boolean(req.cookies.get('qfph_admin')?.value);
 }
 
 export async function POST(req: NextRequest) {

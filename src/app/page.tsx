@@ -7,7 +7,9 @@ import Image from 'next/image';
 import { FORMS, FormSchema } from '@/data/forms';
 import SuggestionModal from '@/components/SuggestionModal';
 import DonationModal from '@/components/DonationModal';
+import KuyaQuimChat from '@/components/KuyaQuimChat';
 import { trackEvent } from '@/lib/analytics-client';
+import { matchesQuery } from '@/lib/searchForms';
 
 const HERO_CATEGORIES = ['Pag-IBIG', 'PhilHealth', 'BIR', 'SSS', 'DFA', 'LTO', 'Government'];
 const HERO_INTERVAL_MS = 3500; // 3.5 seconds
@@ -232,25 +234,14 @@ export default function HomePage() {
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
     if (agency !== 'All' && search.trim()) {
-      const hasHits = FORMS.some((f) => {
-        const matchSearch =
-          f.name.toLowerCase().includes(search.toLowerCase()) ||
-          f.code.toLowerCase().includes(search.toLowerCase()) ||
-          f.agency.toLowerCase().includes(search.toLowerCase());
-        return matchSearch && f.agency === agency;
-      });
+      const hasHits = FORMS.some((f) => matchesQuery(f, search) && f.agency === agency);
       if (!hasHits) setAgency('All');
     }
   }, [search, agency]);
 
   const filtered = FORMS.filter((f) => {
-    const matchSearch =
-      !search ||
-      f.name.toLowerCase().includes(search.toLowerCase()) ||
-      f.code.toLowerCase().includes(search.toLowerCase()) ||
-      f.agency.toLowerCase().includes(search.toLowerCase());
     const matchAgency = agency === 'All' || f.agency === agency;
-    return matchSearch && matchAgency;
+    return matchesQuery(f, search) && matchAgency;
   });
 
   async function executeDownload(code: string) {
@@ -553,13 +544,7 @@ export default function HomePage() {
           {AGENCY_FILTERS.filter((a) => {
             if (a === 'All') return true;
             // Only show if at least one search-matching form belongs to this agency
-            return FORMS.some((f) => {
-              const matchSearch =
-                f.name.toLowerCase().includes(search.toLowerCase()) ||
-                f.code.toLowerCase().includes(search.toLowerCase()) ||
-                f.agency.toLowerCase().includes(search.toLowerCase());
-              return matchSearch && f.agency === a;
-            });
+            return FORMS.some((f) => matchesQuery(f, search) && f.agency === a);
           }).map((a) => (
             <button
               key={a}
@@ -617,14 +602,46 @@ export default function HomePage() {
         {/* Sentinel for IntersectionObserver */}
         <div ref={sentinelRef} className="h-1" />
 
-        {/* ── Coming Soon ── */}
+        {/* ── Can't find your form? ── */}
         {search.trim() && <div className="mt-6 px-4 py-4 flex flex-col items-center justify-center gap-1 text-center">
-          <p className="text-sm font-medium text-gray-500">More forms coming soon …</p>
+          <p className="text-sm font-medium text-gray-500">
+            Can&apos;t find your form? Click{' '}
+            <Link
+              href={`/forms?q=${encodeURIComponent(search.trim())}`}
+              className="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+            >
+              All Forms
+            </Link>
+            {' '}or{' '}
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event('kuya-quim:open'))}
+              className="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors whitespace-nowrap"
+            >
+              Ask Kuya Quim
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/kuya-kim-icon.png"
+                alt=""
+                width={20}
+                height={20}
+                className="ml-1 inline-block h-5 w-5 align-middle rounded-full ring-1 ring-blue-100 shadow-sm object-cover bg-white"
+                aria-hidden="true"
+                onError={(e) => {
+                  const t = e.currentTarget;
+                  if (t.dataset.fallback !== '1') {
+                    t.dataset.fallback = '1';
+                    t.src = '/kuya-kim-icon.svg';
+                  }
+                }}
+              />
+            </button>
+          </p>
           <button
             onClick={() => setShowSuggestion(true)}
             className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
           >
-            Suggest a form &amp; feedback
+            Share Feedback
           </button>
         </div>}
       </main>
@@ -638,6 +655,9 @@ export default function HomePage() {
       {showDonation && (
         <DonationModal onClose={() => setShowDonation(false)} />
       )}
+
+      {/* ── Kuya Quim Chat (floating, listens for `kuya-quim:open`) ── */}
+      <KuyaQuimChat hideLauncher />
 
       {/* ── Privacy Notice (first visit only) ── */}
       {showPrivacyModal && (
@@ -705,9 +725,13 @@ function PrivacyNoticeModal({ onAck }: { onAck: () => void }) {
 
 // ─── Agency logo map ─────────────────────────────────────────────────────────
 const AGENCY_LOGO: Record<string, { src: string; w: number; h: number }> = {
-  'Bureau of Internal Revenue': { src: '/logos/bir.png', w: 40, h: 40 },
-  'Pag-IBIG Fund':              { src: '/logos/pagibig.png', w: 40, h: 40 },
+  'BIR': { src: '/logos/bir.png', w: 40, h: 40 },
+  'Pag-IBIG':              { src: '/logos/pagibig.png', w: 40, h: 40 },
   'PhilHealth':                 { src: '/logos/philhealth.png?v=3', w: 40, h: 40 },
+  'DFA':                        { src: '/logos/dfa.png',        w: 40, h: 40 },
+  'SSS':                        { src: '/logos/sss.png',        w: 40, h: 40 },
+  'GSIS':                       { src: '/logos/gsis.png',       w: 40, h: 40 },
+  'PRC':                        { src: '/logos/prc.png',        w: 40, h: 40 },
 };
 
 // ─── FormCard ─────────────────────────────────────────────────────────────────

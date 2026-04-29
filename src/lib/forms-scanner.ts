@@ -59,9 +59,21 @@ export function parsePdfFilename(filename: string): ParsedPdfFilename {
     codeRaw = base;
   }
 
+  // Canonicalize agency aliases so the catalog never splits one issuer into
+  // multiple cards/filter pills (e.g. "Pagibig" vs "PagIbig" vs "Pag-IBIG Fund").
+  agency = canonicalizeAgency(agency);
+
   const formCode = codeRaw.toUpperCase().replace(/\s+/g, '_');
   const formName = `${agency} ${pretty(codeRaw)}`.trim();
   const slug     = `${kebab(agency)}-${kebab(codeRaw)}`;
 
   return { formName, formCode, slug, agency };
+}
+
+/** Map filename / schema agency variants to their canonical display name. */
+export function canonicalizeAgency(raw: string): string {
+  const k = raw.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (k === 'pagibig' || k === 'pagibigfund') return 'Pag-IBIG';
+  if (k === 'bir' || k === 'bureauofinternalrevenue') return 'BIR';
+  return raw;
 }
