@@ -20,6 +20,34 @@ import 'server-only';
 import { listFormCatalog } from './db';
 import { FORMS, type FormSchema } from '@/data/forms';
 
+/**
+ * Self-heal helper: if the SQLite `forms` table is empty (e.g. fresh Azure
+ * container with a wiped persisted volume, or first cold-start after a new
+ * App Service Plan), trigger a one-time scan of public/forms/* to populate
+ * the catalog. Idempotent — does nothing once any row exists.
+ *
+ * Must be awaited from Server Components BEFORE calling getPublicCatalog().
+ * Kept out of getDB()/getPublicCatalog() so those stay sync and don't break
+ * synchronous call sites (kuya-quim prompt builder).
+ */
+let _seedPromise: Promise<void> | null = null;
+export async function ensureCatalogSeeded(): Promise<void> {
+  if (listFormCatalog().length > 0) return;
+  if (_seedPromise) return _seedPromise;
+  _seedPromise = (async () => {
+    try {
+      const { runScan } = await import('./forms-scan');
+      const r = await runScan();
+      console.log(`[catalog] auto-seed complete: scanned=${r.scanned} inserted=${r.inserted} updated=${r.updated}`);
+    } catch (err) {
+      console.error('[catalog] auto-seed failed:', err);
+      _seedPromise = null; // allow retry on next request
+      throw err;
+    }
+  })();
+  return _seedPromise;
+}
+
 export interface CatalogEntry {
   slug: string;
   formCode: string;

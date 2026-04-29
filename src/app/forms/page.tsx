@@ -8,11 +8,12 @@
  * Forms without an editor render as "Soon" with a 👍 Upvote button.
  */
 import FormsListClient, { type PublicFormEntry } from './FormsListClient';
-import { getPublicCatalog } from '@/lib/catalog';
+import { getPublicCatalog, ensureCatalogSeeded } from '@/lib/catalog';
 
 export const dynamic = 'force-dynamic';
 
-export default function FormsPage() {
+export default async function FormsPage() {
+  await ensureCatalogSeeded();
   const catalog = getPublicCatalog();
   const forms: PublicFormEntry[] = catalog.map((c) => ({
     slug:           c.slug,
